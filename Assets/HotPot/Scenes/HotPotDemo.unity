@@ -198,6 +198,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 36912600}
+  - component: {fileID: 36912601}
   m_Layer: 0
   m_Name: ChefManager
   m_TagString: Untagged
@@ -220,6 +221,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &36912601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 36912599}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52ddc71c5d111044db2b73dd265e186b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ChefManager
+  chefAnimator: {fileID: 996403953}
+  conveyorMovement: {fileID: 333948239}
+  preparationDuration: 1.5
 --- !u!1001 &51705697
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -630,6 +646,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 230964880}
+  - component: {fileID: 230964882}
+  - component: {fileID: 230964881}
   m_Layer: 0
   m_Name: FoodBoardManager
   m_TagString: Untagged
@@ -652,6 +670,77 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &230964881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 230964879}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 777680a965416d9489727a39566b5ddf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.FoodFlyAnimator
+  flyDuration: 0.5
+  arcHeight: 1.5
+  portionDelay: 0.1
+  moveCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  peakScale: 1.3
+  spinTurns: 1
+  sortingOrderBoost: 100
+  landEffectPrefab: {fileID: 0}
+  landSound: {fileID: 0}
+  landVolume: 1
+  landPitchJitter: 0.08
+--- !u!114 &230964882
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 230964879}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ede7411029ed094ab9c84b07d3e15b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.FoodBoardManager
+  ingredientColumns:
+  - {fileID: 1326830406}
+  - {fileID: 1560744609}
+  - {fileID: 657944971}
+  - {fileID: 815941087}
+  - {fileID: 932491920}
+  foodIconConfig: {fileID: 11400000, guid: 8e8a947c10e8406f9e6f03211e19a357, type: 2}
+  ingredientDishPrefab: {fileID: 3317517828834347235, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+  dishPoolRoot: {fileID: 1235972041}
+  inputCamera: {fileID: 1990410786}
+  shiftUpDuration: 0.25
+  rowSpacing: 1.31
+  flyAnimator: {fileID: 230964881}
 --- !u!1001 &254979771
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1026,7 +1115,6 @@ GameObject:
   - component: {fileID: 333948237}
   - component: {fileID: 333948239}
   - component: {fileID: 333948238}
-  - component: {fileID: 333948240}
   m_Layer: 0
   m_Name: Conveyor_Chef
   m_TagString: Untagged
@@ -2092,21 +2180,6 @@ MonoBehaviour:
   isMoving: 1
   startOffset: 0
   slotSortingOrder: 70
---- !u!114 &333948240
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 333948236}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 52ddc71c5d111044db2b73dd265e186b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ChefManager
-  chefAnimator: {fileID: 996403953}
-  conveyorMovement: {fileID: 333948239}
-  preparationDuration: 1.5
 --- !u!1001 &354814974
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4418,8 +4491,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 100
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 0.9056604, g: 0.46969873, b: 0.13243146, a: 1}
+  m_Sprite: {fileID: -2021818930018314557, guid: 1697944c48a751c409e10827a030b4ec, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -7932,7 +8005,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2030850579}
-  - component: {fileID: 2030850580}
   m_Layer: 0
   m_Name: Conveyor_Food
   m_TagString: Untagged
@@ -7958,30 +8030,6 @@ Transform:
   - {fileID: 1235972041}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2030850580
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2030850578}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ede7411029ed094ab9c84b07d3e15b3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.FoodBoardManager
-  ingredientColumns:
-  - {fileID: 1326830406}
-  - {fileID: 1560744609}
-  - {fileID: 657944971}
-  - {fileID: 815941087}
-  - {fileID: 932491920}
-  foodIconConfig: {fileID: 11400000, guid: 8e8a947c10e8406f9e6f03211e19a357, type: 2}
-  ingredientDishPrefab: {fileID: 3317517828834347235, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
-  dishPoolRoot: {fileID: 1235972041}
-  inputCamera: {fileID: 1990410786}
-  shiftUpDuration: 0.25
-  rowSpacing: 1.31
 --- !u!1 &2068166833
 GameObject:
   m_ObjectHideFlags: 0
@@ -8663,6 +8711,10 @@ PrefabInstance:
     - target: {fileID: 4735157543829742994, guid: 011faeb0551a18143ac4991b7674f9fe, type: 3}
       propertyPath: m_Name
       value: ConveyorStandalone
+      objectReference: {fileID: 0}
+    - target: {fileID: 4735157543829742994, guid: 011faeb0551a18143ac4991b7674f9fe, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

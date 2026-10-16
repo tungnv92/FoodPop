@@ -42,6 +42,8 @@ namespace FoodPop
         [Min(0f)] [SerializeField] private float shiftUpDuration = 0.18f;
         [Tooltip("Khoảng cách theo trục Y (đơn vị world cục bộ của cột) giữa hai đĩa liền nhau trong cùng một cột.")]
         [Min(0f)] [SerializeField] private float rowSpacing = 1.31f;
+        [Tooltip("Hoạt cảnh món nhảy vòng cung lên băng chuyền; để trống sẽ tự thêm vào cùng GameObject.")]
+        [SerializeField] private FoodFlyAnimator flyAnimator;
 
         // EN: Raised after a head dish is picked: gives its food type and the conveyor slots that received its portions.
         // VI: Phát ra sau khi chọn đĩa đầu cột: cho biết loại nguyên liệu và các slot băng chuyền đã nhận từng phần của đĩa.
@@ -138,8 +140,8 @@ namespace FoodPop
             return false;
         }
 
-        // EN: Picks a column's head dish: puts one portion per amount onto the nearest empty conveyor slots, removes the dish from the column, slides the rest up one row and raises DishPicked. Fails without changes when there are not enough empty slots.
-        // VI: Chọn đĩa đầu cột: đặt mỗi phần (theo amount) vào các slot rỗng gần đĩa nhất trên băng chuyền, gỡ đĩa khỏi cột, đẩy các đĩa còn lại lên một hàng và phát DishPicked. Không thay đổi gì nếu không đủ slot rỗng.
+        // EN: Picks a column's head dish: reserves one conveyor slot per portion, launches the arc animation from the dish to those slots, removes the dish from the column, slides the rest up one row and raises DishPicked. Fails without changes when there are not enough empty slots.
+        // VI: Chọn đĩa đầu cột: giữ mỗi phần (theo amount) một slot băng chuyền, chạy hoạt cảnh nhảy vòng cung từ đĩa tới các slot đó, gỡ đĩa khỏi cột, đẩy các đĩa còn lại lên một hàng và phát DishPicked. Không thay đổi gì nếu không đủ slot rỗng.
         public bool TryPickDish(Food dish)
         {
             if (dish == null || dish.transform.parent == null)
@@ -150,6 +152,7 @@ namespace FoodPop
             FoodType type = dish.foodType;
             if (!TryFillConveyorSlots(type, dish.amount, dish.transform.position))
                 return false;
+            LaunchPickAnimation(dish, type);
             FinishColumnShift(column);
             RemoveFromBoard(dish);
             ShiftColumnUp(column);
@@ -171,6 +174,31 @@ namespace FoodPop
             foreach (ConveyorSlot slot in targetSlots)
                 slot.TryFillFood(type, foodIconConfig);
             return true;
+        }
+
+        // EN: Sends the picked dish's portions flying from its ingredient sprite to the reserved slots; must run before the dish is returned to the pool.
+        // VI: Cho các phần của đĩa vừa chọn bay từ sprite nguyên liệu tới các slot đã giữ; phải gọi trước khi trả đĩa về pool.
+        private void LaunchPickAnimation(Food dish, FoodType type)
+        {
+            FoodFlyAnimator animator = GetFlyAnimator();
+            if (animator == null)
+                return;
+            Transform iconChild = dish.transform.Find("Ingredient");
+            SpriteRenderer source = iconChild != null ? iconChild.GetComponent<SpriteRenderer>() : null;
+            Vector3 start = source != null ? source.transform.position : dish.transform.position;
+            Sprite icon = source != null && source.sprite != null ? source.sprite : GetIcon(type);
+            animator.Launch(source, start, icon, targetSlots);
+        }
+
+        // EN: Returns the assigned fly animator, adding one to this GameObject on first use so scenes work without extra setup.
+        // VI: Trả về animator bay đã gán, tự thêm vào GameObject này ở lần dùng đầu để scene chạy được mà không cần cấu hình thêm.
+        private FoodFlyAnimator GetFlyAnimator()
+        {
+            if (flyAnimator == null)
+                flyAnimator = GetComponent<FoodFlyAnimator>();
+            if (flyAnimator == null)
+                flyAnimator = gameObject.AddComponent<FoodFlyAnimator>();
+            return flyAnimator;
         }
 
         // EN: Takes a picked dish off the board, returning it to the pool (or just hiding it when it is not pooled).

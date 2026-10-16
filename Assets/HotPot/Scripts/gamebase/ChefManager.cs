@@ -156,12 +156,12 @@ namespace FoodPop
             return false;
         }
 
-        // EN: Starts one raw-food job on an owned active slot, rejecting concurrent or invalid work.
-        // VI: Bắt đầu sơ chế một nguyên liệu thô trên slot đang hoạt động thuộc manager, từ chối việc trùng hoặc không hợp lệ.
+        // EN: Starts one raw-food job on an owned active slot, rejecting concurrent or invalid work and food that is still flying in from the board.
+        // VI: Bắt đầu sơ chế một nguyên liệu thô trên slot đang hoạt động thuộc manager, từ chối việc trùng, không hợp lệ hoặc món vẫn đang bay từ board lên.
         public bool TryPrepareSlot(ConveyorSlot slot)
         {
             if (!isActiveAndEnabled || IsBusy || chefAnimator == null || !ContainsSlot(slot) ||
-                !slot.isActiveAndEnabled || slot.isEmpty || slot.food == null || !slot.food.IsRaw)
+                !slot.isActiveAndEnabled || slot.isEmpty || slot.IsFoodArriving || slot.food == null || !slot.food.IsRaw)
                 return false;
             preparingSlot = slot;
             preparingFood = slot.food;
