@@ -1,0 +1,161 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5cb36b8e9e34dca889267a80d360227, type: 3}
+  m_Name: LevelConfig_01
+  m_EditorClassIdentifier: Assembly-CSharp::LevelConfig
+  leftQueue:
+  - foods:
+    - foodType: 3
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 1
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 9
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 11
+      requiredCount: 2
+      isHidden: 0
+  - foods:
+    - foodType: 2
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 12
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 13
+      requiredCount: 2
+      isHidden: 0
+  - foods:
+    - foodType: 4
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 11
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 7
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 6
+      requiredCount: 1
+      isHidden: 0
+  rightQueue:
+  - foods:
+    - foodType: 4
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 5
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 13
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 6
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 7
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 10
+      requiredCount: 1
+      isHidden: 0
+  - foods:
+    - foodType: 1
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 3
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 9
+      requiredCount: 1
+      isHidden: 0
+  - foods:
+    - foodType: 12
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 5
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 2
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 10
+      requiredCount: 1
+      isHidden: 0
+  boardRows: 5
+  boardColumns: 4
+  ingredientBoard:
+  - foods:
+    - foodType: 1
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 1
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 2
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 2
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 3
+      requiredCount: 1
+      isHidden: 0
+  - foods:
+    - foodType: 3
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 4
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 4
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 5
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 5
+      requiredCount: 1
+      isHidden: 0
+  - foods:
+    - foodType: 6
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 6
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 7
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 13
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 13
+      requiredCount: 1
+      isHidden: 0
+  - foods:
+    - foodType: 9
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 10
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 11
+      requiredCount: 2
+      isHidden: 0
+    - foodType: 11
+      requiredCount: 1
+      isHidden: 0
+    - foodType: 12
+      requiredCount: 2
+      isHidden: 0
