@@ -24,7 +24,7 @@ namespace FoodPop
             [Tooltip("Các biến thể tiếng chặt thêm (tùy chọn); mỗi nhát chọn ngẫu nhiên giữa tiếng chính và các biến thể để đỡ lặp lại.")]
             public AudioClip[] chopSoundVariants;
             [Tooltip("Prefab vụn riêng của nguyên liệu này bắn ra mỗi nhát chặt; để trống sẽ dùng vụn theo nhóm.")]
-            public ParticleSystem chopDebris;
+            public ParticleEffect chopDebris;
         }
 
         [Tooltip("Mỗi loại nguyên liệu một dòng; dùng nút \"Tự điền từ Art/Sprites/Foods\" trong menu ⋮ để điền nhanh.")]
@@ -71,7 +71,7 @@ namespace FoodPop
 
         // EN: Returns the chop debris prefab set for a food type, or null when it should fall back to its group's debris.
         // VI: Trả về prefab vụn riêng của loại nguyên liệu, hoặc null khi cần dùng vụn theo nhóm.
-        public ParticleSystem GetChopDebris(FoodType type)
+        public ParticleEffect GetChopDebris(FoodType type)
         {
             FoodIcon entry = Find(type);
             return entry != null ? entry.chopDebris : null;

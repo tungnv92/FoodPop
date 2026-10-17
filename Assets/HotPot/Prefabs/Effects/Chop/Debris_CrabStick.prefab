@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6602061068964295144}
   - component: {fileID: 7854972918494124514}
   - component: {fileID: 6721110265100670556}
+  - component: {fileID: 8768749277253711022}
   m_Layer: 0
   m_Name: Debris_CrabStick
   m_TagString: Untagged
@@ -4837,6 +4838,25 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &8768749277253711022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7491024153490445209}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 7854972918494124514}
+  layers:
+  - {fileID: 7854972918494124514}
+  - {fileID: 5702087849564481036}
+  renderers:
+  - {fileID: 6721110265100670556}
+  - {fileID: 8678069742043346058}
 --- !u!1 &7579607192007409816
 GameObject:
   m_ObjectHideFlags: 0

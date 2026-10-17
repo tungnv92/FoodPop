@@ -4847,6 +4847,7 @@ GameObject:
   - component: {fileID: 7622828355484146524}
   - component: {fileID: 3071485131615641190}
   - component: {fileID: 1037438182174335148}
+  - component: {fileID: 3991012287045265864}
   m_Layer: 0
   m_Name: Debris_Octopus
   m_TagString: Untagged
@@ -9673,3 +9674,22 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &3991012287045265864
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6679354401196185774}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 3071485131615641190}
+  layers:
+  - {fileID: 3071485131615641190}
+  - {fileID: 8338539897314474277}
+  renderers:
+  - {fileID: 1037438182174335148}
+  - {fileID: 4752550295235228585}

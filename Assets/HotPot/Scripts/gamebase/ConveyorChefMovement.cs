@@ -77,7 +77,6 @@ namespace FoodPop
 
         public IReadOnlyList<ConveyorSlot> Slots => slots;
         public SplineContainer Path => splineContainer;
-        public bool IsMoving => isMoving;
 
         private Transform SlotParent
         {
@@ -91,7 +90,6 @@ namespace FoodPop
                 return slotParent;
             }
         }
-        public float Speed => speed;
 
         // EN: Fills component references when the component is first added in the editor.
         // VI: Tự gán các tham chiếu khi component vừa được thêm trong editor.
@@ -100,15 +98,18 @@ namespace FoodPop
             ResolveReferences();
         }
 
-        // EN: Prepares references, the spline path and the slot list before the first frame.
-        // VI: Chuẩn bị tham chiếu, đường spline và danh sách slot trước frame đầu tiên.
+        // EN: Measures the spline and places the serialized slots before the first frame; references, slots and sorting are set up in the editor (Reset/inspector buttons).
+        // VI: Đo spline và đặt các slot đã gán sẵn trước frame đầu tiên; tham chiếu, slot và thứ tự vẽ được thiết lập trong editor (Reset/nút trong inspector).
         private void Awake()
         {
-            ResolveReferences();
+            if (splineContainer == null)
+            {
+                Debug.LogWarning("[ConveyorChefMovement] Chưa gán SplineContainer.", this);
+                enabled = false;
+                return;
+            }
             if (buildSplineIfEmpty && splineContainer.Spline.Count < 2)
                 RebuildSplineFromConveyor();
-            EnsureSlots();
-            ApplySlotSorting();
             RefreshPathMetrics();
             PlaceSlots();
         }
@@ -121,20 +122,6 @@ namespace FoodPop
                 return;
             AdvanceProgress(Time.deltaTime);
             PlaceSlots();
-        }
-
-        // EN: Starts or pauses the belt movement.
-        // VI: Bật hoặc tạm dừng chuyển động của băng chuyền.
-        public void SetMoving(bool moving)
-        {
-            isMoving = moving;
-        }
-
-        // EN: Changes the belt speed in world units per second.
-        // VI: Đổi tốc độ băng chuyền theo đơn vị world mỗi giây.
-        public void SetSpeed(float unitsPerSecond)
-        {
-            speed = Mathf.Max(0f, unitsPerSecond);
         }
 
         // EN: Returns the normalized spline position (0..1) currently occupied by a slot index.
@@ -157,13 +144,6 @@ namespace FoodPop
                 return -1f;
             float progressInStation = offset / length;
             return clockwise ? progressInStation : 1f - progressInStation;
-        }
-
-        // EN: Returns true while the slot at the given index is inside the preparation station.
-        // VI: Trả về true khi slot theo chỉ số đang nằm trong trạm sơ chế.
-        public bool IsSlotInStation(int index)
-        {
-            return GetStationProgress(index) >= 0f;
         }
 
         // EN: Finds the SplineContainer and the ConveyorStandalone renderer when they are not assigned.
@@ -268,8 +248,7 @@ namespace FoodPop
         // VI: Tính lại độ dài world của đường spline.
         public void RefreshPathMetrics()
         {
-            ResolveReferences();
-            if (splineContainer.Spline.Count < 2)
+            if (splineContainer == null || splineContainer.Spline.Count < 2)
             {
                 pathLength = 0f;
                 return;

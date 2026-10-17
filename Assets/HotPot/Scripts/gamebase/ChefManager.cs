@@ -44,7 +44,7 @@ namespace FoodPop
         [Tooltip("Cộng thêm vào thứ tự vẽ của món để món nằm trên đầu bếp và băng chuyền khi đang cắt.")]
         [SerializeField] private int cuttingSortingBoost = 20;
         [Tooltip("Prefab khói (lặp lại, tùy chọn) bốc lên từ món trong lúc cắt.")]
-        [SerializeField] private ParticleSystem chopSmokePrefab;
+        [SerializeField] private ParticleEffect chopSmokePrefab;
 
         [Header("Âm thanh và vụn khi cắt")]
         [Tooltip("Âm thanh dao chặt mặc định (tùy chọn), dùng khi nhóm nguyên liệu chưa có âm thanh riêng.")]
@@ -54,9 +54,9 @@ namespace FoodPop
         [Tooltip("Âm thanh dao chặt cho nhóm rau/đồ mềm (tùy chọn).")]
         [SerializeField] private AudioClip vegetableChopSound;
         [Tooltip("Prefab vụn thịt (tùy chọn) bắn ra ở mỗi nhát chặt món thịt/hải sản.")]
-        [SerializeField] private ParticleSystem meatDebrisPrefab;
+        [SerializeField] private ParticleEffect meatDebrisPrefab;
         [Tooltip("Prefab vụn rau (tùy chọn) bắn ra ở mỗi nhát chặt món rau/đồ mềm.")]
-        [SerializeField] private ParticleSystem vegetableDebrisPrefab;
+        [SerializeField] private ParticleEffect vegetableDebrisPrefab;
         [Tooltip("Số mảnh vụn bắn ra ở mỗi nhát chặt.")]
         [Min(0)] [SerializeField] private int debrisPerChop = 3;
         [Tooltip("Khoảng thời gian (giây) giữa hai nhát chặt; chỉnh cho khớp nhịp hoạt ảnh cắt.")]
@@ -66,7 +66,7 @@ namespace FoodPop
 
         [Header("Hiệu ứng khi sơ chế xong")]
         [Tooltip("Prefab particle (tùy chọn) chạy tại slot khi món vừa sơ chế xong.")]
-        [SerializeField] private ParticleSystem preparedEffectPrefab;
+        [SerializeField] private ParticleEffect preparedEffectPrefab;
         [Tooltip("Âm thanh (tùy chọn) phát khi món vừa sơ chế xong.")]
         [SerializeField] private AudioClip preparedSound;
         [Tooltip("Âm lượng âm thanh khi sơ chế xong.")]
@@ -78,8 +78,8 @@ namespace FoodPop
         private SpriteRenderer cuttingFood;
         private SpriteRenderer cuttingShadow;
         private Vector3 boardBaseScale = Vector3.one;
-        private ParticleSystem chopSmoke;
-        private readonly Dictionary<ParticleSystem, ParticleSystem> debrisInstances = new Dictionary<ParticleSystem, ParticleSystem>();
+        private ParticleEffect chopSmoke;
+        private readonly Dictionary<ParticleEffect, ParticleEffect> debrisInstances = new Dictionary<ParticleEffect, ParticleEffect>();
 
         // EN: Returns the scene singleton, resolving it once if lifecycle registration has not run yet.
         // VI: Trả về singleton scene, tìm một lần nếu vòng đời chưa đăng ký instance.
@@ -100,10 +100,6 @@ namespace FoodPop
         // EN: Indicates whether the chef currently has an unfinished preparation job.
         // VI: Cho biết đầu bếp đang có công việc sơ chế chưa hoàn thành.
         public bool IsBusy => preparationRoutine != null;
-
-        // EN: Returns the food currently being prepared, or null while idle.
-        // VI: Trả về nguyên liệu đang sơ chế, hoặc null khi rảnh.
-        public Food CurrentFood => preparingFood;
 
         // EN: Clears stale static state when entering Play Mode, including with domain reload disabled.
         // VI: Xóa trạng thái tĩnh cũ khi vào Play Mode, kể cả khi tắt tải lại miền mã.
@@ -185,39 +181,6 @@ namespace FoodPop
             OnDestroyRuntimeObjects();
             if (instance == this)
                 instance = null;
-        }
-
-        // EN: Counts usable empty slots from the conveyor's current authoritative list.
-        // VI: Đếm slot rỗng có thể dùng từ danh sách hiện tại của băng chuyền.
-        public int GetEmptySlotCount()
-        {
-            int count = 0;
-            foreach (ConveyorSlot slot in Slots)
-            {
-                if (slot != null && slot.isActiveAndEnabled && slot.isEmpty)
-                    count++;
-            }
-            return count;
-        }
-
-        // EN: Finds the closest active empty slot, returning false when no slot is available.
-        // VI: Tìm slot rỗng đang hoạt động gần nhất, trả về false khi không còn slot khả dụng.
-        public bool TryGetNearestEmptySlot(Vector3 worldPosition, out ConveyorSlot nearest)
-        {
-            nearest = null;
-            float bestDistance = float.MaxValue;
-            foreach (ConveyorSlot slot in Slots)
-            {
-                if (slot == null || !slot.isActiveAndEnabled || !slot.isEmpty)
-                    continue;
-                float distance = (slot.transform.position - worldPosition).sqrMagnitude;
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    nearest = slot;
-                }
-            }
-            return nearest != null;
         }
 
         // EN: Collects the given number of active empty slots closest to a world position (nearest first); returns false and leaves the list empty when there are not enough.
@@ -409,7 +372,7 @@ namespace FoodPop
             if (!on)
             {
                 if (chopSmoke != null)
-                    chopSmoke.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                    chopSmoke.Stop();
                 return;
             }
             if (chopSmokePrefab == null || food == null)
@@ -417,19 +380,15 @@ namespace FoodPop
             if (chopSmoke == null)
                 chopSmoke = Instantiate(chopSmokePrefab);
             chopSmoke.transform.position = food.transform.position;
-            foreach (ParticleSystemRenderer particleRenderer in chopSmoke.GetComponentsInChildren<ParticleSystemRenderer>(true))
-            {
-                particleRenderer.sortingLayerID = food.sortingLayerID;
-                particleRenderer.sortingOrder = food.sortingOrder + 1;
-            }
-            chopSmoke.Play(true);
+            chopSmoke.SetSorting(food.sortingLayerID, food.sortingOrder + 1);
+            chopSmoke.Play();
         }
 
         // EN: Waits for the given duration and, on every chop (each chopInterval, starting immediately), plays the food's own knife sound, throws a few of its own debris pieces and punches the food and board; restores the food's rest scale at the end.
         // VI: Chờ trong khoảng thời gian đã cho và ở mỗi nhát chặt (mỗi chopInterval, bắt đầu ngay), phát tiếng dao riêng của món, bắn vài mảnh vụn riêng và làm món cùng thớt nảy nhẹ; trả món về scale chuẩn khi kết thúc.
         private IEnumerator PlayChops(float duration, Food food, SpriteRenderer foodSprite, Vector3 restScale)
         {
-            ParticleSystem debris = GetDebris(food);
+            ParticleEffect debris = GetDebris(food);
             float elapsed = 0f;
             float nextChop = 0f;
             float lastChop = 0f;
@@ -500,15 +459,15 @@ namespace FoodPop
 
         // EN: Returns the debris emitter for a food (its own prefab from FoodIconConfig, otherwise its group's prefab), creating one instance per prefab on first use.
         // VI: Trả về bộ phát vụn cho món (prefab riêng trong FoodIconConfig, nếu không có thì prefab theo nhóm), mỗi prefab tạo một bản ở lần dùng đầu.
-        private ParticleSystem GetDebris(Food food)
+        private ParticleEffect GetDebris(Food food)
         {
             FoodIconConfig config = food.IconConfig;
-            ParticleSystem prefab = config != null ? config.GetChopDebris(food.foodType) : null;
+            ParticleEffect prefab = config != null ? config.GetChopDebris(food.foodType) : null;
             if (prefab == null)
                 prefab = FoodCategories.Get(food.foodType, config) == FoodCategory.Meat ? meatDebrisPrefab : vegetableDebrisPrefab;
             if (prefab == null)
                 return null;
-            if (!debrisInstances.TryGetValue(prefab, out ParticleSystem instance) || instance == null)
+            if (!debrisInstances.TryGetValue(prefab, out ParticleEffect instance) || instance == null)
             {
                 instance = Instantiate(prefab);
                 debrisInstances[prefab] = instance;
@@ -518,21 +477,13 @@ namespace FoodPop
 
         // EN: Moves the debris emitter to the food, draws it just above the food and emits debrisPerChop pieces from the main layer and about half as many from each extra layer (e.g. sauce drops, shell bits).
         // VI: Đưa bộ phát vụn tới vị trí món, vẽ ngay phía trên món, bắn debrisPerChop mảnh ở lớp chính và khoảng một nửa số đó ở mỗi lớp phụ (ví dụ giọt sốt, mảnh vỏ).
-        private void EmitDebris(ParticleSystem debris, SpriteRenderer food)
+        private void EmitDebris(ParticleEffect debris, SpriteRenderer food)
         {
             if (debris == null || food == null || debrisPerChop <= 0)
                 return;
             debris.transform.position = food.transform.position;
-            foreach (ParticleSystem layer in debris.GetComponentsInChildren<ParticleSystem>(true))
-            {
-                ParticleSystemRenderer particleRenderer = layer.GetComponent<ParticleSystemRenderer>();
-                if (particleRenderer != null)
-                {
-                    particleRenderer.sortingLayerID = food.sortingLayerID;
-                    particleRenderer.sortingOrder = food.sortingOrder + 1;
-                }
-                layer.Emit(layer == debris ? debrisPerChop : Mathf.Max(1, debrisPerChop / 2));
-            }
+            debris.SetSorting(food.sortingLayerID, food.sortingOrder + 1);
+            debris.Emit(debrisPerChop, Mathf.Max(1, debrisPerChop / 2));
         }
 
         // EN: Stops the current job without changing the food's processing state, puts the food back on its plate and returns the chef to idle.
@@ -554,7 +505,7 @@ namespace FoodPop
                 Destroy(cuttingShadow.gameObject);
             if (chopSmoke != null)
                 Destroy(chopSmoke.gameObject);
-            foreach (ParticleSystem debris in debrisInstances.Values)
+            foreach (ParticleEffect debris in debrisInstances.Values)
             {
                 if (debris != null)
                     Destroy(debris.gameObject);
@@ -568,14 +519,6 @@ namespace FoodPop
         {
             Gizmos.color = new Color(1f, 0.55f, 0.1f, 1f);
             Gizmos.DrawWireSphere(GetCuttingPosition(), 0.3f);
-        }
-
-        // EN: Starts or pauses conveyor motion without changing slot occupancy.
-        // VI: Bật hoặc dừng băng chuyền mà không đổi nguyên liệu trên các slot.
-        public void SetConveyorMoving(bool moving)
-        {
-            if (conveyorMovement != null)
-                conveyorMovement.SetMoving(moving);
         }
 
         // EN: Updates the chef animator's existing Idle/Chop boolean parameter.

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7558735243030960779}
   - component: {fileID: 9146975203382994067}
   - component: {fileID: 5647743555209943506}
+  - component: {fileID: 5638518784638964072}
   m_Layer: 0
   m_Name: Debris_Tuna
   m_TagString: Untagged
@@ -4836,3 +4837,20 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &5638518784638964072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2927863268397872612}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 9146975203382994067}
+  layers:
+  - {fileID: 9146975203382994067}
+  renderers:
+  - {fileID: 5647743555209943506}

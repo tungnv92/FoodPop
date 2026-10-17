@@ -148,6 +148,15 @@ MonoBehaviour:
   iconRenderer: {fileID: 1709701718728323447}
   foodIconConfig: {fileID: 11400000, guid: 8e8a947c10e8406f9e6f03211e19a357, type: 2}
   lidRenderer: {fileID: 1792944692322656939}
+  plateRenderer: {fileID: 5179493412379873344}
+  selection: {fileID: 3664608803163009805}
+  visualRenderers:
+  - {fileID: 5179493412379873344}
+  - {fileID: 8456548977328225476}
+  - {fileID: 1792944692322656939}
+  - {fileID: 1709701718728323447}
+  - {fileID: 2739000897931363848}
+  countCanvas: {fileID: 4281713838197293923}
 --- !u!114 &3664608803163009805
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -162,6 +171,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FoodPop.DishSelectionOutline
   plate: {fileID: 5179493412379873344}
   outline: {fileID: 8456548977328225476}
+  lid: {fileID: 1792944692322656939}
   ingredient: {fileID: 1709701718728323447}
   inactiveBrightness: 0.75
   plateColor: {r: 1, g: 1, b: 1, a: 1}
@@ -274,6 +284,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FoodPop.IngredientShadow
   ingredient: {fileID: 1709701718728323447}
   shadow: {fileID: 2739000897931363848}
+  plate: {fileID: 5179493412379873344}
   opacity: 0.4
   offset: {x: 0.08, y: -0.08}
 --- !u!1 &5910533765422564915
@@ -683,5 +694,10 @@ MonoBehaviour:
 --- !u!4 &3085416460808341604 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4287705490397676182, guid: ef7335d1f685487478cd799544fa191a, type: 3}
+  m_PrefabInstance: {fileID: 1247889079693642482}
+  m_PrefabAsset: {fileID: 0}
+--- !u!223 &4281713838197293923 stripped
+Canvas:
+  m_CorrespondingSourceObject: {fileID: 3042973803352508817, guid: ef7335d1f685487478cd799544fa191a, type: 3}
   m_PrefabInstance: {fileID: 1247889079693642482}
   m_PrefabAsset: {fileID: 0}

@@ -11,19 +11,17 @@ namespace FoodPop
         [SerializeField] private SpriteRenderer ingredient;
         [Tooltip("Renderer bóng dùng cùng sprite với nguyên liệu.")]
         [SerializeField] private SpriteRenderer shadow;
+        [Tooltip("Renderer đĩa bên dưới; nguyên liệu luôn được vẽ trên đĩa này.")]
+        [SerializeField] private SpriteRenderer plate;
         [Tooltip("Độ đậm của bóng trên mặt đĩa.")]
         [Range(0f, 1f)] [SerializeField] private float opacity = 0.4f;
         [Tooltip("Độ lệch bóng so với nguyên liệu trong tọa độ cục bộ.")]
         [SerializeField] private Vector2 offset = new Vector2(0.08f, -0.08f);
 
-        // EN: Resolves the ingredient and its prebuilt shadow when the object becomes active.
-        // VI: Tìm nguyên liệu và bóng có sẵn khi đối tượng được bật.
+        // EN: Refreshes the shadow from the assigned references when the object becomes active.
+        // VI: Cập nhật bóng từ các tham chiếu đã gán khi đối tượng được bật.
         private void OnEnable()
         {
-            ingredient = GetComponent<SpriteRenderer>();
-            Transform child = transform.Find("IngredientShadow");
-            if (shadow == null && child != null)
-                shadow = child.GetComponent<SpriteRenderer>();
             RefreshShadow();
         }
 
@@ -45,8 +43,6 @@ namespace FoodPop
             if (!shadow.enabled || shadow.sprite == null)
                 return;
 
-            SpriteRenderer plate = transform.parent != null
-                ? transform.parent.Find("Plate")?.GetComponent<SpriteRenderer>() : null;
             if (plate != null && plate.sortingLayerID == ingredient.sortingLayerID)
                 ingredient.sortingOrder = Mathf.Max(ingredient.sortingOrder, plate.sortingOrder + 2);
             shadow.sortingLayerID = ingredient.sortingLayerID;

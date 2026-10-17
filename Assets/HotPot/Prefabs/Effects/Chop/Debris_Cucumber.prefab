@@ -4847,6 +4847,7 @@ GameObject:
   - component: {fileID: 940271196344062234}
   - component: {fileID: 5832025143304809578}
   - component: {fileID: 192734907956788334}
+  - component: {fileID: 3241942315069466472}
   m_Layer: 0
   m_Name: Debris_Cucumber
   m_TagString: Untagged
@@ -9673,3 +9674,22 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &3241942315069466472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7128374454222806389}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 5832025143304809578}
+  layers:
+  - {fileID: 5832025143304809578}
+  - {fileID: 7296937217556667451}
+  renderers:
+  - {fileID: 192734907956788334}
+  - {fileID: 332247112197250297}

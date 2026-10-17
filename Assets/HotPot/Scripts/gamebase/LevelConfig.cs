@@ -36,18 +36,6 @@ namespace FoodPop
             return side == 0 ? leftQueue : rightQueue;
         }
 
-        // EN: Returns the ingredient at a board cell (column 0 = left, row 0 = top), or null when out of range.
-        // VI: Trả về nguyên liệu tại một ô (cột 0 = bên trái, hàng 0 = trên cùng), hoặc null nếu ngoài phạm vi.
-        public OrderFood GetBoardCell(int column, int row)
-        {
-            if (column < 0 || column >= ingredientBoard.Count)
-                return null;
-            List<OrderFood> foods = ingredientBoard[column]?.foods;
-            if (foods == null || row < 0 || row >= foods.Count)
-                return null;
-            return foods[row];
-        }
-
         // EN: Total raw count of a food type on the board (useful to check it covers all customer orders).
         // VI: Tổng số lượng nguyên liệu thô của một loại trên bảng (dùng để kiểm tra có đủ cho mọi order của khách).
         public int GetBoardCount(FoodType foodType)

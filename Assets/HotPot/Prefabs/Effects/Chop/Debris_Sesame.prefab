@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2231595436333550388}
   - component: {fileID: 5816614202010049061}
   - component: {fileID: 6137212932740768223}
+  - component: {fileID: 823969400860848165}
   m_Layer: 0
   m_Name: Debris_Sesame
   m_TagString: Untagged
@@ -4837,6 +4838,25 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &823969400860848165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 752497484421393410}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 5816614202010049061}
+  layers:
+  - {fileID: 5816614202010049061}
+  - {fileID: 3988733415454763698}
+  renderers:
+  - {fileID: 6137212932740768223}
+  - {fileID: 1315867440945923241}
 --- !u!1 &5242875435166783585
 GameObject:
   m_ObjectHideFlags: 0

@@ -31,9 +31,7 @@ namespace FoodPop
         [Tooltip("Âm lượng âm thanh khi phóng.")]
         [Range(0f, 1f)] [SerializeField] private float launchVolume = 0.6f;
 
-        [Header("Hiệu ứng khi chạm")]
-        [Tooltip("Prefab particle (tùy chọn) bắn ra tại slot khi món chạm băng chuyền.")]
-        [SerializeField] private ParticleSystem landEffectPrefab;
+        [Header("Âm thanh khi chạm")]
         [Tooltip("Âm thanh (tùy chọn) phát khi món chạm băng chuyền.")]
         [SerializeField] private AudioClip landSound;
         [Tooltip("Âm lượng âm thanh khi chạm.")]
@@ -116,17 +114,14 @@ namespace FoodPop
             flyer.localScale = Vector3.LerpUnclamped(startScale, slot.LandingScale, progress) * pop;
         }
 
-        // EN: Finishes a flight: returns the flyer to the pool and, when it landed on a slot still waiting for it, reveals the food and plays the landing particle (drawn just above the flyer's sorting) and sound.
-        // VI: Kết thúc một lượt bay: trả món bay về pool và, nếu chạm đúng slot vẫn đang chờ, hiện món trên slot, chạy particle chạm (vẽ ngay trên thứ tự vẽ của món bay) và âm thanh.
+        // EN: Finishes a flight: returns the flyer to the pool and, when it landed on a slot still waiting for it, reveals the food and plays the landing sound.
+        // VI: Kết thúc một lượt bay: trả món bay về pool và, nếu chạm đúng slot vẫn đang chờ, hiện món trên slot và phát âm thanh chạm.
         private void EndFlight(Flight flight, bool landed)
         {
             activeFlights.Remove(flight);
-            int sortingLayer = flight.flyer != null ? flight.flyer.sortingLayerID : 0;
-            int sortingOrder = flight.flyer != null ? flight.flyer.sortingOrder + 1 : sortingOrderBoost;
             ReturnFlyer(flight.flyer);
             if (!landed || flight.slot == null || !flight.slot.CompleteFoodArrival())
                 return;
-            OneShotEffects.PlayParticle(landEffectPrefab, flight.slot.LandingPosition, sortingLayer, sortingOrder);
             OneShotEffects.PlaySound(landSound, landVolume, landPitchJitter);
         }
 

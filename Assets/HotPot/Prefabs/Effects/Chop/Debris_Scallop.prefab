@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2299387942242365214}
   - component: {fileID: 3880001287368204599}
   - component: {fileID: 5374100045664297239}
+  - component: {fileID: 1485868460384909974}
   m_Layer: 0
   m_Name: Debris_Scallop
   m_TagString: Untagged
@@ -4836,3 +4837,20 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &1485868460384909974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4207108799589405741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 3880001287368204599}
+  layers:
+  - {fileID: 3880001287368204599}
+  renderers:
+  - {fileID: 5374100045664297239}

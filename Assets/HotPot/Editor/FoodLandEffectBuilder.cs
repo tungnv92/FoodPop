@@ -111,11 +111,11 @@ namespace FoodPop
 
             Material sparkleMaterial = GetOrCreateMaterial("FoodLandSparkle", sparkle);
             Material puffMaterial = GetOrCreateMaterial("FoodLandPuff", softCircle);
-            ParticleSystem preparedPrefab = BuildPreparedPrefab(sparkleMaterial, puffMaterial);
-            ParticleSystem smokePrefab = BuildSingleSystemPrefab("ChefChopSmoke", SmokePrefabPath, system => ConfigureChopSmoke(system, puffMaterial));
-            ParticleSystem meatDebrisPrefab = chunk == null ? null : BuildSingleSystemPrefab("ChefMeatDebris", MeatDebrisPrefabPath,
+            ParticleEffect preparedPrefab = BuildPreparedPrefab(sparkleMaterial, puffMaterial);
+            ParticleEffect smokePrefab = BuildSingleSystemPrefab("ChefChopSmoke", SmokePrefabPath, system => ConfigureChopSmoke(system, puffMaterial));
+            ParticleEffect meatDebrisPrefab = chunk == null ? null : BuildSingleSystemPrefab("ChefMeatDebris", MeatDebrisPrefabPath,
                 system => ConfigureDebris(system, GetOrCreateMaterial("FoodDebrisChunk", chunk), new Color(0.95f, 0.45f, 0.38f), new Color(1f, 0.72f, 0.62f), 0.1f, 0.17f));
-            ParticleSystem vegetableDebrisPrefab = shred == null ? null : BuildSingleSystemPrefab("ChefVegetableDebris", VegetableDebrisPrefabPath,
+            ParticleEffect vegetableDebrisPrefab = shred == null ? null : BuildSingleSystemPrefab("ChefVegetableDebris", VegetableDebrisPrefabPath,
                 system => ConfigureDebris(system, GetOrCreateMaterial("FoodDebrisShred", shred), new Color(0.4f, 0.78f, 0.3f), new Color(0.75f, 0.92f, 0.45f), 0.12f, 0.2f));
 
             AssignToScene(landSound, launchSound);
@@ -129,15 +129,14 @@ namespace FoodPop
 
         // EN: Builds the raw-to-prepared "poof" prefab: a white cloud burst with golden sparkles, saved over the previous version.
         // VI: Dựng prefab "phụt khói" khi món chuyển từ thô sang sơ chế: đám khói trắng bung ra kèm hạt sáng vàng, ghi đè bản cũ.
-        private static ParticleSystem BuildPreparedPrefab(Material sparkleMaterial, Material puffMaterial)
+        private static ParticleEffect BuildPreparedPrefab(Material sparkleMaterial, Material puffMaterial)
         {
             GameObject root = new GameObject("FoodPreparedEffect");
             try
             {
                 ConfigurePoof(root.AddComponent<ParticleSystem>(), puffMaterial);
                 ConfigureSparkles(CreateChildSystem(root, "Sparkles"), sparkleMaterial);
-                GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PreparedPrefabPath);
-                return saved != null ? saved.GetComponent<ParticleSystem>() : null;
+                return SaveEffectPrefab(root, PreparedPrefabPath);
             }
             finally
             {
@@ -160,7 +159,7 @@ namespace FoodPop
             SerializedProperty icons = serialized.FindProperty("icons");
             foreach ((FoodType type, DebrisLayer main, DebrisLayer? extra) in GetChopSpecs())
             {
-                ParticleSystem prefab = BuildFoodDebrisPrefab(type, main, extra);
+                ParticleEffect prefab = BuildFoodDebrisPrefab(type, main, extra);
                 AudioClip sound = ImportSound($"{ChopSoundFolder}/Chop_{type}.wav");
                 AudioClip variant2 = ImportSound($"{ChopSoundFolder}/Chop_{type}_2.wav");
                 AudioClip variant3 = ImportSound($"{ChopSoundFolder}/Chop_{type}_3.wav");
@@ -197,7 +196,7 @@ namespace FoodPop
 
         // EN: Builds the debris prefab of one ingredient: the main layer on the root and, when given, an extra layer as a child.
         // VI: Dựng prefab vụn của một nguyên liệu: lớp chính ở gốc và, nếu có, lớp phụ ở object con.
-        private static ParticleSystem BuildFoodDebrisPrefab(FoodType type, DebrisLayer main, DebrisLayer? extra)
+        private static ParticleEffect BuildFoodDebrisPrefab(FoodType type, DebrisLayer main, DebrisLayer? extra)
         {
             GameObject root = new GameObject($"Debris_{type}");
             try
@@ -205,8 +204,7 @@ namespace FoodPop
                 ConfigureDebrisLayer(root.AddComponent<ParticleSystem>(), main);
                 if (extra.HasValue)
                     ConfigureDebrisLayer(CreateChildSystem(root, "Extra"), extra.Value);
-                GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, $"{ChopPrefabFolder}/Debris_{type}.prefab");
-                return saved != null ? saved.GetComponent<ParticleSystem>() : null;
+                return SaveEffectPrefab(root, $"{ChopPrefabFolder}/Debris_{type}.prefab");
             }
             finally
             {
@@ -236,16 +234,24 @@ namespace FoodPop
             return null;
         }
 
+        // EN: Adds a ParticleEffect component holding direct references to every layer and renderer, then saves the prefab over the previous version.
+        // VI: Thêm component ParticleEffect giữ tham chiếu trực tiếp tới mọi lớp và renderer, rồi lưu prefab ghi đè bản cũ.
+        internal static ParticleEffect SaveEffectPrefab(GameObject root, string path)
+        {
+            root.AddComponent<ParticleEffect>().CollectReferences();
+            GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, path);
+            return saved != null ? saved.GetComponent<ParticleEffect>() : null;
+        }
+
         // EN: Builds a prefab made of one ParticleSystem configured by the given callback and saves it over the previous version.
         // VI: Dựng prefab gồm một ParticleSystem được cấu hình bởi hàm truyền vào và lưu ghi đè bản cũ.
-        private static ParticleSystem BuildSingleSystemPrefab(string name, string path, System.Action<ParticleSystem> configure)
+        private static ParticleEffect BuildSingleSystemPrefab(string name, string path, System.Action<ParticleSystem> configure)
         {
             GameObject root = new GameObject(name);
             try
             {
                 configure(root.AddComponent<ParticleSystem>());
-                GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, path);
-                return saved != null ? saved.GetComponent<ParticleSystem>() : null;
+                return SaveEffectPrefab(root, path);
             }
             finally
             {
@@ -381,7 +387,7 @@ namespace FoodPop
 
         // EN: Applies the settings every layer shares: one-shot, no play on awake, world space and scaling that follows the prefab's transform.
         // VI: Áp dụng thiết lập chung cho mọi lớp: chạy một lần, không tự chạy khi bật, không gian world và scale theo transform của prefab.
-        private static ParticleSystem.MainModule ApplyCommonMain(ParticleSystem system, float duration)
+        internal static ParticleSystem.MainModule ApplyCommonMain(ParticleSystem system, float duration)
         {
             system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             ParticleSystem.MainModule main = system.main;
@@ -396,7 +402,7 @@ namespace FoodPop
 
         // EN: Replaces continuous emission with a single burst of the given count at time zero.
         // VI: Thay phát liên tục bằng một đợt bắn duy nhất với số lượng đã cho tại thời điểm 0.
-        private static void SetBurst(ParticleSystem system, short count)
+        internal static void SetBurst(ParticleSystem system, short count)
         {
             ParticleSystem.EmissionModule emission = system.emission;
             emission.enabled = true;
@@ -414,7 +420,7 @@ namespace FoodPop
 
         // EN: Enables size over lifetime with the given multiplier curve.
         // VI: Bật thay đổi kích thước theo thời gian sống với đường cong hệ số đã cho.
-        private static void SetSizeOverLifetime(ParticleSystem system, AnimationCurve curve)
+        internal static void SetSizeOverLifetime(ParticleSystem system, AnimationCurve curve)
         {
             ParticleSystem.SizeOverLifetimeModule size = system.sizeOverLifetime;
             size.enabled = true;
@@ -423,7 +429,7 @@ namespace FoodPop
 
         // EN: Enables colour over lifetime that keeps full alpha until fadeStart, then fades to transparent.
         // VI: Bật màu theo thời gian sống: giữ độ đậm tới thời điểm fadeStart rồi mờ dần tới trong suốt.
-        private static void SetFadeOut(ParticleSystem system, Color tint, float startAlpha, float fadeStart)
+        internal static void SetFadeOut(ParticleSystem system, Color tint, float startAlpha, float fadeStart)
         {
             Gradient gradient = new Gradient();
             gradient.SetKeys(
@@ -436,7 +442,7 @@ namespace FoodPop
 
         // EN: Sets the billboard material and a relative sorting order; FoodFlyAnimator overrides sorting at runtime to sit above the belt.
         // VI: Gán material billboard và thứ tự vẽ tương đối; FoodFlyAnimator sẽ ghi đè thứ tự vẽ lúc chạy để hiện trên băng chuyền.
-        private static void ApplyRenderer(ParticleSystem system, Material material, int sortingOrder)
+        internal static void ApplyRenderer(ParticleSystem system, Material material, int sortingOrder)
         {
             ParticleSystemRenderer renderer = system.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
@@ -457,7 +463,7 @@ namespace FoodPop
 
         // EN: Loads the material with the given name or creates it, using an unlit alpha-blended sprite shader that works with URP.
         // VI: Tải material theo tên hoặc tạo mới, dùng shader sprite không chiếu sáng có trong suốt, chạy được với URP.
-        private static Material GetOrCreateMaterial(string name, Texture2D texture)
+        internal static Material GetOrCreateMaterial(string name, Texture2D texture)
         {
             string path = $"{MaterialFolder}/{name}.mat";
             Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -480,7 +486,7 @@ namespace FoodPop
 
         // EN: Imports an effect texture as a clamped, mip-free texture with transparent alpha and returns it.
         // VI: Import texture hiệu ứng ở dạng clamp, không mipmap, alpha trong suốt và trả về texture đó.
-        private static Texture2D ImportEffectTexture(string path)
+        internal static Texture2D ImportEffectTexture(string path)
         {
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
@@ -498,7 +504,7 @@ namespace FoodPop
 
         // EN: Imports a short sound effect as mono, decompressed on load so it plays instantly, and returns the clip.
         // VI: Import âm thanh ngắn ở dạng mono, giải nén khi tải để phát ngay lập tức, rồi trả về clip.
-        private static AudioClip ImportSound(string path)
+        internal static AudioClip ImportSound(string path)
         {
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             AudioImporter importer = AssetImporter.GetAtPath(path) as AudioImporter;
@@ -530,7 +536,6 @@ namespace FoodPop
             Scene scene = animator.gameObject.scene;
             bool hadUnsavedChanges = scene.isDirty;
             SerializedObject serialized = new SerializedObject(animator);
-            serialized.FindProperty("landEffectPrefab").objectReferenceValue = null;
             serialized.FindProperty("landSound").objectReferenceValue = landSound;
             serialized.FindProperty("launchSound").objectReferenceValue = launchSound;
             serialized.ApplyModifiedProperties();
@@ -543,7 +548,7 @@ namespace FoodPop
 
         // EN: Assigns the prepared "poof" particle, the prepared chime and the knife chop sound to the open scene's ChefManager.
         // VI: Gán particle "phụt khói" khi sơ chế xong, âm thanh "ting" và tiếng dao chặt vào ChefManager của scene đang mở.
-        private static void AssignPreparedFeedback(ParticleSystem preparedPrefab, AudioClip preparedSound, AudioClip chopSound)
+        private static void AssignPreparedFeedback(ParticleEffect preparedPrefab, AudioClip preparedSound, AudioClip chopSound)
         {
             ChefManager chef = Object.FindFirstObjectByType<ChefManager>(FindObjectsInactive.Include);
             if (chef == null)
@@ -561,7 +566,7 @@ namespace FoodPop
 
         // EN: Assigns the chop smoke, the meat/vegetable chop sounds and the meat/vegetable debris prefabs to the open scene's ChefManager.
         // VI: Gán khói khi cắt, tiếng dao cho thịt/rau và prefab vụn thịt/rau vào ChefManager của scene đang mở.
-        private static void AssignChopFeedback(ParticleSystem smoke, AudioClip meatSound, AudioClip vegetableSound, ParticleSystem meatDebris, ParticleSystem vegetableDebris)
+        private static void AssignChopFeedback(ParticleEffect smoke, AudioClip meatSound, AudioClip vegetableSound, ParticleEffect meatDebris, ParticleEffect vegetableDebris)
         {
             ChefManager chef = Object.FindFirstObjectByType<ChefManager>(FindObjectsInactive.Include);
             if (chef == null)
@@ -595,7 +600,7 @@ namespace FoodPop
 
         // EN: Creates every missing folder along an Assets-relative path.
         // VI: Tạo mọi thư mục còn thiếu theo đường dẫn tính từ Assets.
-        private static void EnsureFolder(string path)
+        internal static void EnsureFolder(string path)
         {
             if (AssetDatabase.IsValidFolder(path))
                 return;

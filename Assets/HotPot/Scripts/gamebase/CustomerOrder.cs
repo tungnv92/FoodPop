@@ -11,17 +11,5 @@ namespace FoodPop
     {
         [Tooltip("Mỗi loại chỉ một dòng; chỉnh số lượng cần.")]
         public List<OrderFood> foods = new List<OrderFood>();
-
-        // EN: Returns how many of the given food the order requires (0 when it is not requested).
-        // VI: Trả về số lượng order cần cho loại đồ ăn đó (0 nếu không yêu cầu).
-        public int GetRequiredCount(FoodType foodType)
-        {
-            foreach (OrderFood food in foods)
-            {
-                if (food != null && food.foodType == foodType)
-                    return food.requiredCount;
-            }
-            return 0;
-        }
     }
 }

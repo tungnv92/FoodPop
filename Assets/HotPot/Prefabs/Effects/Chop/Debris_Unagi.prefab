@@ -4847,6 +4847,7 @@ GameObject:
   - component: {fileID: 4241273511089119162}
   - component: {fileID: 5175057934116237090}
   - component: {fileID: 7325128186297779718}
+  - component: {fileID: 7744106269657887987}
   m_Layer: 0
   m_Name: Debris_Unagi
   m_TagString: Untagged
@@ -9673,3 +9674,22 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &7744106269657887987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5858377393440686588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 5175057934116237090}
+  layers:
+  - {fileID: 5175057934116237090}
+  - {fileID: 8280533051531861025}
+  renderers:
+  - {fileID: 7325128186297779718}
+  - {fileID: 7956379356238752782}

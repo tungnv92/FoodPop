@@ -21,6 +21,14 @@ namespace FoodPop
         [SerializeField] FoodIconConfig foodIconConfig;
         [Tooltip("Renderer nắp tròn dùng để che nguyên liệu trên đĩa.")]
         [SerializeField] SpriteRenderer lidRenderer;
+        [Tooltip("Renderer đĩa; nắp luôn được vẽ ngay trên đĩa này.")]
+        [SerializeField] SpriteRenderer plateRenderer;
+        [Tooltip("Viền chọn của đĩa trên board (để trống với món trên băng chuyền).")]
+        [SerializeField] DishSelectionOutline selection;
+        [Tooltip("Mọi SpriteRenderer của đĩa, dùng để đồng bộ layer và thứ tự vẽ khi lấy từ pool.")]
+        [SerializeField] SpriteRenderer[] visualRenderers = new SpriteRenderer[0];
+        [Tooltip("Canvas hiển thị số lượng của đĩa.")]
+        [SerializeField] Canvas countCanvas;
         // EN: Raised whenever the state changes (e.g. to swap the sprite or play an effect).
         // VI: Phát ra mỗi khi trạng thái thay đổi (ví dụ để đổi sprite hoặc chạy hiệu ứng).
         public event Action<Food, FoodState> StateChanged;
@@ -32,6 +40,14 @@ namespace FoodPop
         public FoodIconConfig IconConfig => foodIconConfig;
         public bool IsPrepared => state == FoodState.Prepared;
 
+        // EN: Direct references used by managers instead of searching children at runtime.
+        // VI: Các tham chiếu trực tiếp để manager dùng thay cho việc tìm child lúc chạy.
+        public SpriteRenderer IconRenderer => iconRenderer;
+        public SpriteRenderer PlateRenderer => plateRenderer;
+        public DishSelectionOutline Selection => selection;
+        public SpriteRenderer[] VisualRenderers => visualRenderers;
+        public Canvas CountCanvas => countCanvas;
+
         // EN: Restores the hidden appearance when a scene or pooled dish becomes active.
         // VI: Khôi phục hình ảnh ẩn khi đĩa scene hoặc đĩa từ pool được bật.
         private void OnEnable()
@@ -39,11 +55,12 @@ namespace FoodPop
             RefreshHiddenVisual();
         }
 
-        // EN: Reflects direct Inspector changes to isHidden in both the editor and runtime.
-        // VI: Cập nhật thay đổi trực tiếp isHidden trong Inspector ở cả editor và runtime.
-        private void LateUpdate()
+        // EN: Reflects Inspector changes to isHidden during Play Mode without polling every frame.
+        // VI: Cập nhật thay đổi isHidden trong Inspector khi đang Play mà không phải kiểm tra mỗi frame.
+        private void OnValidate()
         {
-            RefreshHiddenVisual();
+            if (Application.isPlaying)
+                RefreshHiddenVisual();
         }
 
         // EN: Changes concealment without changing ingredient type, quantity or preparation state.
@@ -58,25 +75,17 @@ namespace FoodPop
         // VI: Che đồ ăn ẩn bằng nắp và tắt hình nguyên liệu/bóng, vẫn giữ số lượng hiển thị.
         public void RefreshHiddenVisual()
         {
-            if (iconRenderer == null)
-                iconRenderer = transform.Find("Ingredient")?.GetComponent<SpriteRenderer>();
-            if (lidRenderer == null)
-                lidRenderer = transform.Find("Plate/Lid")?.GetComponent<SpriteRenderer>();
             if (iconRenderer != null && iconRenderer.gameObject.activeSelf == isHidden)
                 iconRenderer.gameObject.SetActive(!isHidden);
-            if (lidRenderer != null)
-            {
-                if (lidRenderer.gameObject.activeSelf != isHidden)
-                    lidRenderer.gameObject.SetActive(isHidden);
-                Transform plate = lidRenderer.transform.parent;
-                SpriteRenderer plateRenderer = plate != null ? plate.GetComponent<SpriteRenderer>() : null;
-                if (plateRenderer != null)
-                {
-                    lidRenderer.sortingLayerID = plateRenderer.sortingLayerID;
-                    lidRenderer.sortingOrder = plateRenderer.sortingOrder + 3;
-                    lidRenderer.gameObject.layer = plateRenderer.gameObject.layer;
-                }
-            }
+            if (lidRenderer == null)
+                return;
+            if (lidRenderer.gameObject.activeSelf != isHidden)
+                lidRenderer.gameObject.SetActive(isHidden);
+            if (plateRenderer == null)
+                return;
+            lidRenderer.sortingLayerID = plateRenderer.sortingLayerID;
+            lidRenderer.sortingOrder = plateRenderer.sortingOrder + 3;
+            lidRenderer.gameObject.layer = plateRenderer.gameObject.layer;
         }
 
         // EN: Turns a raw food into a prepared one; returns false if it was already prepared.
@@ -132,16 +141,10 @@ namespace FoodPop
                 canvasCount.SetActive(amount > 1);
         }
 
-        // EN: Shows the food sprite on the "Ingredient" child (found automatically when not assigned).
-        // VI: Hiện sprite nguyên liệu trên child "Ingredient" (tự tìm nếu chưa gán).
+        // EN: Shows the food sprite on the assigned ingredient renderer.
+        // VI: Hiện sprite nguyên liệu trên renderer nguyên liệu đã gán.
         private void SetIcon(Sprite icon)
         {
-            if (iconRenderer == null)
-            {
-                Transform child = transform.Find("Ingredient");
-                if (child != null)
-                    iconRenderer = child.GetComponent<SpriteRenderer>();
-            }
             if (iconRenderer != null)
                 iconRenderer.sprite = icon;
         }

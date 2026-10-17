@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2841652937842362634}
   - component: {fileID: 8953482234601876140}
   - component: {fileID: 8908462166281827075}
+  - component: {fileID: 2947153644091168474}
   m_Layer: 0
   m_Name: Debris_SalmonRoe
   m_TagString: Untagged
@@ -4836,3 +4837,20 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &2947153644091168474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 504025769162540836}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 8953482234601876140}
+  layers:
+  - {fileID: 8953482234601876140}
+  renderers:
+  - {fileID: 8908462166281827075}

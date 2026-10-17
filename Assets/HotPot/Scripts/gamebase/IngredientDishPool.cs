@@ -14,14 +14,6 @@ namespace FoodPop
         private readonly HashSet<Food> pooled = new HashSet<Food>();
         private bool disposed;
 
-        // EN: Reports how many dishes this pool has instantiated, excluding adopted scene dishes.
-        // VI: Cho biết số đĩa pool đã tạo mới, không tính đĩa nhận từ scene.
-        public int CreatedCount { get; private set; }
-
-        // EN: Returns the number of inactive dishes available for reuse.
-        // VI: Trả về số đĩa không hoạt động đang chờ tái sử dụng.
-        public int AvailableCount => pooled.Count;
-
         // EN: Binds a prefab and inactive storage parent without spawning any dishes yet.
         // VI: Gán prefab và parent lưu đĩa không hoạt động, chưa tạo đĩa ngay.
         public IngredientDishPool(Food prefab, Transform root)
@@ -58,7 +50,6 @@ namespace FoodPop
                     return null;
                 dish = Object.Instantiate(prefab, root);
                 owned.Add(dish);
-                CreatedCount++;
             }
             dish.gameObject.SetActive(false);
             dish.transform.SetParent(parent, false);
@@ -71,9 +62,8 @@ namespace FoodPop
         {
             if (disposed || dish == null || !owned.Contains(dish) || !pooled.Add(dish))
                 return false;
-            DishSelectionOutline selection = dish.GetComponent<DishSelectionOutline>();
-            if (selection != null)
-                selection.SetSelectable(false);
+            if (dish.Selection != null)
+                dish.Selection.SetSelectable(false);
             dish.gameObject.SetActive(false);
             dish.Setup(FoodType.None, 0, null);
             dish.name = "Ingredient dish · Pooled";

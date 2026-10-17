@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1989895566006241553}
   - component: {fileID: 7537289154032100413}
   - component: {fileID: 6065514601755014961}
+  - component: {fileID: 5807971166446243298}
   m_Layer: 0
   m_Name: Debris_Shrimp
   m_TagString: Untagged
@@ -4837,6 +4838,25 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &5807971166446243298
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6659542927820391328}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 7537289154032100413}
+  layers:
+  - {fileID: 7537289154032100413}
+  - {fileID: 8497348103260768360}
+  renderers:
+  - {fileID: 6065514601755014961}
+  - {fileID: 1950365243332995378}
 --- !u!1 &8617334633074238450
 GameObject:
   m_ObjectHideFlags: 0

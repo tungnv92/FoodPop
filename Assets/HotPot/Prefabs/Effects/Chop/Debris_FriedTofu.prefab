@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5590554209905516623}
   - component: {fileID: 5282803474167681811}
   - component: {fileID: 5735478543743105853}
+  - component: {fileID: 3619649946727067701}
   m_Layer: 0
   m_Name: Debris_FriedTofu
   m_TagString: Untagged
@@ -4837,6 +4838,25 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &3619649946727067701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 876771798515530559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 5282803474167681811}
+  layers:
+  - {fileID: 5282803474167681811}
+  - {fileID: 4165101909821199420}
+  renderers:
+  - {fileID: 5735478543743105853}
+  - {fileID: 8978810662984465848}
 --- !u!1 &5475185881097496747
 GameObject:
   m_ObjectHideFlags: 0

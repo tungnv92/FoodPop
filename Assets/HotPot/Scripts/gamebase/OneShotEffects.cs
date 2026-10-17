@@ -7,7 +7,7 @@ namespace FoodPop
     // VI: Lớp dùng chung để chạy particle một lần (có pool) và âm thanh ngắn, giúp các script gameplay không phải tự giữ pool và AudioSource riêng.
     public static class OneShotEffects
     {
-        private static readonly Dictionary<ParticleSystem, List<ParticleSystem>> Pools = new Dictionary<ParticleSystem, List<ParticleSystem>>();
+        private static readonly Dictionary<ParticleEffect, List<ParticleEffect>> Pools = new Dictionary<ParticleEffect, List<ParticleEffect>>();
         private static Transform root;
         private static AudioSource audioSource;
 
@@ -23,18 +23,14 @@ namespace FoodPop
 
         // EN: Plays a particle prefab once at a world position, reusing a finished instance when possible, and puts all its renderers on the given sorting.
         // VI: Chạy prefab particle một lần tại vị trí world, tái sử dụng bản đã chạy xong nếu có, và đặt mọi renderer theo thứ tự vẽ đã cho.
-        public static void PlayParticle(ParticleSystem prefab, Vector3 position, int sortingLayer, int sortingOrder)
+        public static void PlayParticle(ParticleEffect prefab, Vector3 position, int sortingLayer, int sortingOrder)
         {
             if (prefab == null)
                 return;
-            ParticleSystem effect = RentParticle(prefab);
+            ParticleEffect effect = RentParticle(prefab);
             effect.transform.position = position;
-            foreach (ParticleSystemRenderer particleRenderer in effect.GetComponentsInChildren<ParticleSystemRenderer>(true))
-            {
-                particleRenderer.sortingLayerID = sortingLayer;
-                particleRenderer.sortingOrder = sortingOrder;
-            }
-            effect.Play(true);
+            effect.SetSorting(sortingLayer, sortingOrder);
+            effect.Play();
         }
 
         // EN: Plays a short clip once with a small random pitch change so repeated plays sound less mechanical.
@@ -54,20 +50,20 @@ namespace FoodPop
 
         // EN: Returns a finished instance of the prefab from its pool, or instantiates a new one under the shared root.
         // VI: Lấy một bản đã chạy xong của prefab từ pool, hoặc tạo bản mới dưới object gốc dùng chung.
-        private static ParticleSystem RentParticle(ParticleSystem prefab)
+        private static ParticleEffect RentParticle(ParticleEffect prefab)
         {
-            if (!Pools.TryGetValue(prefab, out List<ParticleSystem> pool))
+            if (!Pools.TryGetValue(prefab, out List<ParticleEffect> pool))
             {
-                pool = new List<ParticleSystem>();
+                pool = new List<ParticleEffect>();
                 Pools[prefab] = pool;
             }
             pool.RemoveAll(instance => instance == null);
-            foreach (ParticleSystem candidate in pool)
+            foreach (ParticleEffect candidate in pool)
             {
-                if (!candidate.IsAlive(true))
+                if (!candidate.IsAlive)
                     return candidate;
             }
-            ParticleSystem created = Object.Instantiate(prefab, GetRoot());
+            ParticleEffect created = Object.Instantiate(prefab, GetRoot());
             pool.Add(created);
             return created;
         }

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1437243645739136715}
   - component: {fileID: 1656805418845729637}
   - component: {fileID: 1668352063207555293}
+  - component: {fileID: 4219975879480897380}
   m_Layer: 0
   m_Name: Debris_SushiRice
   m_TagString: Untagged
@@ -4836,3 +4837,20 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &4219975879480897380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 455402494076026733}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 933a7d054ee3cb645b36cfa382f8ab60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ParticleEffect
+  mainLayer: {fileID: 1656805418845729637}
+  layers:
+  - {fileID: 1656805418845729637}
+  renderers:
+  - {fileID: 1668352063207555293}

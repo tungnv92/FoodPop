@@ -9,6 +9,8 @@ namespace FoodPop
         [SerializeField] private SpriteRenderer plate;
         [Tooltip("Renderer viền trắng theo hình dáng đĩa.")]
         [SerializeField] private SpriteRenderer outline;
+        [Tooltip("Renderer nắp che nguyên liệu (con của đĩa), tối theo đĩa.")]
+        [SerializeField] private SpriteRenderer lid;
         [Tooltip("Renderer nguyên liệu trên đĩa.")]
         [SerializeField] private SpriteRenderer ingredient;
         [Tooltip("Độ sáng của đĩa và nguyên liệu chưa đến lượt chọn.")]
@@ -16,10 +18,6 @@ namespace FoodPop
         [SerializeField] private Color plateColor = Color.white;
         [SerializeField] private Color ingredientColor = Color.white;
         [SerializeField] private bool selectable;
-
-        // EN: Indicates whether this dish is currently the selectable head of its column.
-        // VI: Cho biết đĩa này có đang là phần tử đầu cột được chọn hay không.
-        public bool IsSelectable => selectable;
 
         // EN: Restores the current outline when a pooled dish becomes active.
         // VI: Khôi phục viền hiện tại khi đĩa từ pool được bật.
@@ -42,17 +40,15 @@ namespace FoodPop
             SetSelectable(false);
         }
 
-        // EN: Highlights column heads (outline drawn just below the plate) and dims waiting plates, food and lids; conveyor food keeps normal brightness.
-        // VI: Hiện viền đầu cột (viền vẽ ngay dưới lớp đĩa) và làm tối đĩa, đồ ăn cùng nắp đang chờ; đồ ăn trên băng chuyền giữ độ sáng bình thường.
+        // EN: Highlights column heads (outline drawn just below the plate) and dims waiting plates, food and lids.
+        // VI: Hiện viền đầu cột (viền vẽ ngay dưới lớp đĩa) và làm tối đĩa, đồ ăn cùng nắp đang chờ.
         public void SetSelectable(bool value)
         {
             selectable = value;
-            bool onConveyor = transform.parent != null && transform.parent.GetComponent<ConveyorSlot>() != null;
-            float brightness = value || onConveyor ? 1f : inactiveBrightness;
+            float brightness = value ? 1f : inactiveBrightness;
             if (plate != null)
             {
                 plate.color = new Color(plateColor.r * brightness, plateColor.g * brightness, plateColor.b * brightness, plateColor.a);
-                SpriteRenderer lid = plate.transform.Find("Lid")?.GetComponent<SpriteRenderer>();
                 if (lid != null)
                     lid.color = plate.color;
             }
