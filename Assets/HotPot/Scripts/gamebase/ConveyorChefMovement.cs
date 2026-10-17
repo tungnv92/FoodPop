@@ -62,6 +62,12 @@ namespace FoodPop
         [Tooltip("Vị trí chuẩn hóa (0..1) trên spline của slot 0.")]
         [SerializeField, Range(0f, 1f)] private float startOffset;
 
+        [Header("Trạm sơ chế")]
+        [Tooltip("Điểm bắt đầu của trạm sơ chế trên đường băng (0..1, tính từ giữa cạnh trên theo chiều kim đồng hồ). Món thô đi vào đoạn này sẽ được đầu bếp cắt.")]
+        [SerializeField, Range(0f, 1f)] private float stationStart = 0.44f;
+        [Tooltip("Điểm kết thúc của trạm sơ chế trên đường băng (0..1). Nếu nhỏ hơn điểm bắt đầu thì trạm vắt qua điểm 0.")]
+        [SerializeField, Range(0f, 1f)] private float stationEnd = 0.56f;
+
         [Header("Sorting")]
         [Tooltip("Sorting order thấp nhất của sprite trong slot; giữ cao hơn băng chuyền (0), lớp Front (66) và đầu bếp (65).")]
         [SerializeField] private int slotSortingOrder = 70;
@@ -137,6 +143,27 @@ namespace FoodPop
         {
             int count = Mathf.Max(1, slots.Count);
             return Mathf.Repeat(startOffset + progress + (float)index / count, 1f);
+        }
+
+        // EN: Returns how far a slot has travelled through the preparation station along the belt direction (0 = just entered, 1 = about to leave), or -1 when it is outside the station.
+        // VI: Trả về mức slot đã đi qua trạm sơ chế theo chiều chạy của băng (0 = vừa vào, 1 = sắp ra), hoặc -1 khi slot nằm ngoài trạm.
+        public float GetStationProgress(int index)
+        {
+            float length = Mathf.Repeat(stationEnd - stationStart, 1f);
+            if (length <= Mathf.Epsilon)
+                return -1f;
+            float offset = Mathf.Repeat(GetSlotNormalizedPosition(index) - stationStart, 1f);
+            if (offset > length)
+                return -1f;
+            float progressInStation = offset / length;
+            return clockwise ? progressInStation : 1f - progressInStation;
+        }
+
+        // EN: Returns true while the slot at the given index is inside the preparation station.
+        // VI: Trả về true khi slot theo chỉ số đang nằm trong trạm sơ chế.
+        public bool IsSlotInStation(int index)
+        {
+            return GetStationProgress(index) >= 0f;
         }
 
         // EN: Finds the SplineContainer and the ConveyorStandalone renderer when they are not assigned.
@@ -349,8 +376,8 @@ namespace FoodPop
             return null;
         }
 
-        // EN: Draws the slot spacing on the spline in the Scene view.
-        // VI: Vẽ khoảng chia slot trên spline trong Scene view.
+        // EN: Draws the slot spacing and the preparation station (orange segment with end markers) on the spline in the Scene view.
+        // VI: Vẽ khoảng chia slot và trạm sơ chế (đoạn màu cam có vạch hai đầu) trên spline trong Scene view.
         private void OnDrawGizmosSelected()
         {
             if (splineContainer == null || splineContainer.Spline.Count < 2)
@@ -362,6 +389,31 @@ namespace FoodPop
                 float3 position = splineContainer.EvaluatePosition(Mathf.Repeat(startOffset + progress + (float)i / count, 1f));
                 Gizmos.DrawWireSphere(position, 0.12f);
             }
+            DrawStationGizmo();
+        }
+
+        // EN: Draws the station segment as a thick orange polyline along the spline, with spheres at its start and end.
+        // VI: Vẽ đoạn trạm thành đường gấp khúc màu cam dọc spline, có hình cầu ở điểm đầu và điểm cuối.
+        private void DrawStationGizmo()
+        {
+            float length = Mathf.Repeat(stationEnd - stationStart, 1f);
+            if (length <= Mathf.Epsilon)
+                return;
+            Gizmos.color = new Color(1f, 0.55f, 0.1f, 1f);
+            const int Steps = 24;
+            Vector3 previous = splineContainer.EvaluatePosition(stationStart);
+            for (int i = 1; i <= Steps; i++)
+            {
+                Vector3 next = splineContainer.EvaluatePosition(Mathf.Repeat(stationStart + length * i / Steps, 1f));
+                for (int k = -2; k <= 2; k++)
+                {
+                    Vector3 offset = Vector3.up * (k * 0.02f);
+                    Gizmos.DrawLine(previous + offset, next + offset);
+                }
+                previous = next;
+            }
+            Gizmos.DrawSphere((Vector3)splineContainer.EvaluatePosition(stationStart), 0.15f);
+            Gizmos.DrawSphere((Vector3)splineContainer.EvaluatePosition(stationEnd), 0.15f);
         }
     }
 }

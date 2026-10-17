@@ -26,6 +26,10 @@ namespace FoodPop
         public event Action<Food, FoodState> StateChanged;
 
         public bool IsRaw => state == FoodState.Raw;
+
+        // EN: The icon table assigned to this food, used to look up its sprites and preparation group.
+        // VI: Bảng icon gán cho nguyên liệu này, dùng để tra sprite và nhóm sơ chế.
+        public FoodIconConfig IconConfig => foodIconConfig;
         public bool IsPrepared => state == FoodState.Prepared;
 
         // EN: Restores the hidden appearance when a scene or pooled dish becomes active.

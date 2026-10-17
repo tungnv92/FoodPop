@@ -17,6 +17,14 @@ namespace FoodPop
             public FoodType foodType;
             public Sprite sprite;
             public Sprite preparedSprite;
+            [Tooltip("Nhóm sơ chế (tiếng dao và vụn khi cắt); Auto = dùng mặc định theo loại nguyên liệu.")]
+            public FoodCategory category = FoodCategory.Auto;
+            [Tooltip("Âm thanh dao chặt riêng của nguyên liệu này; để trống sẽ dùng âm thanh theo nhóm.")]
+            public AudioClip chopSound;
+            [Tooltip("Các biến thể tiếng chặt thêm (tùy chọn); mỗi nhát chọn ngẫu nhiên giữa tiếng chính và các biến thể để đỡ lặp lại.")]
+            public AudioClip[] chopSoundVariants;
+            [Tooltip("Prefab vụn riêng của nguyên liệu này bắn ra mỗi nhát chặt; để trống sẽ dùng vụn theo nhóm.")]
+            public ParticleSystem chopDebris;
         }
 
         [Tooltip("Mỗi loại nguyên liệu một dòng; dùng nút \"Tự điền từ Art/Sprites/Foods\" trong menu ⋮ để điền nhanh.")]
@@ -32,6 +40,51 @@ namespace FoodPop
             {
                 if (icon != null && icon.foodType == type)
                     return state == FoodState.Prepared && icon.preparedSprite != null ? icon.preparedSprite : icon.sprite;
+            }
+            return null;
+        }
+
+        // EN: Returns the category set for a food type in this table, or Auto when none is set.
+        // VI: Trả về nhóm sơ chế đã đặt cho loại nguyên liệu trong bảng, hoặc Auto nếu chưa đặt.
+        public FoodCategory GetCategoryOverride(FoodType type)
+        {
+            foreach (FoodIcon icon in icons)
+            {
+                if (icon != null && icon.foodType == type)
+                    return icon.category;
+            }
+            return FoodCategory.Auto;
+        }
+
+        // EN: Returns a chop sound for a food type, picked at random among its main sound and variants; null when it should fall back to its group's sound.
+        // VI: Trả về một tiếng chặt cho loại nguyên liệu, chọn ngẫu nhiên giữa tiếng chính và các biến thể; null khi cần dùng âm thanh theo nhóm.
+        public AudioClip GetChopSound(FoodType type)
+        {
+            FoodIcon entry = Find(type);
+            if (entry == null)
+                return null;
+            int variants = entry.chopSoundVariants != null ? entry.chopSoundVariants.Length : 0;
+            int pick = UnityEngine.Random.Range(0, variants + 1);
+            AudioClip clip = pick == 0 ? entry.chopSound : entry.chopSoundVariants[pick - 1];
+            return clip != null ? clip : entry.chopSound;
+        }
+
+        // EN: Returns the chop debris prefab set for a food type, or null when it should fall back to its group's debris.
+        // VI: Trả về prefab vụn riêng của loại nguyên liệu, hoặc null khi cần dùng vụn theo nhóm.
+        public ParticleSystem GetChopDebris(FoodType type)
+        {
+            FoodIcon entry = Find(type);
+            return entry != null ? entry.chopDebris : null;
+        }
+
+        // EN: Returns the table entry for a food type, or null when it is missing.
+        // VI: Trả về dòng của loại nguyên liệu trong bảng, hoặc null nếu chưa có.
+        private FoodIcon Find(FoodType type)
+        {
+            foreach (FoodIcon icon in icons)
+            {
+                if (icon != null && icon.foodType == type)
+                    return icon;
             }
             return null;
         }

@@ -18,10 +18,13 @@ namespace FoodPop
         [Min(0f)] [SerializeField] private float landSquashDuration = 0.25f;
         [Tooltip("Độ co giãn tối đa khi món chạm slot (0.25 = bẹt ra 25%).")]
         [Range(0f, 0.6f)] [SerializeField] private float landSquashAmount = 0.25f;
+        [Tooltip("Thời gian (giây) hiệu ứng chuyển từ món thô sang món đã sơ chế: ảnh thô phồng lên rồi mờ đi, ảnh sơ chế bật ra.")]
+        [Min(0f)] [SerializeField] private float preparedTransitionDuration = 0.3f;
 
         private Food slotFood;
         private Vector3 ingredientBaseScale = Vector3.one;
         private Coroutine squashRoutine;
+        private SpriteRenderer fadeOverlay;
 
         // EN: True while a picked portion is still flying toward this slot; the slot is reserved but its food is not shown yet.
         // VI: True khi một phần nguyên liệu vừa chọn vẫn đang bay tới slot; slot đã được giữ chỗ nhưng chưa hiện món.
@@ -44,6 +47,10 @@ namespace FoodPop
                 return Vector3.Scale(parentScale, ingredientBaseScale);
             }
         }
+
+        // EN: The sprite renderer that shows this slot's food (child "Ingredient"), used to place effects just above it.
+        // VI: Sprite renderer hiển thị món của slot (child "Ingredient"), dùng để đặt hiệu ứng ngay phía trên nó.
+        public SpriteRenderer IngredientRenderer => ingredientRenderer;
 
         // EN: World rotation a flying portion should reach on landing.
         // VI: Góc xoay world mà phần nguyên liệu bay cần đạt khi đáp.
@@ -88,6 +95,75 @@ namespace FoodPop
             return true;
         }
 
+        // EN: Plays the raw-to-prepared transition: a copy of the raw sprite swells and fades out on top while the new prepared sprite pops in from small with a slight overshoot.
+        // VI: Chạy hiệu ứng chuyển từ món thô sang món sơ chế: bản sao ảnh thô phồng lên và mờ dần ở trên, trong khi ảnh sơ chế bật ra từ nhỏ và vượt nhẹ rồi về kích thước chuẩn.
+        public void PlayPreparedTransition(Sprite rawSprite)
+        {
+            StopSquash();
+            if (isEmpty || ingredientRenderer == null || !isActiveAndEnabled || preparedTransitionDuration <= 0f)
+                return;
+            squashRoutine = StartCoroutine(AnimatePreparedTransition(rawSprite));
+        }
+
+        // EN: Drives the transition over preparedTransitionDuration and restores the resting look at the end.
+        // VI: Chạy hiệu ứng chuyển trong preparedTransitionDuration và khôi phục hình ảnh gốc khi kết thúc.
+        private IEnumerator AnimatePreparedTransition(Sprite rawSprite)
+        {
+            Transform icon = ingredientRenderer.transform;
+            SpriteRenderer overlay = rawSprite != null ? GetFadeOverlay() : null;
+            if (overlay != null)
+            {
+                overlay.sprite = rawSprite;
+                overlay.gameObject.SetActive(true);
+            }
+            float time = 0f;
+            while (time < preparedTransitionDuration)
+            {
+                time += Time.deltaTime;
+                float t = Mathf.Clamp01(time / preparedTransitionDuration);
+                icon.localScale = ingredientBaseScale * PreparedPopScale(t);
+                if (overlay != null)
+                {
+                    overlay.transform.localScale = ingredientBaseScale * (1f + 0.4f * t);
+                    overlay.color = new Color(1f, 1f, 1f, 1f - t * t);
+                }
+                yield return null;
+            }
+            icon.localScale = ingredientBaseScale;
+            if (overlay != null)
+                overlay.gameObject.SetActive(false);
+            squashRoutine = null;
+        }
+
+        // EN: Scale curve for the prepared sprite: grows from 0.3 to an overshoot of 1.18 at 60% of the time, then settles back to 1.
+        // VI: Đường cong scale của ảnh sơ chế: lớn từ 0.3 tới mức vượt 1.18 ở 60% thời gian, rồi trở về 1.
+        private static float PreparedPopScale(float t)
+        {
+            const float Peak = 0.6f;
+            if (t < Peak)
+                return Mathf.Lerp(0.3f, 1.18f, 1f - Mathf.Pow(1f - t / Peak, 2f));
+            return Mathf.Lerp(1.18f, 1f, Mathf.SmoothStep(0f, 1f, (t - Peak) / (1f - Peak)));
+        }
+
+        // EN: Returns the overlay renderer used for the fading raw sprite, creating it as a sibling of the Ingredient sprite and drawn just above it.
+        // VI: Trả về renderer phủ dùng cho ảnh thô đang mờ dần, tạo mới làm anh em của sprite Ingredient và vẽ ngay phía trên nó.
+        private SpriteRenderer GetFadeOverlay()
+        {
+            if (fadeOverlay != null)
+                return fadeOverlay;
+            Transform icon = ingredientRenderer.transform;
+            GameObject go = new GameObject("PreparedFadeOverlay");
+            go.layer = icon.gameObject.layer;
+            go.transform.SetParent(icon.parent, false);
+            go.transform.localPosition = icon.localPosition;
+            go.transform.localRotation = icon.localRotation;
+            fadeOverlay = go.AddComponent<SpriteRenderer>();
+            fadeOverlay.sortingLayerID = ingredientRenderer.sortingLayerID;
+            fadeOverlay.sortingOrder = ingredientRenderer.sortingOrder + 1;
+            go.SetActive(false);
+            return fadeOverlay;
+        }
+
         // EN: Squashes the ingredient wide-and-short on impact, then wobbles back to its resting scale with decaying strength.
         // VI: Làm món bẹt ra (rộng và thấp) lúc chạm, sau đó dao động tắt dần về scale gốc.
         private IEnumerator PlayLandSquash()
@@ -106,8 +182,8 @@ namespace FoodPop
             squashRoutine = null;
         }
 
-        // EN: Stops a running landing squash and restores the ingredient's resting scale.
-        // VI: Dừng hiệu ứng nảy đang chạy và trả icon nguyên liệu về scale gốc.
+        // EN: Stops a running landing squash or prepared transition and restores the ingredient's resting scale and hides the fade overlay.
+        // VI: Dừng hiệu ứng nảy hoặc hiệu ứng chuyển sơ chế đang chạy, trả icon nguyên liệu về scale gốc và ẩn lớp phủ mờ.
         private void StopSquash()
         {
             if (squashRoutine != null)
@@ -115,6 +191,8 @@ namespace FoodPop
             squashRoutine = null;
             if (ingredientRenderer != null)
                 ingredientRenderer.transform.localScale = ingredientBaseScale;
+            if (fadeOverlay != null)
+                fadeOverlay.gameObject.SetActive(false);
         }
 
         // EN: Shows or hides the ingredient sprite by toggling the renderer only, leaving the GameObject state to Food and ShowIcon.

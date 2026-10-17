@@ -25,6 +25,12 @@ namespace FoodPop
         [Tooltip("Cộng thêm vào thứ tự vẽ để món đang bay luôn nằm trên board và băng chuyền.")]
         [SerializeField] private int sortingOrderBoost = 100;
 
+        [Header("Âm thanh khi phóng")]
+        [Tooltip("Âm thanh (tùy chọn) phát một lần khi đĩa được chọn và các phần bắt đầu bay.")]
+        [SerializeField] private AudioClip launchSound;
+        [Tooltip("Âm lượng âm thanh khi phóng.")]
+        [Range(0f, 1f)] [SerializeField] private float launchVolume = 0.6f;
+
         [Header("Hiệu ứng khi chạm")]
         [Tooltip("Prefab particle (tùy chọn) bắn ra tại slot khi món chạm băng chuyền.")]
         [SerializeField] private ParticleSystem landEffectPrefab;
@@ -32,7 +38,7 @@ namespace FoodPop
         [SerializeField] private AudioClip landSound;
         [Tooltip("Âm lượng âm thanh khi chạm.")]
         [Range(0f, 1f)] [SerializeField] private float landVolume = 1f;
-        [Tooltip("Độ lệch cao độ ngẫu nhiên của âm thanh chạm để nghe đỡ lặp lại.")]
+        [Tooltip("Độ lệch cao độ ngẫu nhiên của âm thanh phóng và chạm để nghe đỡ lặp lại.")]
         [Range(0f, 0.3f)] [SerializeField] private float landPitchJitter = 0.08f;
 
         private sealed class Flight
@@ -43,9 +49,7 @@ namespace FoodPop
 
         private readonly List<Flight> activeFlights = new List<Flight>();
         private readonly Stack<SpriteRenderer> flyerPool = new Stack<SpriteRenderer>();
-        private readonly List<ParticleSystem> effectPool = new List<ParticleSystem>();
         private Transform flyerRoot;
-        private AudioSource audioSource;
 
         // EN: Launches one flying portion per target slot from the picked dish, hiding each slot's food until its portion lands.
         // VI: Phóng một phần bay cho mỗi slot đích từ đĩa vừa chọn, ẩn món trên slot cho tới khi phần đó chạm xuống.
@@ -57,6 +61,7 @@ namespace FoodPop
             Quaternion startRotation = source != null ? source.transform.rotation : Quaternion.identity;
             int sortingLayer = source != null ? source.sortingLayerID : 0;
             int sortingOrder = (source != null ? source.sortingOrder : 0) + sortingOrderBoost;
+            OneShotEffects.PlaySound(launchSound, launchVolume, landPitchJitter);
             for (int i = 0; i < slots.Count; i++)
             {
                 ConveyorSlot slot = slots[i];
@@ -111,55 +116,18 @@ namespace FoodPop
             flyer.localScale = Vector3.LerpUnclamped(startScale, slot.LandingScale, progress) * pop;
         }
 
-        // EN: Finishes a flight: returns the flyer to the pool and, when it landed on a slot still waiting for it, reveals the food and plays the landing effects.
-        // VI: Kết thúc một lượt bay: trả món bay về pool và, nếu chạm đúng slot vẫn đang chờ, hiện món trên slot và chạy hiệu ứng chạm.
+        // EN: Finishes a flight: returns the flyer to the pool and, when it landed on a slot still waiting for it, reveals the food and plays the landing particle (drawn just above the flyer's sorting) and sound.
+        // VI: Kết thúc một lượt bay: trả món bay về pool và, nếu chạm đúng slot vẫn đang chờ, hiện món trên slot, chạy particle chạm (vẽ ngay trên thứ tự vẽ của món bay) và âm thanh.
         private void EndFlight(Flight flight, bool landed)
         {
             activeFlights.Remove(flight);
+            int sortingLayer = flight.flyer != null ? flight.flyer.sortingLayerID : 0;
+            int sortingOrder = flight.flyer != null ? flight.flyer.sortingOrder + 1 : sortingOrderBoost;
             ReturnFlyer(flight.flyer);
             if (!landed || flight.slot == null || !flight.slot.CompleteFoodArrival())
                 return;
-            PlayLandEffect(flight.slot.LandingPosition);
-            PlayLandSound();
-        }
-
-        // EN: Spawns (or reuses) the optional landing particle at the given world position.
-        // VI: Tạo (hoặc tái sử dụng) particle chạm (tùy chọn) tại vị trí world đã cho.
-        private void PlayLandEffect(Vector3 position)
-        {
-            if (landEffectPrefab == null)
-                return;
-            ParticleSystem effect = null;
-            foreach (ParticleSystem candidate in effectPool)
-            {
-                if (candidate != null && !candidate.IsAlive(true))
-                {
-                    effect = candidate;
-                    break;
-                }
-            }
-            if (effect == null)
-            {
-                effect = Instantiate(landEffectPrefab, GetFlyerRoot());
-                effectPool.Add(effect);
-            }
-            effect.transform.position = position;
-            effect.Play(true);
-        }
-
-        // EN: Plays the optional landing sound with a small random pitch change.
-        // VI: Phát âm thanh chạm (tùy chọn) với cao độ thay đổi ngẫu nhiên một chút.
-        private void PlayLandSound()
-        {
-            if (landSound == null)
-                return;
-            if (audioSource == null)
-            {
-                audioSource = gameObject.AddComponent<AudioSource>();
-                audioSource.playOnAwake = false;
-            }
-            audioSource.pitch = 1f + Random.Range(-landPitchJitter, landPitchJitter);
-            audioSource.PlayOneShot(landSound, landVolume);
+            OneShotEffects.PlayParticle(landEffectPrefab, flight.slot.LandingPosition, sortingLayer, sortingOrder);
+            OneShotEffects.PlaySound(landSound, landVolume, landPitchJitter);
         }
 
         // EN: Takes a flyer sprite from the pool (creating one if needed) and applies the icon and sorting.
@@ -191,8 +159,8 @@ namespace FoodPop
             flyerPool.Push(flyer);
         }
 
-        // EN: Returns an unscaled scene-root container for flyers and effects, so their world scale is not affected by the board's transform.
-        // VI: Trả về đối tượng gốc không bị scale chứa món bay và hiệu ứng, để kích thước world không bị transform của board ảnh hưởng.
+        // EN: Returns an unscaled scene-root container for flyers, so their world scale is not affected by the board's transform.
+        // VI: Trả về đối tượng gốc không bị scale chứa món bay, để kích thước world không bị transform của board ảnh hưởng.
         private Transform GetFlyerRoot()
         {
             if (flyerRoot == null)
