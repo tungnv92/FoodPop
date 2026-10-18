@@ -25,23 +25,6 @@ namespace FoodPop
         [Tooltip("Cộng thêm vào thứ tự vẽ để món đang bay luôn nằm trên board và băng chuyền.")]
         [SerializeField] private int sortingOrderBoost = 100;
 
-        [Header("Âm thanh khi phóng")]
-        [Tooltip("Âm thanh (tùy chọn) phát một lần khi đĩa được chọn và các phần bắt đầu bay.")]
-        [SerializeField] private AudioClip launchSound;
-        [Tooltip("Âm lượng âm thanh khi phóng.")]
-        [Range(0f, 1f)] [SerializeField] private float launchVolume = 0.6f;
-
-        [Header("Âm thanh khi chạm")]
-        [Tooltip("Âm thanh (tùy chọn) phát khi món chạm băng chuyền.")]
-        [SerializeField] private AudioClip landSound;
-        [Tooltip("Khoảng cao độ ngẫu nhiên của tiếng chạm (1 = cao độ gốc).")]
-        [SerializeField] private Vector2 landPitchRange = new Vector2(0.85f, 1.2f);
-        [Tooltip("Độ chênh cao độ tối thiểu giữa các phần của cùng một đĩa, để mỗi phần rơi xuống nghe khác nhau.")]
-        [Range(0f, 0.15f)] [SerializeField] private float minPortionPitchGap = 0.06f;
-        [Tooltip("Âm lượng âm thanh khi chạm.")]
-        [Range(0f, 1f)] [SerializeField] private float landVolume = 1f;
-        [Tooltip("Độ lệch cao độ ngẫu nhiên của âm thanh phóng.")]
-        [Range(0f, 0.3f)] [SerializeField] private float landPitchJitter = 0.08f;
 
         private sealed class Flight
         {
@@ -53,7 +36,6 @@ namespace FoodPop
         private readonly List<Flight> activeFlights = new List<Flight>();
         private readonly Stack<SpriteRenderer> flyerPool = new Stack<SpriteRenderer>();
         private Transform flyerRoot;
-        private readonly List<float> dishPitches = new List<float>();
 
         // EN: Launches one flying portion per target slot from the picked dish, hiding each slot's food until its portion lands.
         // VI: Phóng một phần bay cho mỗi slot đích từ đĩa vừa chọn, ẩn món trên slot cho tới khi phần đó chạm xuống.
@@ -65,8 +47,9 @@ namespace FoodPop
             Quaternion startRotation = source != null ? source.transform.rotation : Quaternion.identity;
             int sortingLayer = source != null ? source.sortingLayerID : 0;
             int sortingOrder = (source != null ? source.sortingOrder : 0) + sortingOrderBoost;
-            OneShotEffects.PlaySound(launchSound, launchVolume, landPitchJitter);
-            dishPitches.Clear();
+            IngameSoundManager sound = IngameSoundManager.Instance;
+            if (sound != null)
+                sound.PlayDishLaunch();
             for (int i = 0; i < slots.Count; i++)
             {
                 ConveyorSlot slot = slots[i];
@@ -74,7 +57,7 @@ namespace FoodPop
                     continue;
                 slot.BeginFoodArrival();
                 SpriteRenderer flyer = RentFlyer(icon, sortingLayer, sortingOrder + i);
-                Flight flight = new Flight { slot = slot, flyer = flyer, pitch = PickPortionPitch() };
+                Flight flight = new Flight { slot = slot, flyer = flyer, pitch = sound != null ? sound.NextPortionPitch() : 1f };
                 activeFlights.Add(flight);
                 StartCoroutine(FlyToSlot(flight, startPosition, startScale, startRotation, portionDelay * i));
             }
@@ -121,42 +104,15 @@ namespace FoodPop
             flyer.localScale = Vector3.LerpUnclamped(startScale, slot.LandingScale, progress) * pop;
         }
 
-        // EN: Finishes a flight: returns the flyer to the pool and, when it landed on a slot still waiting for it, reveals the food and plays the landing sound.
-        // VI: Kết thúc một lượt bay: trả món bay về pool và, nếu chạm đúng slot vẫn đang chờ, hiện món trên slot và phát âm thanh chạm.
+        // EN: Finishes a flight: returns the flyer to the pool and, when it landed on a slot still waiting for it, reveals the food and reports the landing to IngameSoundManager.
+        // VI: Kết thúc một lượt bay: trả món bay về pool và, nếu chạm đúng slot vẫn đang chờ, hiện món trên slot và báo IngameSoundManager phát tiếng chạm.
         private void EndFlight(Flight flight, bool landed)
         {
             activeFlights.Remove(flight);
             ReturnFlyer(flight.flyer);
             if (!landed || flight.slot == null || !flight.slot.CompleteFoodArrival())
                 return;
-            OneShotEffects.PlaySoundAtPitch(landSound, landVolume, flight.pitch);
-        }
-
-        // EN: Picks a random landing pitch inside landPitchRange that stays at least minPortionPitchGap away from the other portions of the same dish (gives up after a few tries).
-        // VI: Chọn ngẫu nhiên cao độ tiếng chạm trong landPitchRange, cách các phần khác của cùng đĩa ít nhất minPortionPitchGap (bỏ qua sau vài lần thử).
-        private float PickPortionPitch()
-        {
-            float pitch = 1f;
-            for (int attempt = 0; attempt < 8; attempt++)
-            {
-                pitch = Random.Range(landPitchRange.x, landPitchRange.y);
-                if (IsFarFromDishPitches(pitch))
-                    break;
-            }
-            dishPitches.Add(pitch);
-            return pitch;
-        }
-
-        // EN: True when the pitch differs enough from every pitch already used by this dish.
-        // VI: True khi cao độ đủ khác mọi cao độ đã dùng cho đĩa này.
-        private bool IsFarFromDishPitches(float pitch)
-        {
-            foreach (float used in dishPitches)
-            {
-                if (Mathf.Abs(used - pitch) < minPortionPitchGap)
-                    return false;
-            }
-            return true;
+            IngameSoundManager.Instance?.PlayFoodLand(flight.pitch);
         }
 
         // EN: Takes a flyer sprite from the pool (creating one if needed) and applies the icon and sorting.

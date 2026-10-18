@@ -82,22 +82,10 @@ namespace FoodPop
         [Min(1f)] [SerializeField] private float servePeakScale = 1.3f;
         [Tooltip("Cộng thêm vào thứ tự vẽ để món bay nằm trên thẻ order.")]
         [SerializeField] private int serveSortingBoost = 40;
-        [Tooltip("Âm thanh khi món chạm thẻ order.")]
-        [SerializeField] private AudioClip serveSound;
-        [Range(0f, 1f)] [SerializeField] private float serveVolume = 0.6f;
-        [Tooltip("Khoảng cách tối thiểu (giây) giữa hai lần phát âm chạm; các món chạm sát nhau chỉ phát một tiếng.")]
-        [Min(0f)] [SerializeField] private float serveSoundInterval = 0.12f;
-        [Tooltip("Các món chạm liên tiếp trong khoảng này (giây) được tính là một chuỗi: tiếng sau cao dần và nhỏ dần.")]
-        [Min(0f)] [SerializeField] private float serveComboWindow = 0.5f;
-        [Tooltip("Mức tăng cao độ cho mỗi tiếng trong chuỗi (0.06 = cao thêm 6%).")]
-        [Range(0f, 0.2f)] [SerializeField] private float serveComboPitchStep = 0.06f;
 
         [Header("Hoàn thành")]
         [Tooltip("Hiệu ứng tim bắn ra tại khách khi đủ cả order.")]
         [SerializeField] private ParticleEffect heartEffectPrefab;
-        [Tooltip("Âm thanh khách vui khi nhận đủ order.")]
-        [SerializeField] private AudioClip customerHappySound;
-        [Range(0f, 1f)] [SerializeField] private float customerHappyVolume = 0.9f;
 
         [Header("Khách ra/vào")]
         [Tooltip("Thời gian (giây) chờ sau khi bắn tim rồi khách mới rời đi.")]
@@ -122,8 +110,6 @@ namespace FoodPop
         private Transform flyerRoot;
         private long arrivalCounter;
         private bool allServedLogged;
-        private float lastServeSoundTime = -10f;
-        private int serveCombo;
 
         // EN: Clears the static singleton when entering Play Mode, including when domain reload is disabled.
         // VI: Xóa singleton tĩnh khi vào Play Mode, kể cả khi tắt tải lại miền mã.
@@ -289,7 +275,7 @@ namespace FoodPop
             lane.incoming[line] = Mathf.Max(0, lane.incoming[line] - 1);
             lane.remaining[line] = Mathf.Max(0, lane.remaining[line] - 1);
             OrderItemView item = lane.orderItems[line];
-            PlayServeSound();
+            IngameSoundManager.Instance?.PlayServe();
             if (lane.remaining[line] > 0)
             {
                 item.SetRemaining(lane.remaining[line]);
@@ -298,21 +284,6 @@ namespace FoodPop
             item.MarkDone();
             if (IsOrderComplete(lane))
                 StartCoroutine(FinishCustomer(lane));
-        }
-
-        // EN: Plays the landing pop at most once per serveSoundInterval; pops close together form a combo that rises in pitch and softens, instead of stacking into one harsh sound.
-        // VI: Phát tiếng chạm tối đa một lần mỗi serveSoundInterval; các tiếng sát nhau thành chuỗi cao dần và nhỏ dần, thay vì chồng lên nhau gây chói.
-        private void PlayServeSound()
-        {
-            float now = Time.time;
-            float sinceLast = now - lastServeSoundTime;
-            if (sinceLast < serveSoundInterval)
-                return;
-            serveCombo = sinceLast <= serveComboWindow ? Mathf.Min(serveCombo + 1, 6) : 0;
-            lastServeSoundTime = now;
-            float pitch = 1f + serveComboPitchStep * serveCombo;
-            float volume = serveVolume / (1f + 0.15f * serveCombo);
-            OneShotEffects.PlaySoundAtPitch(serveSound, volume, pitch);
         }
 
         // EN: True when every line of the lane's current order has been fully delivered.
@@ -333,7 +304,7 @@ namespace FoodPop
         {
             lane.ordering = false;
             PlayHearts(lane.customer);
-            OneShotEffects.PlaySound(customerHappySound, customerHappyVolume, 0f);
+            IngameSoundManager.Instance?.PlayCustomerHappy();
             if (leaveDelay > 0f)
                 yield return new WaitForSeconds(leaveDelay);
             if (lane.customer != null)

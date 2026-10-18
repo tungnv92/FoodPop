@@ -20,12 +20,9 @@ namespace FoodPop
         private const string LandSoundPath = AudioFolder + "/FoodLandPop.wav";
         private const string LaunchSoundPath = AudioFolder + "/FoodLaunchWhoosh.wav";
         private const string PreparedSoundPath = AudioFolder + "/FoodPreparedDing.wav";
-        private const string ChopSoundPath = AudioFolder + "/ChefChop.wav";
         private const string PreparedPrefabPath = PrefabFolder + "/FoodPreparedEffect.prefab";
         private const string ChunkTexturePath = SpriteFolder + "/FxChunk.png";
         private const string ShredTexturePath = SpriteFolder + "/FxShred.png";
-        private const string MeatChopSoundPath = AudioFolder + "/ChefChopMeat.wav";
-        private const string VegetableChopSoundPath = AudioFolder + "/ChefChopVegetable.wav";
         private const string SmokePrefabPath = PrefabFolder + "/ChefChopSmoke.prefab";
         private const string MeatDebrisPrefabPath = PrefabFolder + "/ChefMeatDebris.prefab";
         private const string VegetableDebrisPrefabPath = PrefabFolder + "/ChefVegetableDebris.prefab";
@@ -103,9 +100,6 @@ namespace FoodPop
             AudioClip landSound = ImportSound(LandSoundPath);
             AudioClip launchSound = ImportSound(LaunchSoundPath);
             AudioClip preparedSound = ImportSound(PreparedSoundPath);
-            AudioClip chopSound = ImportSound(ChopSoundPath);
-            AudioClip meatChopSound = ImportSound(MeatChopSoundPath);
-            AudioClip vegetableChopSound = ImportSound(VegetableChopSoundPath);
             Texture2D chunk = ImportEffectTexture(ChunkTexturePath);
             Texture2D shred = ImportEffectTexture(ShredTexturePath);
 
@@ -118,9 +112,9 @@ namespace FoodPop
             ParticleEffect vegetableDebrisPrefab = shred == null ? null : BuildSingleSystemPrefab("ChefVegetableDebris", VegetableDebrisPrefabPath,
                 system => ConfigureDebris(system, GetOrCreateMaterial("FoodDebrisShred", shred), new Color(0.4f, 0.78f, 0.3f), new Color(0.75f, 0.92f, 0.45f), 0.12f, 0.2f));
 
-            AssignToScene(landSound, launchSound);
-            AssignPreparedFeedback(preparedPrefab, preparedSound, chopSound);
-            AssignChopFeedback(smokePrefab, meatChopSound, vegetableChopSound, meatDebrisPrefab, vegetableDebrisPrefab);
+            AssignPreparedFeedback(preparedPrefab);
+            AssignChopFeedback(smokePrefab, meatDebrisPrefab, vegetableDebrisPrefab);
+            AssignSounds(landSound, launchSound, preparedSound);
             BuildPerFoodChopEffects();
             EnsureAudioListener();
             Selection.activeObject = preparedPrefab != null ? preparedPrefab.gameObject : null;
@@ -523,21 +517,17 @@ namespace FoodPop
             return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
         }
 
-        // EN: Assigns the launch and landing sounds to the open scene's FoodFlyAnimator and clears its landing particle (the landing effect was removed by request); saves the scene only when it had no other unsaved changes.
-        // VI: Gán âm thanh phóng và chạm vào FoodFlyAnimator của scene đang mở và bỏ particle khi chạm (hiệu ứng chạm đã được loại bỏ theo yêu cầu); chỉ tự lưu scene khi scene không có thay đổi chưa lưu nào khác.
-        private static void AssignToScene(AudioClip landSound, AudioClip launchSound)
+        // EN: Assigns every board/chef sound clip to the open scene's IngameSoundManager (created when missing); saves the scene only when it had no other unsaved changes.
+        // VI: Gán mọi âm thanh của board/đầu bếp vào IngameSoundManager của scene đang mở (tạo mới nếu chưa có); chỉ tự lưu scene khi scene không có thay đổi chưa lưu nào khác.
+        private static void AssignSounds(AudioClip landSound, AudioClip launchSound, AudioClip preparedSound)
         {
-            FoodFlyAnimator animator = Object.FindFirstObjectByType<FoodFlyAnimator>(FindObjectsInactive.Include);
-            if (animator == null)
-            {
-                Debug.LogWarning("[FoodLandEffectBuilder] Scene chưa có FoodFlyAnimator; hãy tự gán prefab và âm thanh.");
-                return;
-            }
-            Scene scene = animator.gameObject.scene;
+            Scene scene = EditorSceneManager.GetActiveScene();
             bool hadUnsavedChanges = scene.isDirty;
-            SerializedObject serialized = new SerializedObject(animator);
-            serialized.FindProperty("landSound").objectReferenceValue = landSound;
-            serialized.FindProperty("launchSound").objectReferenceValue = launchSound;
+            IngameSoundManager manager = EnsureSoundManager();
+            SerializedObject serialized = new SerializedObject(manager);
+            serialized.FindProperty("foodLandSound").objectReferenceValue = landSound;
+            serialized.FindProperty("dishLaunchSound").objectReferenceValue = launchSound;
+            serialized.FindProperty("preparedSound").objectReferenceValue = preparedSound;
             serialized.ApplyModifiedProperties();
             EditorSceneManager.MarkSceneDirty(scene);
             if (!hadUnsavedChanges)
@@ -546,9 +536,30 @@ namespace FoodPop
                 Debug.Log("[FoodLandEffectBuilder] Scene đang có thay đổi khác chưa lưu; đã gán nhưng chưa tự lưu, hãy bấm Ctrl+S.");
         }
 
-        // EN: Assigns the prepared "poof" particle, the prepared chime and the knife chop sound to the open scene's ChefManager.
-        // VI: Gán particle "phụt khói" khi sơ chế xong, âm thanh "ting" và tiếng dao chặt vào ChefManager của scene đang mở.
-        private static void AssignPreparedFeedback(ParticleEffect preparedPrefab, AudioClip preparedSound, AudioClip chopSound)
+        // EN: Returns the scene's IngameSoundManager, creating a GameObject with the manager and its AudioSource (wired directly) when none exists.
+        // VI: Trả về IngameSoundManager của scene, tạo GameObject chứa manager và AudioSource (gán trực tiếp) khi chưa có.
+        internal static IngameSoundManager EnsureSoundManager()
+        {
+            IngameSoundManager manager = Object.FindFirstObjectByType<IngameSoundManager>(FindObjectsInactive.Include);
+            if (manager == null)
+            {
+                GameObject go = new GameObject("IngameSoundManager");
+                Undo.RegisterCreatedObjectUndo(go, "Create IngameSoundManager");
+                manager = go.AddComponent<IngameSoundManager>();
+            }
+            AudioSource source = manager.GetComponent<AudioSource>();
+            if (source == null)
+                source = Undo.AddComponent<AudioSource>(manager.gameObject);
+            source.playOnAwake = false;
+            SerializedObject serialized = new SerializedObject(manager);
+            serialized.FindProperty("source").objectReferenceValue = source;
+            serialized.ApplyModifiedProperties();
+            return manager;
+        }
+
+        // EN: Assigns the prepared "poof" particle to the open scene's ChefManager.
+        // VI: Gán particle "phụt khói" khi sơ chế xong vào ChefManager của scene đang mở.
+        private static void AssignPreparedFeedback(ParticleEffect preparedPrefab)
         {
             ChefManager chef = Object.FindFirstObjectByType<ChefManager>(FindObjectsInactive.Include);
             if (chef == null)
@@ -558,23 +569,19 @@ namespace FoodPop
             }
             SerializedObject serialized = new SerializedObject(chef);
             serialized.FindProperty("preparedEffectPrefab").objectReferenceValue = preparedPrefab;
-            serialized.FindProperty("preparedSound").objectReferenceValue = preparedSound;
-            serialized.FindProperty("chopSound").objectReferenceValue = chopSound;
             serialized.ApplyModifiedProperties();
             EditorSceneManager.MarkSceneDirty(chef.gameObject.scene);
         }
 
-        // EN: Assigns the chop smoke, the meat/vegetable chop sounds and the meat/vegetable debris prefabs to the open scene's ChefManager.
-        // VI: Gán khói khi cắt, tiếng dao cho thịt/rau và prefab vụn thịt/rau vào ChefManager của scene đang mở.
-        private static void AssignChopFeedback(ParticleEffect smoke, AudioClip meatSound, AudioClip vegetableSound, ParticleEffect meatDebris, ParticleEffect vegetableDebris)
+        // EN: Assigns the chop smoke and the meat/vegetable debris prefabs to the open scene's ChefManager.
+        // VI: Gán khói khi cắt và prefab vụn thịt/rau vào ChefManager của scene đang mở.
+        private static void AssignChopFeedback(ParticleEffect smoke, ParticleEffect meatDebris, ParticleEffect vegetableDebris)
         {
             ChefManager chef = Object.FindFirstObjectByType<ChefManager>(FindObjectsInactive.Include);
             if (chef == null)
                 return;
             SerializedObject serialized = new SerializedObject(chef);
             serialized.FindProperty("chopSmokePrefab").objectReferenceValue = smoke;
-            serialized.FindProperty("meatChopSound").objectReferenceValue = meatSound;
-            serialized.FindProperty("vegetableChopSound").objectReferenceValue = vegetableSound;
             serialized.FindProperty("meatDebrisPrefab").objectReferenceValue = meatDebris;
             serialized.FindProperty("vegetableDebrisPrefab").objectReferenceValue = vegetableDebris;
             serialized.ApplyModifiedProperties();

@@ -407,8 +407,8 @@ namespace FoodPop
             AddFood(foods.propertyPath);
         }
 
-        // EN: Appends a food row (count 1) using the first food type not yet in that list.
-        // VI: Thêm một dòng món (số lượng 1), dùng loại đồ ăn đầu tiên chưa có trong danh sách.
+        // EN: Appends a visible, unfrozen food row (count 1) using the first food type not yet in that list.
+        // VI: Thêm một dòng món không ẩn, không đóng băng (số lượng 1), dùng loại chưa có đầu tiên trong danh sách.
         private void AddFood(string foodsPath)
         {
             SerializedProperty foods = serialized.FindProperty(foodsPath);
@@ -417,6 +417,9 @@ namespace FoodPop
             SerializedProperty added = foods.GetArrayElementAtIndex(foods.arraySize - 1);
             added.FindPropertyRelative("foodType").enumValueIndex = nextType;
             added.FindPropertyRelative("requiredCount").intValue = 1;
+            added.FindPropertyRelative("isHidden").boolValue = false;
+            added.FindPropertyRelative("isFrozen").boolValue = false;
+            added.FindPropertyRelative("blockValue").intValue = 1;
         }
 
         // EN: Returns the first food type (not None) missing from a food list, or SushiRice when all are used.
@@ -506,8 +509,8 @@ namespace FoodPop
             EditorGUILayout.EndHorizontal();
         }
 
-        // EN: Draws a board cell with stable ingredient IDs, quantity and a hidden-until-front toggle.
-        // VI: Vẽ ô board với ID nguyên liệu cố định, số lượng và tùy chọn ẩn đến khi lên đầu cột.
+        // EN: Draws a board cell with ingredient ID, quantity, concealment and frozen-block strength controls.
+        // VI: Vẽ ô board với ID nguyên liệu, số lượng, tùy chọn che và giá trị khối băng.
         private void DrawBoardCell(SerializedProperty cell)
         {
             SerializedProperty type = cell.FindPropertyRelative("foodType");
@@ -515,12 +518,21 @@ namespace FoodPop
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            DrawIcon((FoodType)type.intValue, BoardIconSize);
+            Rect iconRect = DrawIcon((FoodType)type.intValue, BoardIconSize);
+            SerializedProperty frozen = cell.FindPropertyRelative("isFrozen");
+            SerializedProperty block = cell.FindPropertyRelative("blockValue");
+            if (frozen.boolValue)
+                DrawFrozenMark(iconRect, block.intValue);
+            if (cell.FindPropertyRelative("isHidden").boolValue)
+                DrawHiddenMark(iconRect);
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
             type.enumValueIndex = EditorGUILayout.Popup(type.enumValueIndex, FoodNames);
             count.intValue = Mathf.Max(1, EditorGUILayout.IntField(count.intValue));
             EditorGUILayout.PropertyField(cell.FindPropertyRelative("isHidden"), new GUIContent("Ẩn nguyên liệu"));
+            EditorGUILayout.PropertyField(frozen, new GUIContent("Đóng băng"));
+            if (frozen.boolValue)
+                block.intValue = Mathf.Max(1, EditorGUILayout.IntField(new GUIContent("Giá trị băng"), block.intValue));
             EditorGUILayout.EndVertical();
         }
 
@@ -534,8 +546,8 @@ namespace FoodPop
             EditorUtility.SetDirty(level);
         }
 
-        // EN: Resets every board cell to empty, visible food with a default count of one.
-        // VI: Đặt lại mọi ô board thành trống, không ẩn và có số lượng mặc định bằng một.
+        // EN: Resets every board cell to empty, visible and unfrozen food with a default count and block value of one.
+        // VI: Đặt lại mọi ô board thành trống, không ẩn, không đóng băng và có số lượng cùng giá trị băng mặc định bằng một.
         private void ClearBoard()
         {
             serialized.ApplyModifiedProperties();
@@ -547,15 +559,15 @@ namespace FoodPop
                     cell.foodType = FoodType.None;
                     cell.requiredCount = 1;
                     cell.isHidden = false;
+                    cell.isFrozen = false;
+                    cell.blockValue = 1;
                 }
             }
             EditorUtility.SetDirty(level);
         }
 
-        // EN: Fills the board from the order totals: every food gets at least one cell, spare cells go to the foods with the largest
-        //     amount per cell; stable IDs are resolved, totals split evenly and unused cells reset to visible.
-        // VI: Điền bảng theo tổng order: mỗi loại có ít nhất một ô, các ô dư được chia cho loại có số lượng mỗi ô lớn nhất để không ô nào
-        //     trống; dùng ID cố định, chia đều tổng và đặt lại ô dư thành không ẩn.
+        // EN: Fills the board from order totals, splits quantities across cells and resets generated or unused cells to visible and unfrozen.
+        // VI: Điền board theo tổng order, chia số lượng giữa các ô và đặt ô được tạo hoặc còn dư thành không ẩn, không đóng băng.
         private void FillBoardFromOrders()
         {
             serialized.ApplyModifiedProperties();
@@ -588,6 +600,8 @@ namespace FoodPop
                 cells[i].foodType = FoodType.None;
                 cells[i].requiredCount = 1;
                 cells[i].isHidden = false;
+                cells[i].isFrozen = false;
+                cells[i].blockValue = 1;
             }
             EditorUtility.SetDirty(level);
 
@@ -635,8 +649,8 @@ namespace FoodPop
             return needed[a] > needed[b];
         }
 
-        // EN: Writes visible food into consecutive cells, splitting totals evenly and returning the next free index.
-        // VI: Ghi nguyên liệu không ẩn vào các ô liên tiếp, chia đều tổng và trả về chỉ số trống kế tiếp.
+        // EN: Writes visible, unfrozen food into consecutive cells, splitting totals evenly and returning the next free index.
+        // VI: Ghi nguyên liệu không ẩn, không đóng băng vào các ô liên tiếp, chia đều tổng và trả về chỉ số trống kế tiếp.
         private static int PlaceFoodSplit(List<OrderFood> cells, int startIndex, FoodType type, int total, int cellCount)
         {
             int baseAmount = total / cellCount;
@@ -647,6 +661,8 @@ namespace FoodPop
                 cell.foodType = type;
                 cell.requiredCount = baseAmount + (i < remainder ? 1 : 0);
                 cell.isHidden = false;
+                cell.isFrozen = false;
+                cell.blockValue = 1;
             }
             return startIndex + cellCount;
         }
@@ -748,9 +764,9 @@ namespace FoodPop
             EditorGUILayout.LabelField(title, EditorStyles.largeLabel);
         }
 
-        // EN: Reserves a square and draws the food icon, or a grey placeholder for None/missing art.
-        // VI: Dành một ô vuông và vẽ icon nguyên liệu, hoặc ô xám khi là None/thiếu ảnh.
-        private void DrawIcon(FoodType type, float size)
+        // EN: Reserves a square, draws the food icon or placeholder, and returns its area for state markers.
+        // VI: Dành ô vuông, vẽ icon hoặc ô giữ chỗ và trả vùng hiển thị để đặt dấu trạng thái.
+        private Rect DrawIcon(FoodType type, float size)
         {
             Rect rect = GUILayoutUtility.GetRect(size, size, GUILayout.Width(size), GUILayout.Height(size));
             Texture2D icon = GetIcon(type);
@@ -758,6 +774,35 @@ namespace FoodPop
                 GUI.DrawTexture(rect, icon, ScaleMode.ScaleToFit);
             else
                 EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 0.25f));
+            return rect;
+        }
+
+        // EN: Marks a frozen ingredient: an icy blue tint over the icon with the block value in the corner.
+        // VI: Đánh dấu nguyên liệu đóng băng: phủ màu xanh băng lên icon và ghi giá trị khối băng ở góc.
+        private static void DrawFrozenMark(Rect rect, int blockValue)
+        {
+            EditorGUI.DrawRect(rect, new Color(0.55f, 0.85f, 1f, 0.45f));
+            GUIStyle style = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.LowerRight,
+                fontSize = Mathf.RoundToInt(rect.height * 0.35f)
+            };
+            style.normal.textColor = Color.white;
+            GUI.Label(rect, blockValue.ToString(), style);
+        }
+
+        // EN: Marks a hidden ingredient: dims its icon and draws a large "?" on top, like the lid shown in game.
+        // VI: Đánh dấu nguyên liệu bị ẩn: làm tối icon và vẽ dấu "?" lớn đè lên, giống nắp che trong game.
+        private static void DrawHiddenMark(Rect rect)
+        {
+            EditorGUI.DrawRect(rect, new Color(0f, 0f, 0f, 0.55f));
+            GUIStyle style = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(rect.height * 0.6f)
+            };
+            style.normal.textColor = new Color(1f, 0.85f, 0.2f);
+            GUI.Label(rect, "?", style);
         }
 
         // EN: Returns (and caches) the icon texture of a food: from FoodIconConfig first, otherwise from Art/Sprites/Foods by file name.

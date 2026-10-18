@@ -18,6 +18,20 @@ namespace FoodPop
         private const string SoundFolder = "Assets/HotPot/Audio/SFX/Customer";
         private const string DishPrefabPath = "Assets/HotPot/Prefabs/Ingame/IngredientDish.prefab";
         private const string FoodIconConfigPath = "Assets/HotPot/Config/FoodIconConfig.asset";
+        private const float IceCoverScaleX = 1.07f;
+        private const float IceCoverScaleY = 1.32f;
+        private static readonly string[] IceStagePaths =
+        {
+            "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Frost.png",
+            "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Cracked.png",
+            "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Faceted.png",
+            "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Clear.png"
+        };
+        private const string IceShardTexturePath = "Assets/HotPot/Art/Sprites/Effects/FxIceShard.png";
+        private const string IceShaderName = "FoodPop/IceSurface";
+        private const string IceMaterialPath = "Assets/HotPot/Art/Materials/IceSurface.mat";
+        private const string IceHitPrefabPath = "Assets/HotPot/Prefabs/Effects/IceHit.prefab";
+        private const string IceBreakPrefabPath = "Assets/HotPot/Prefabs/Effects/IceBreak.prefab";
 
         // EN: Runs every step: assets, ingredient dish prefab, conveyor slots, board, customers and the level controller; saves the scene when it had no other unsaved changes.
         // VI: Chạy mọi bước: asset, prefab đĩa nguyên liệu, slot băng chuyền, board, khách và level controller; tự lưu scene nếu scene không có thay đổi khác chưa lưu.
@@ -119,6 +133,9 @@ namespace FoodPop
         // VI: Gán tham chiếu cho prefab đĩa nguyên liệu: renderer của Food, viền chọn, canvas số lượng, nắp và bóng.
         private static void BindDishPrefab()
         {
+            Sprite[] iceStages = System.Array.ConvertAll(IceStagePaths, AssetDatabase.LoadAssetAtPath<Sprite>);
+            Sprite iceSprite = iceStages[0];
+            Material iceMaterial = GetOrCreateIceMaterial();
             GameObject root = PrefabUtility.LoadPrefabContents(DishPrefabPath);
             try
             {
@@ -126,11 +143,16 @@ namespace FoodPop
                 SpriteRenderer plate = FindRenderer(root.transform, "Plate");
                 SpriteRenderer lid = FindRenderer(root.transform, "Plate/Lid");
                 SpriteRenderer ingredient = FindRenderer(root.transform, "Ingredient");
+                SpriteRenderer ice = EnsureIce(root.transform, plate, iceSprite);
+                if (iceMaterial != null)
+                    ice.sharedMaterial = iceMaterial;
+                TextMeshPro blockText = EnsureBlockText(root.transform, plate);
                 DishSelectionOutline outline = root.GetComponent<DishSelectionOutline>();
                 if (food != null)
                 {
                     SetFields(food, ("iconRenderer", ingredient), ("plateRenderer", plate), ("lidRenderer", lid),
-                        ("selection", outline), ("countCanvas", root.GetComponentInChildren<Canvas>(true)));
+                        ("selection", outline), ("countCanvas", root.GetComponentInChildren<Canvas>(true)),
+                        ("iceRenderer", ice), ("blockText", blockText));
                     SetArray(food, "visualRenderers", root.GetComponentsInChildren<SpriteRenderer>(true));
                 }
                 if (outline != null)
@@ -142,6 +164,129 @@ namespace FoodPop
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        // EN: Returns the ice surface material using the FoodPop/IceSurface shader, creating it when missing.
+        // VI: Trả về material bề mặt băng dùng shader FoodPop/IceSurface, tạo mới khi chưa có.
+        private static Material GetOrCreateIceMaterial()
+        {
+            Shader shader = Shader.Find(IceShaderName);
+            if (shader == null)
+            {
+                Debug.LogWarning($"[CustomerSetup] Không tìm thấy shader {IceShaderName}.");
+                return null;
+            }
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(IceMaterialPath);
+            if (material == null)
+            {
+                FoodLandEffectBuilder.EnsureFolder(System.IO.Path.GetDirectoryName(IceMaterialPath).Replace('\\', '/'));
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, IceMaterialPath);
+            }
+            material.shader = shader;
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        // EN: Builds an ice shard burst: crystal shards flung out in all directions, spinning, falling with gravity and fading; saved as a ParticleEffect prefab.
+        // VI: Dựng hiệu ứng vụn băng: các mảnh tinh thể văng ra mọi hướng, xoay tròn, rơi theo trọng lực và mờ dần; lưu thành prefab ParticleEffect.
+        private static ParticleEffect BuildIceShardPrefab(string name, string path, short count, float speed, float minSize, float maxSize)
+        {
+            Texture2D texture = FoodLandEffectBuilder.ImportEffectTexture(IceShardTexturePath);
+            if (texture == null)
+            {
+                Debug.LogWarning($"[CustomerSetup] Thiếu {IceShardTexturePath}.");
+                return null;
+            }
+            Material material = FoodLandEffectBuilder.GetOrCreateMaterial("IceShard", texture);
+            GameObject root = new GameObject(name);
+            try
+            {
+                ParticleSystem system = root.AddComponent<ParticleSystem>();
+                ParticleSystem.MainModule main = FoodLandEffectBuilder.ApplyCommonMain(system, 0.6f);
+                main.startLifetime = new ParticleSystem.MinMaxCurve(0.45f, 0.75f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(speed * 0.6f, speed);
+                main.startSize = new ParticleSystem.MinMaxCurve(minSize, maxSize);
+                main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+                main.startColor = new ParticleSystem.MinMaxGradient(Color.white, new Color(0.8f, 0.93f, 1f));
+                main.gravityModifier = 1.4f;
+                main.maxParticles = 40;
+                FoodLandEffectBuilder.SetBurst(system, count);
+                ParticleSystem.ShapeModule shape = system.shape;
+                shape.enabled = true;
+                shape.shapeType = ParticleSystemShapeType.Circle;
+                shape.radius = 0.25f;
+                shape.arc = 360f;
+                shape.rotation = Vector3.zero;
+                ParticleSystem.RotationOverLifetimeModule rotation = system.rotationOverLifetime;
+                rotation.enabled = true;
+                rotation.z = new ParticleSystem.MinMaxCurve(-Mathf.PI * 4f, Mathf.PI * 4f);
+                FoodLandEffectBuilder.SetSizeOverLifetime(system, new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 0.4f)));
+                FoodLandEffectBuilder.SetFadeOut(system, Color.white, 1f, 0.6f);
+                FoodLandEffectBuilder.ApplyRenderer(system, material, 0);
+                FoodLandEffectBuilder.EnsureFolder("Assets/HotPot/Prefabs/Effects");
+                return FoodLandEffectBuilder.SaveEffectPrefab(root, path);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        // EN: Returns the dish's "Ice" overlay (created when missing), sized to cover the plate and hidden by default.
+        // VI: Trả về lớp băng "Ice" của đĩa (tạo mới nếu chưa có), kích thước phủ kín đĩa và mặc định ẩn.
+        private static SpriteRenderer EnsureIce(Transform root, SpriteRenderer plate, Sprite sprite)
+        {
+            SpriteRenderer ice = FindRenderer(root, "Ice");
+            if (ice == null)
+            {
+                ice = new GameObject("Ice").AddComponent<SpriteRenderer>();
+                ice.transform.SetParent(root, false);
+            }
+            ice.sprite = sprite;
+            if (plate != null && sprite != null)
+            {
+                // The ice art is flatter than the plate art (opaque area 241x174 px vs 248x222 px on the same 256 px canvas),
+                // so stretch it a little wider and noticeably taller to cover the whole plate, rim and base included.
+                ice.transform.position = plate.bounds.center;
+                float baseScale = plate.bounds.size.x / Mathf.Max(0.01f, sprite.bounds.size.x) / Mathf.Max(0.0001f, root.lossyScale.x);
+                ice.transform.localScale = new Vector3(baseScale * IceCoverScaleX, baseScale * IceCoverScaleY, 1f);
+                ice.sortingLayerID = plate.sortingLayerID;
+                ice.sortingOrder = plate.sortingOrder + 5;
+            }
+            ice.gameObject.SetActive(false);
+            return ice;
+        }
+
+        // EN: Returns the dish's "BlockValue" text (created when missing): a bold dark-blue number at the plate centre, hidden by default.
+        // VI: Trả về text "BlockValue" của đĩa (tạo mới nếu chưa có): số xanh đậm in đậm ở giữa đĩa, mặc định ẩn.
+        private static TextMeshPro EnsureBlockText(Transform root, SpriteRenderer plate)
+        {
+            Transform existing = root.Find("BlockValue");
+            TextMeshPro text = existing != null ? existing.GetComponent<TextMeshPro>() : null;
+            if (text == null)
+            {
+                GameObject go = new GameObject("BlockValue");
+                go.transform.SetParent(root, false);
+                text = go.AddComponent<TextMeshPro>();
+            }
+            text.text = "1";
+            text.alignment = TextAlignmentOptions.Center;
+            text.fontStyle = FontStyles.Bold;
+            text.color = new Color32(20, 70, 120, 255);
+            if (text.font != null)
+                text.fontSharedMaterial = text.font.material;
+            if (plate != null)
+            {
+                text.transform.position = plate.bounds.center;
+                float worldHeight = plate.bounds.size.y * 0.55f;
+                text.fontSize = worldHeight / Mathf.Max(0.0001f, root.lossyScale.y) * 10f;
+                text.rectTransform.sizeDelta = new Vector2(plate.bounds.size.x, plate.bounds.size.y) / Mathf.Max(0.0001f, root.lossyScale.x);
+                text.sortingLayerID = plate.sortingLayerID;
+                text.sortingOrder = plate.sortingOrder + 6;
+            }
+            text.gameObject.SetActive(false);
+            return text;
         }
 
         // EN: Gives every conveyor slot in the scene its own Food component and wires the slot, food and shadow references.
@@ -176,7 +321,9 @@ namespace FoodPop
                     dishes.AddRange(column.GetComponentsInChildren<Food>(true));
             }
             serialized.ApplyModifiedPropertiesWithoutUndo();
-            SetFields(board, ("flyAnimator", board.GetComponent<FoodFlyAnimator>()));
+            SetFields(board, ("flyAnimator", board.GetComponent<FoodFlyAnimator>()),
+                ("iceHitEffect", BuildIceShardPrefab("IceHit", IceHitPrefabPath, 7, 2.2f, 0.12f, 0.22f)),
+                ("iceBreakEffect", BuildIceShardPrefab("IceBreak", IceBreakPrefabPath, 18, 3.6f, 0.16f, 0.32f)));
             SetArray(board, "sceneDishes", dishes.ToArray());
         }
 
@@ -200,7 +347,8 @@ namespace FoodPop
             SetFields(manager,
                 ("conveyor", Object.FindFirstObjectByType<ConveyorChefMovement>(FindObjectsInactive.Include)),
                 ("foodIconConfig", AssetDatabase.LoadAssetAtPath<FoodIconConfig>(FoodIconConfigPath)),
-                ("heartEffectPrefab", hearts),
+                ("heartEffectPrefab", hearts));
+            SetFields(FoodLandEffectBuilder.EnsureSoundManager(),
                 ("serveSound", FoodLandEffectBuilder.ImportSound($"{SoundFolder}/CustomerServePop.wav")),
                 ("customerHappySound", FoodLandEffectBuilder.ImportSound($"{SoundFolder}/CustomerHappy.wav")));
             List<Transform> customers = group.Cast<Transform>().Where(child => child.name.StartsWith("Customer")).OrderBy(child => child.position.x).ToList();

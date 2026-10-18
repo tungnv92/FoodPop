@@ -32,6 +32,8 @@ namespace FoodPop
         [SerializeField] private List<Transform> ingredientColumns = new List<Transform>();
         [Tooltip("Bảng icon của các loại nguyên liệu; để trống sẽ tự gán cấu hình mặc định trong editor.")]
         [SerializeField] private FoodIconConfig foodIconConfig;
+        [Tooltip("Các sprite lớp băng theo thứ tự từ sắp tan đến dày nhất; tự gán trong editor.")]
+        [SerializeField] private Sprite[] iceBlockSprites = new Sprite[4];
         [Tooltip("Prefab đĩa nguyên liệu được tạo khi pool hết đĩa tái sử dụng.")]
         [SerializeField] private Food ingredientDishPrefab;
         [Tooltip("Đối tượng chứa các đĩa đang nằm trong pool; tự tạo nếu chưa gán.")]
@@ -46,6 +48,10 @@ namespace FoodPop
         [Min(0f)] [SerializeField] private float columnSpacing;
         [Tooltip("Hoạt cảnh món nhảy vòng cung lên băng chuyền (component trên cùng GameObject).")]
         [SerializeField] private FoodFlyAnimator flyAnimator;
+        [Tooltip("Hiệu ứng vụn băng bắn ra mỗi khi khối băng bị trừ giá trị.")]
+        [SerializeField] private ParticleEffect iceHitEffect;
+        [Tooltip("Hiệu ứng băng vỡ tung khi khối băng về 0 và tan.")]
+        [SerializeField] private ParticleEffect iceBreakEffect;
         [Tooltip("Các đĩa đặt sẵn trong scene; được đưa vào pool khi nạp level đầu tiên.")]
         [SerializeField] private List<Food> sceneDishes = new List<Food>();
 
@@ -146,12 +152,12 @@ namespace FoodPop
             return false;
         }
 
-        // EN: Picks a column's head dish: reserves one conveyor slot per portion, launches the arc animation from the dish to those slots, removes the dish from the column, slides the rest up one row and raises DishPicked. Fails without changes when there are not enough empty slots.
-        // VI: Chọn đĩa đầu cột: giữ mỗi phần (theo amount) một slot băng chuyền, chạy hoạt cảnh nhảy vòng cung từ đĩa tới các slot đó, gỡ đĩa khỏi cột, đẩy các đĩa còn lại lên một hàng và phát DishPicked. Không thay đổi gì nếu không đủ slot rỗng.
+        // EN: Picks an unfrozen head dish, reserves conveyor slots, shifts the column, then damages every remaining frozen block after success.
+        // VI: Chọn đĩa đầu cột không đóng băng, giữ slot băng chuyền, dồn cột rồi gây sát thương mọi khối băng còn lại sau khi chọn thành công.
         public bool TryPickColumn(int columnIndex)
         {
             Food dish = GetColumnHead(columnIndex);
-            if (dish == null)
+            if (dish == null || dish.IsFrozen)
                 return false;
             FoodType type = dish.foodType;
             if (!TryFillConveyorSlots(type, dish.amount, dish.transform.position))
@@ -163,8 +169,38 @@ namespace FoodPop
             RemoveFromBoard(dish);
             ShiftColumnUp(columnIndex);
             RefreshColumnSelection(columnIndex);
+            ReduceFrozenBlocks();
             DishPicked?.Invoke(type, targetSlots);
             return true;
+        }
+
+        // EN: After a successful pick, lowers the block value of every frozen dish on the board by one; columns whose dishes thawed refresh their selection.
+        // VI: Sau mỗi lần chọn thành công, giảm giá trị khối băng của mọi đĩa đang đóng băng trên board đi một; cột có đĩa vừa tan băng được cập nhật lại trạng thái chọn.
+        private void ReduceFrozenBlocks()
+        {
+            for (int c = 0; c < columnDishes.Count; c++)
+            {
+                bool thawed = false;
+                foreach (Food dish in columnDishes[c])
+                    thawed |= DamageIce(dish);
+                if (thawed)
+                    RefreshColumnSelection(c);
+            }
+        }
+
+        // EN: Lowers one frozen dish's block value and bursts ice shards from it (a bigger burst when it breaks); returns true when the dish thawed.
+        // VI: Giảm giá trị băng của một đĩa đóng băng và bắn vụn băng từ đó (bắn mạnh hơn khi vỡ); trả về true khi đĩa tan băng.
+        private bool DamageIce(Food dish)
+        {
+            if (!dish.IsFrozen)
+                return false;
+            SpriteRenderer ice = dish.IceRenderer;
+            Vector3 position = ice != null ? ice.bounds.center : dish.transform.position;
+            int sortingLayer = ice != null ? ice.sortingLayerID : 0;
+            int sortingOrder = ice != null ? ice.sortingOrder + 2 : 0;
+            bool thawed = dish.ReduceBlock();
+            OneShotEffects.PlayParticle(thawed ? iceBreakEffect : iceHitEffect, position, sortingLayer, sortingOrder);
+            return thawed;
         }
 
         // EN: Reserves the nearest empty conveyor slots for every portion and fills them with the food type; returns false when the conveyor lacks space.
@@ -298,7 +334,7 @@ namespace FoodPop
                 if (i == 0 && dish.isHidden)
                     dish.SetHidden(false);
                 if (dish.Selection != null)
-                    dish.Selection.SetSelectable(i == 0);
+                    dish.Selection.SetSelectable(i == 0 && !dish.IsFrozen);
             }
         }
 
@@ -348,8 +384,8 @@ namespace FoodPop
             }
         }
 
-        // EN: Rents dishes at local row positions, records them top to bottom and restores the level's hidden flag before head selection reveals the top dish.
-        // VI: Lấy đĩa theo tọa độ hàng cục bộ, ghi lại theo thứ tự từ trên xuống và gán cờ ẩn từ level trước khi đĩa đầu được mở nắp.
+        // EN: Rents dishes at local row positions, assigns shared ice visuals and each cell's hidden/frozen state, then records them top to bottom.
+        // VI: Lấy đĩa theo tọa độ hàng cục bộ, gán sprite băng dùng chung cùng trạng thái ẩn/đóng băng của ô rồi ghi theo thứ tự từ trên xuống.
         private void FillColumn(int columnIndex, List<OrderFood> foods)
         {
             while (columnDishes.Count <= columnIndex)
@@ -368,7 +404,9 @@ namespace FoodPop
                 dish.transform.localScale = dishLocalScale;
                 dish.transform.localRotation = dishLocalRotation;
                 dish.transform.localPosition = new Vector3(0f, -rowSpacing * r, 0f);
+                dish.SetIceBlockSprites(iceBlockSprites);
                 dish.Setup(cell.foodType, cell.requiredCount, GetIcon(cell.foodType), cell.isHidden);
+                dish.SetFrozen(cell.isFrozen, cell.blockValue);
                 dish.SetIconConfig(foodIconConfig);
                 dish.name = $"Ingredient dish · {cell.foodType}";
                 ApplyDishVisuals(dish);
@@ -481,14 +519,28 @@ namespace FoodPop
         }
 
 #if UNITY_EDITOR
-        // EN: Assigns default icon and dish-prefab assets without discovering scene columns.
-        // VI: Gán asset icon và prefab đĩa mặc định, không tự tìm cột trong scene.
+        // EN: Assigns default icon, ice-shell and dish-prefab assets without discovering scene columns.
+        // VI: Gán asset icon, sprite lớp băng và prefab đĩa mặc định, không tự tìm cột trong scene.
         private void OnValidate()
         {
             if (Application.isPlaying)
                 return;
             if (foodIconConfig == null)
                 foodIconConfig = UnityEditor.AssetDatabase.LoadAssetAtPath<FoodIconConfig>("Assets/HotPot/Config/FoodIconConfig.asset");
+            string[] icePaths =
+            {
+                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Frost.png",
+                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Cracked.png",
+                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Faceted.png",
+                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Clear.png"
+            };
+            if (iceBlockSprites == null || iceBlockSprites.Length != icePaths.Length)
+                iceBlockSprites = new Sprite[icePaths.Length];
+            for (int i = 0; i < icePaths.Length; i++)
+            {
+                if (iceBlockSprites[i] == null)
+                    iceBlockSprites[i] = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(icePaths[i]);
+            }
             if (ingredientDishPrefab == null)
                 ingredientDishPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<Food>("Assets/HotPot/Prefabs/Ingame/IngredientDish.prefab");
         }

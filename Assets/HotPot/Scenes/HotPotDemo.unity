@@ -256,17 +256,11 @@ MonoBehaviour:
   hopHeight: 0.6
   cuttingSortingBoost: 20
   chopSmokePrefab: {fileID: 6050596641706323819, guid: 62659b2d20833704e8390670b26bfae8, type: 3}
-  chopSound: {fileID: 8300000, guid: b3eabb169f34ccd47b7564fe9e99f756, type: 3}
-  meatChopSound: {fileID: 8300000, guid: 3f776d862bde140489e0014fe0e0bdf7, type: 3}
-  vegetableChopSound: {fileID: 8300000, guid: 5a50c5cd0ca309b47aa5c2d4af50eb34, type: 3}
   meatDebrisPrefab: {fileID: 5519536131230656261, guid: f344e9a0dd77ad4469eb32cc57dabf5e, type: 3}
   vegetableDebrisPrefab: {fileID: 363208603038250671, guid: c87a0ca1710d83444a44b0b0306a6007, type: 3}
   debrisPerChop: 3
   chopInterval: 0.167
-  chopVolume: 0.7
   preparedEffectPrefab: {fileID: 2179810851722973742, guid: c3626f4d65d12d647a5baabdc950eae7, type: 3}
-  preparedSound: {fileID: 8300000, guid: 96f7f5c7a78d9984893a1db3adbe1855, type: 3}
-  preparedVolume: 0.8
 --- !u!1 &45606325
 GameObject:
   m_ObjectHideFlags: 0
@@ -910,13 +904,6 @@ MonoBehaviour:
   peakScale: 1.3
   spinTurns: 1
   sortingOrderBoost: 100
-  launchSound: {fileID: 8300000, guid: 07e188f8327017249a30f57ec5f474f8, type: 3}
-  launchVolume: 0.6
-  landSound: {fileID: 8300000, guid: e48dab59f19570c4ab46668aa37802d4, type: 3}
-  landPitchRange: {x: 0.85, y: 1.2}
-  minPortionPitchGap: 0.06
-  landVolume: 1
-  landPitchJitter: 0.08
 --- !u!114 &230964882
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -936,13 +923,20 @@ MonoBehaviour:
   - {fileID: 815941087}
   - {fileID: 932491920}
   foodIconConfig: {fileID: 11400000, guid: 8e8a947c10e8406f9e6f03211e19a357, type: 2}
+  iceBlockSprites:
+  - {fileID: 1583893645169793078, guid: abecc9974cfc4594c8fc0a63a75f2ab9, type: 3}
+  - {fileID: -4321809163808643849, guid: e34ef5cc9a32b4f49aff60de69774da3, type: 3}
+  - {fileID: 6697439232440167734, guid: ac43971b3f2646b4b849df8ce78edebd, type: 3}
+  - {fileID: -1050554854137718869, guid: 28dd608c5d557ac41b41eaf10e5c56fa, type: 3}
   ingredientDishPrefab: {fileID: 3317517828834347235, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
   dishPoolRoot: {fileID: 1235972041}
   inputCamera: {fileID: 1990410786}
   shiftUpDuration: 0.25
   rowSpacing: 1.31
-  columnSpacing: 0
+  columnSpacing: 1.6
   flyAnimator: {fileID: 230964881}
+  iceHitEffect: {fileID: 761767454929327973, guid: 2d47ae17fe8397548b45fb0e11392b57, type: 3}
+  iceBreakEffect: {fileID: 245015892600344468, guid: 2a826cad7453abb44837c1467adcd1f9, type: 3}
   sceneDishes:
   - {fileID: 1696580016}
   - {fileID: 1193692150}
@@ -1228,6 +1222,167 @@ SpriteRenderer:
   m_CorrespondingSourceObject: {fileID: 2469330124222021973, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
   m_PrefabInstance: {fileID: 1836441188}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &327616792
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 327616795}
+  - component: {fileID: 327616794}
+  - component: {fileID: 327616793}
+  m_Layer: 0
+  m_Name: IngameSoundManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!82 &327616793
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 327616792}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &327616794
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 327616792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 114945b63fe2b3b47b8f0ee08be29f91, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.IngameSoundManager
+  source: {fileID: 327616793}
+  dishLaunchSound: {fileID: 8300000, guid: 07e188f8327017249a30f57ec5f474f8, type: 3}
+  dishLaunchVolume: 0.6
+  dishLaunchPitchJitter: 0.08
+  foodLandSound: {fileID: 8300000, guid: e48dab59f19570c4ab46668aa37802d4, type: 3}
+  foodLandVolume: 1
+  foodLandPitchRange: {x: 0.85, y: 1.2}
+  minPortionPitchGap: 0.06
+  chopVolume: 0.7
+  chopPitchJitter: 0.1
+  preparedSound: {fileID: 8300000, guid: 96f7f5c7a78d9984893a1db3adbe1855, type: 3}
+  preparedVolume: 0.8
+  serveSound: {fileID: 8300000, guid: b2a4c0d4b1d8049409cabed9dda96a7a, type: 3}
+  serveVolume: 0.6
+  serveSoundInterval: 0.12
+  serveComboWindow: 0.5
+  serveComboPitchStep: 0.06
+  customerHappySound: {fileID: 8300000, guid: 2cc8b3cbac6e5ad45aefdbab0430b080, type: 3}
+  customerHappyVolume: 0.9
+--- !u!4 &327616795
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 327616792}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &332334624 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7738802343028918148, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
@@ -2970,6 +3125,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 2072892841}
@@ -2979,6 +3136,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1001 &568877840
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4036,13 +4197,9 @@ MonoBehaviour:
     - {fileID: 2144021704}
     - {fileID: 1600607166}
     - {fileID: 1077347969}
-    waitingFigures:
-    - {fileID: 0}
-    - {fileID: 0}
+    waitingFigures: []
     portraits:
     - {fileID: 21300000, guid: ccf5907ed13249708ccfec8e68d6830a, type: 3}
-    - {fileID: 21300000, guid: 7ad3bfdde537ea740a75b8527dcc8554, type: 3}
-    - {fileID: 21300000, guid: 361e97a5dbf352048ad65571f6423671, type: 3}
     slideDirection: -1
   - customer: {fileID: 1502907822}
     orderItems:
@@ -4052,24 +4209,15 @@ MonoBehaviour:
     - {fileID: 563905611}
     - {fileID: 389012255}
     - {fileID: 1313359648}
-    waitingFigures:
-    - {fileID: 0}
+    waitingFigures: []
     portraits:
     - {fileID: 21300000, guid: d564bf4370a347288b7fde9055ecd4e5, type: 3}
-    - {fileID: 21300000, guid: 9cd8e68b77c197f45b26aab15ee945f1, type: 3}
     slideDirection: 1
   serveFlyDuration: 0.55
   serveArcHeight: 2
   servePeakScale: 1.3
   serveSortingBoost: 40
-  serveSound: {fileID: 8300000, guid: b2a4c0d4b1d8049409cabed9dda96a7a, type: 3}
-  serveVolume: 0.8
-  serveSoundInterval: 0.12
-  serveComboWindow: 0.5
-  serveComboPitchStep: 0.06
   heartEffectPrefab: {fileID: 7491155255190980875, guid: b5d1161c7b4f3a44d9db546509e80e8b, type: 3}
-  customerHappySound: {fileID: 8300000, guid: 2cc8b3cbac6e5ad45aefdbab0430b080, type: 3}
-  customerHappyVolume: 0.9
   leaveDelay: 0.6
   slideDuration: 0.45
   slideDistance: 9
@@ -5404,6 +5552,63 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 4496898627574555513, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
   m_PrefabInstance: {fileID: 890314217}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1271727429
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2671227172787310902, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_Name
+      value: IngredientDish
+      objectReference: {fileID: 0}
+    - target: {fileID: 5479086989514249357, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5479086989514249357, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5479086989514249357, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5479086989514249357, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5479086989514249357, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5479086989514249357, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5479086989514249357, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5479086989514249357, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5479086989514249357, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5479086989514249357, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
 --- !u!1 &1272309131
 GameObject:
   m_ObjectHideFlags: 0
@@ -5716,6 +5921,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 1224303453}
@@ -5725,6 +5932,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1 &1309457984 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4496898627574555513, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
@@ -5746,6 +5957,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 293807217}
@@ -5755,6 +5968,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1 &1309477751 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4496898627574555513, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
@@ -5988,6 +6205,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 362417580}
@@ -5997,6 +6216,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1001 &1339662001
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6301,6 +6524,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 1382765933}
@@ -6310,6 +6535,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1 &1398079482
 GameObject:
   m_ObjectHideFlags: 0
@@ -6773,6 +7002,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 265660815}
@@ -6782,6 +7013,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1 &1494775842
 GameObject:
   m_ObjectHideFlags: 0
@@ -7214,6 +7449,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 1078828498}
@@ -7223,6 +7460,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1001 &1524135281
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8504,6 +8745,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 1651541582}
@@ -8513,6 +8756,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1001 &1875395224
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8981,6 +9228,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 1189578526}
@@ -8990,6 +9239,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1001 &1973277289
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9105,6 +9358,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 1685210677}
@@ -9114,6 +9369,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1 &1990410785
 GameObject:
   m_ObjectHideFlags: 0
@@ -9367,6 +9626,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 1933852037}
@@ -9376,6 +9637,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1 &1999750395
 GameObject:
   m_ObjectHideFlags: 0
@@ -10426,6 +10691,8 @@ MonoBehaviour:
   amount: 0
   isHidden: 0
   state: 0
+  isFrozen: 0
+  blockValue: 0
   canvasCount: {fileID: 0}
   txtAmount: {fileID: 0}
   iconRenderer: {fileID: 1099732597}
@@ -10435,6 +10702,10 @@ MonoBehaviour:
   selection: {fileID: 0}
   visualRenderers: []
   countCanvas: {fileID: 0}
+  iceRenderer: {fileID: 0}
+  blockText: {fileID: 0}
+  iceHitDuration: 0.22
+  iceHitAmount: 0.12
 --- !u!1001 &6355908018694923267
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10702,3 +10973,5 @@ SceneRoots:
   - {fileID: 36912600}
   - {fileID: 1272309133}
   - {fileID: 928443301}
+  - {fileID: 327616795}
+  - {fileID: 1271727429}

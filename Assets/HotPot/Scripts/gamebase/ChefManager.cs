@@ -46,13 +46,7 @@ namespace FoodPop
         [Tooltip("Prefab khói (lặp lại, tùy chọn) bốc lên từ món trong lúc cắt.")]
         [SerializeField] private ParticleEffect chopSmokePrefab;
 
-        [Header("Âm thanh và vụn khi cắt")]
-        [Tooltip("Âm thanh dao chặt mặc định (tùy chọn), dùng khi nhóm nguyên liệu chưa có âm thanh riêng.")]
-        [SerializeField] private AudioClip chopSound;
-        [Tooltip("Âm thanh dao chặt cho nhóm thịt/hải sản (tùy chọn).")]
-        [SerializeField] private AudioClip meatChopSound;
-        [Tooltip("Âm thanh dao chặt cho nhóm rau/đồ mềm (tùy chọn).")]
-        [SerializeField] private AudioClip vegetableChopSound;
+        [Header("Vụn khi cắt")]
         [Tooltip("Prefab vụn thịt (tùy chọn) bắn ra ở mỗi nhát chặt món thịt/hải sản.")]
         [SerializeField] private ParticleEffect meatDebrisPrefab;
         [Tooltip("Prefab vụn rau (tùy chọn) bắn ra ở mỗi nhát chặt món rau/đồ mềm.")]
@@ -61,16 +55,10 @@ namespace FoodPop
         [Min(0)] [SerializeField] private int debrisPerChop = 3;
         [Tooltip("Khoảng thời gian (giây) giữa hai nhát chặt; chỉnh cho khớp nhịp hoạt ảnh cắt.")]
         [Min(0.05f)] [SerializeField] private float chopInterval = 0.167f;
-        [Tooltip("Âm lượng âm thanh dao chặt.")]
-        [Range(0f, 1f)] [SerializeField] private float chopVolume = 0.7f;
 
         [Header("Hiệu ứng khi sơ chế xong")]
         [Tooltip("Prefab particle (tùy chọn) chạy tại slot khi món vừa sơ chế xong.")]
         [SerializeField] private ParticleEffect preparedEffectPrefab;
-        [Tooltip("Âm thanh (tùy chọn) phát khi món vừa sơ chế xong.")]
-        [SerializeField] private AudioClip preparedSound;
-        [Tooltip("Âm lượng âm thanh khi sơ chế xong.")]
-        [Range(0f, 1f)] [SerializeField] private float preparedVolume = 0.8f;
 
         private Coroutine preparationRoutine;
         private Food preparingFood;
@@ -318,7 +306,7 @@ namespace FoodPop
         {
             flyer.sprite = preparedSprite;
             OneShotEffects.PlayParticle(preparedEffectPrefab, flyer.transform.position, flyer.sortingLayerID, flyer.sortingOrder + 2);
-            OneShotEffects.PlaySound(preparedSound, preparedVolume, 0.05f);
+            IngameSoundManager.Instance?.PlayPrepared();
             const float Duration = 0.22f;
             float time = 0f;
             while (time < Duration)
@@ -412,7 +400,7 @@ namespace FoodPop
             {
                 if (elapsed >= nextChop)
                 {
-                    OneShotEffects.PlaySound(GetChopSound(food), chopVolume, 0.1f);
+                    IngameSoundManager.Instance?.PlayChop(food);
                     EmitDebris(debris, foodSprite);
                     lastChop = nextChop;
                     nextChop += chopInterval;
@@ -458,19 +446,6 @@ namespace FoodPop
             Vector2 spriteSize = foodShadowSprite.bounds.size;
             cuttingShadow.transform.localScale = new Vector3(width / Mathf.Max(0.01f, spriteSize.x), width * 0.35f / Mathf.Max(0.01f, spriteSize.y), 1f);
             cuttingShadow.gameObject.SetActive(true);
-        }
-
-        // EN: Picks the chop sound for one chop: a random one of the food's own sounds from FoodIconConfig, then its group's sound, then the default.
-        // VI: Chọn tiếng dao cho một nhát: ngẫu nhiên một trong các tiếng riêng của món trong FoodIconConfig, sau đó âm thanh theo nhóm, cuối cùng là âm thanh mặc định.
-        private AudioClip GetChopSound(Food food)
-        {
-            FoodIconConfig config = food.IconConfig;
-            AudioClip own = config != null ? config.GetChopSound(food.foodType) : null;
-            if (own != null)
-                return own;
-            FoodCategory category = FoodCategories.Get(food.foodType, config);
-            AudioClip group = category == FoodCategory.Meat ? meatChopSound : vegetableChopSound;
-            return group != null ? group : chopSound;
         }
 
         // EN: Returns the debris emitter for a food (its own prefab from FoodIconConfig, otherwise its group's prefab), creating one instance per prefab on first use.
