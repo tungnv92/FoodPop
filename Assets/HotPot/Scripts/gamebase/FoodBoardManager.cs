@@ -42,6 +42,8 @@ namespace FoodPop
         [Min(0f)] [SerializeField] private float shiftUpDuration = 0.18f;
         [Tooltip("Khoảng cách theo trục Y (đơn vị world cục bộ của cột) giữa hai đĩa liền nhau trong cùng một cột.")]
         [Min(0f)] [SerializeField] private float rowSpacing = 1.31f;
+        [Tooltip("Khoảng cách theo trục X (đơn vị world cục bộ của object cha) giữa hai cột liền nhau; các cột đang dùng được căn giữa tại x = 0 (ví dụ 1 với 3 cột: -1, 0, 1). Đặt 0 thì các cột chồng lên nhau.")]
+        [Min(0f)] [SerializeField] private float columnSpacing;
         [Tooltip("Hoạt cảnh món nhảy vòng cung lên băng chuyền (component trên cùng GameObject).")]
         [SerializeField] private FoodFlyAnimator flyAnimator;
         [Tooltip("Các đĩa đặt sẵn trong scene; được đưa vào pool khi nạp level đầu tiên.")]
@@ -119,6 +121,18 @@ namespace FoodPop
             return true;
         }
 
+        // EN: Number of columns currently tracked on the board.
+        // VI: Số cột đang được theo dõi trên board.
+        public int ColumnCount => columnDishes.Count;
+
+        // EN: Food type of a column's head dish, or None when the column is empty.
+        // VI: Loại món của đĩa đầu cột, hoặc None nếu cột trống.
+        public FoodType GetColumnHeadType(int columnIndex)
+        {
+            Food head = GetColumnHead(columnIndex);
+            return head != null ? head.foodType : FoodType.None;
+        }
+
         // EN: Picks the selectable head dish whose plate contains the given world point, if any.
         // VI: Chọn đĩa đầu cột có vùng đĩa chứa điểm world đã cho, nếu có.
         public bool TryPickAt(Vector2 worldPoint)
@@ -134,7 +148,7 @@ namespace FoodPop
 
         // EN: Picks a column's head dish: reserves one conveyor slot per portion, launches the arc animation from the dish to those slots, removes the dish from the column, slides the rest up one row and raises DishPicked. Fails without changes when there are not enough empty slots.
         // VI: Chọn đĩa đầu cột: giữ mỗi phần (theo amount) một slot băng chuyền, chạy hoạt cảnh nhảy vòng cung từ đĩa tới các slot đó, gỡ đĩa khỏi cột, đẩy các đĩa còn lại lên một hàng và phát DishPicked. Không thay đổi gì nếu không đủ slot rỗng.
-        private bool TryPickColumn(int columnIndex)
+        public bool TryPickColumn(int columnIndex)
         {
             Food dish = GetColumnHead(columnIndex);
             if (dish == null)
@@ -308,6 +322,7 @@ namespace FoodPop
             foreach (Transform column in columns)
                 FinishColumnShift(column);
             ReturnBoardDishes();
+            ApplyColumnSpacing(columnCount);
             for (int c = 0; c < columns.Count; c++)
             {
                 bool used = c < columnCount;
@@ -315,6 +330,21 @@ namespace FoodPop
                 List<OrderFood> foods = used && c < board.Count ? board[c]?.foods : null;
                 FillColumn(c, foods);
                 RefreshColumnSelection(c);
+            }
+        }
+
+        // EN: Spreads the first activeCount columns evenly by columnSpacing, centred on local x = 0 (e.g. spacing 1 with 3 columns gives x = -1, 0, 1); spacing 0 stacks every column at x = 0.
+        // VI: Dàn đều activeCount cột đầu tiên theo columnSpacing, căn giữa tại x cục bộ = 0 (ví dụ spacing 1 với 3 cột cho x = -1, 0, 1); spacing bằng 0 thì mọi cột chồng lên nhau tại x = 0.
+        private void ApplyColumnSpacing(int activeCount)
+        {
+            if (activeCount <= 0)
+                return;
+            for (int c = 0; c < activeCount && c < ingredientColumns.Count; c++)
+            {
+                Transform column = ingredientColumns[c];
+                Vector3 position = column.localPosition;
+                position.x = (c - (activeCount - 1) * 0.5f) * columnSpacing;
+                column.localPosition = position;
             }
         }
 

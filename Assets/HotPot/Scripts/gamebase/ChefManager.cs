@@ -75,6 +75,7 @@ namespace FoodPop
         private Coroutine preparationRoutine;
         private Food preparingFood;
         private ConveyorSlot preparingSlot;
+        private readonly Dictionary<ConveyorSlot, float> slotPriorities = new Dictionary<ConveyorSlot, float>();
         private SpriteRenderer cuttingFood;
         private SpriteRenderer cuttingShadow;
         private Vector3 boardBaseScale = Vector3.one;
@@ -183,28 +184,43 @@ namespace FoodPop
                 instance = null;
         }
 
-        // EN: Collects the given number of active empty slots closest to a world position (nearest first); returns false and leaves the list empty when there are not enough.
-        // VI: Lấy đủ số slot rỗng đang hoạt động gần một vị trí world nhất (gần trước); trả về false và để danh sách rỗng khi không đủ slot.
+        // EN: Collects the given number of active empty slots, soonest to reach the preparation station first; returns false and leaves the list empty when there are not enough.
+        // VI: Lấy đủ số slot rỗng đang hoạt động, ưu tiên slot sắp tới trạm sơ chế sớm nhất; trả về false và để danh sách rỗng khi không đủ slot.
         public bool TryGetNearestEmptySlots(Vector3 worldPosition, int count, List<ConveyorSlot> result)
         {
             result.Clear();
+            slotPriorities.Clear();
             if (count <= 0)
                 return false;
-            foreach (ConveyorSlot slot in Slots)
+            IReadOnlyList<ConveyorSlot> slots = Slots;
+            for (int i = 0; i < slots.Count; i++)
             {
+                ConveyorSlot slot = slots[i];
                 if (slot != null && slot.isActiveAndEnabled && slot.isEmpty)
+                {
                     result.Add(slot);
+                    slotPriorities[slot] = GetSlotPriority(i, slot, worldPosition);
+                }
             }
             if (result.Count < count)
             {
                 result.Clear();
                 return false;
             }
-            result.Sort((a, b) => (a.transform.position - worldPosition).sqrMagnitude
-                .CompareTo((b.transform.position - worldPosition).sqrMagnitude));
+            result.Sort((a, b) => slotPriorities[a].CompareTo(slotPriorities[b]));
             result.RemoveRange(count, result.Count - count);
             return true;
         }
+
+        // EN: Sort key for an empty slot: the slot that will reach the preparation station soonest comes first; slots already inside rank last because they leave before the food lands.
+        // VI: Khóa sắp xếp cho slot trống: slot sắp tới trạm sơ chế sớm nhất được ưu tiên; slot đang ở trong trạm xếp cuối vì sẽ ra khỏi trạm trước khi món bay tới.
+        private float GetSlotPriority(int index, ConveyorSlot slot, Vector3 worldPosition)
+        {
+            if (conveyorMovement == null)
+                return (slot.transform.position - worldPosition).sqrMagnitude;
+            return conveyorMovement.GetDistanceToStation(index);
+        }
+
 
         // EN: Checks membership against the conveyor's slot references rather than hierarchy position.
         // VI: Kiểm tra slot thuộc băng chuyền bằng reference thay vì vị trí trong hierarchy.

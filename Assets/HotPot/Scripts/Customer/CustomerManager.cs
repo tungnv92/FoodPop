@@ -19,7 +19,7 @@ namespace FoodPop
             public CustomerView customer;
             [Tooltip("Các dòng của thẻ order, từ trên xuống.")]
             public OrderItemView[] orderItems = new OrderItemView[0];
-            [Tooltip("Ảnh các khách đang xếp hàng phía sau (người đứng gần quầy nhất trước); ẩn bớt khi hàng ngắn lại.")]
+            [Tooltip("Ảnh các khách đứng chờ đặt sẵn trong scene (người gần quầy nhất trước); dùng làm vị trí hàng chờ và làm mẫu khi cần thêm người.")]
             public SpriteRenderer[] waitingFigures = new SpriteRenderer[0];
             [Tooltip("Ảnh khách dùng lần lượt cho các khách của làn (lặp lại khi hết).")]
             public Sprite[] portraits = new Sprite[0];
@@ -33,6 +33,11 @@ namespace FoodPop
             [NonSerialized] public readonly List<FoodType> lineTypes = new List<FoodType>();
             [NonSerialized] public readonly List<int> remaining = new List<int>();
             [NonSerialized] public readonly List<int> incoming = new List<int>();
+            [NonSerialized] public readonly List<SpriteRenderer> figures = new List<SpriteRenderer>();
+            [NonSerialized] public readonly List<Vector3> spots = new List<Vector3>();
+            [NonSerialized] public Vector3 spotStep;
+            [NonSerialized] public Vector3 queueOrigin;
+            [NonSerialized] public bool queueCaptured;
         }
 
         // EN: One food flying from a belt slot to an order line.
@@ -79,12 +84,15 @@ namespace FoodPop
         [SerializeField] private int serveSortingBoost = 40;
         [Tooltip("Âm thanh khi món chạm thẻ order.")]
         [SerializeField] private AudioClip serveSound;
-        [Range(0f, 1f)] [SerializeField] private float serveVolume = 0.8f;
+        [Range(0f, 1f)] [SerializeField] private float serveVolume = 0.6f;
+        [Tooltip("Khoảng cách tối thiểu (giây) giữa hai lần phát âm chạm; các món chạm sát nhau chỉ phát một tiếng.")]
+        [Min(0f)] [SerializeField] private float serveSoundInterval = 0.12f;
+        [Tooltip("Các món chạm liên tiếp trong khoảng này (giây) được tính là một chuỗi: tiếng sau cao dần và nhỏ dần.")]
+        [Min(0f)] [SerializeField] private float serveComboWindow = 0.5f;
+        [Tooltip("Mức tăng cao độ cho mỗi tiếng trong chuỗi (0.06 = cao thêm 6%).")]
+        [Range(0f, 0.2f)] [SerializeField] private float serveComboPitchStep = 0.06f;
 
         [Header("Hoàn thành")]
-        [Tooltip("Âm thanh khi một dòng order đã đủ.")]
-        [SerializeField] private AudioClip itemDoneSound;
-        [Range(0f, 1f)] [SerializeField] private float itemDoneVolume = 0.8f;
         [Tooltip("Hiệu ứng tim bắn ra tại khách khi đủ cả order.")]
         [SerializeField] private ParticleEffect heartEffectPrefab;
         [Tooltip("Âm thanh khách vui khi nhận đủ order.")]
@@ -99,11 +107,23 @@ namespace FoodPop
         [Tooltip("Quãng đường (đơn vị world) trượt sang ngang để khách ra khỏi màn hình.")]
         [Min(0f)] [SerializeField] private float slideDistance = 9f;
 
+        [Header("Hàng chờ")]
+        [Tooltip("Màu phủ cho khách chưa tới lượt order (tối hơn khách đang order).")]
+        [SerializeField] private Color waitingTint = new Color(0.55f, 0.55f, 0.6f, 1f);
+        [Tooltip("Kích thước khách chưa tới lượt so với khách đang order (0.8 = nhỏ hơn 20%).")]
+        [Range(0.3f, 1f)] [SerializeField] private float waitingScale = 0.8f;
+        [Tooltip("Thời gian (giây) khách đầu hàng bước lên quầy và cả hàng dồn lên.")]
+        [Min(0.05f)] [SerializeField] private float stepForwardDuration = 0.4f;
+        [Tooltip("Khoảng cách (world) giữa hai người trong hàng khi scene không đặt sẵn khách chờ: x dịch ra phía ngoài làn, y dịch lên phía sau.")]
+        [SerializeField] private Vector2 queueSpacing = new Vector2(0.8f, 0.45f);
+
         private readonly List<ServeFlight> flights = new List<ServeFlight>();
         private readonly Stack<SpriteRenderer> flyerPool = new Stack<SpriteRenderer>();
         private Transform flyerRoot;
         private long arrivalCounter;
         private bool allServedLogged;
+        private float lastServeSoundTime = -10f;
+        private int serveCombo;
 
         // EN: Clears the static singleton when entering Play Mode, including when domain reload is disabled.
         // VI: Xóa singleton tĩnh khi vào Play Mode, kể cả khi tắt tải lại miền mã.
@@ -164,9 +184,10 @@ namespace FoodPop
                 lane.queue = config.GetQueue(side);
                 lane.queueIndex = 0;
                 lane.ordering = false;
-                RefreshWaitingFigures(lane);
+                CaptureQueueSpots(lane);
+                LayoutWaitingQueue(lane, 0f);
                 if (lane.queue != null && lane.queue.Count > 0)
-                    StartCoroutine(BringNextCustomer(lane, false));
+                    StartCoroutine(BringNextCustomer(lane));
                 else if (lane.customer != null)
                     lane.customer.SetVisible(false);
             }
@@ -183,6 +204,14 @@ namespace FoodPop
                 return;
             LaunchServe(slot, lane, line);
         }
+
+        // EN: True when some ordering customer still needs this food type (counting food already flying to them).
+        // VI: True khi còn khách đang order cần loại món này (đã tính món đang bay tới).
+        public bool TryFindCustomer(FoodType type) => TryFindCustomer(type, out _, out _);
+
+        // EN: True once every customer of the level has been served.
+        // VI: True khi mọi khách của level đã được phục vụ.
+        public bool AllServed => allServedLogged;
 
         // EN: Finds the ordering lane whose customer arrived first and still needs the food type (counting food already flying to them).
         // VI: Tìm làn đang order có khách đến sớm nhất và vẫn cần loại món (đã tính món đang bay tới).
@@ -259,17 +288,31 @@ namespace FoodPop
         {
             lane.incoming[line] = Mathf.Max(0, lane.incoming[line] - 1);
             lane.remaining[line] = Mathf.Max(0, lane.remaining[line] - 1);
-            OneShotEffects.PlaySound(serveSound, serveVolume, 0.08f);
             OrderItemView item = lane.orderItems[line];
+            PlayServeSound();
             if (lane.remaining[line] > 0)
             {
                 item.SetRemaining(lane.remaining[line]);
                 return;
             }
             item.MarkDone();
-            OneShotEffects.PlaySound(itemDoneSound, itemDoneVolume, 0f);
             if (IsOrderComplete(lane))
                 StartCoroutine(FinishCustomer(lane));
+        }
+
+        // EN: Plays the landing pop at most once per serveSoundInterval; pops close together form a combo that rises in pitch and softens, instead of stacking into one harsh sound.
+        // VI: Phát tiếng chạm tối đa một lần mỗi serveSoundInterval; các tiếng sát nhau thành chuỗi cao dần và nhỏ dần, thay vì chồng lên nhau gây chói.
+        private void PlayServeSound()
+        {
+            float now = Time.time;
+            float sinceLast = now - lastServeSoundTime;
+            if (sinceLast < serveSoundInterval)
+                return;
+            serveCombo = sinceLast <= serveComboWindow ? Mathf.Min(serveCombo + 1, 6) : 0;
+            lastServeSoundTime = now;
+            float pitch = 1f + serveComboPitchStep * serveCombo;
+            float volume = serveVolume / (1f + 0.15f * serveCombo);
+            OneShotEffects.PlaySoundAtPitch(serveSound, volume, pitch);
         }
 
         // EN: True when every line of the lane's current order has been fully delivered.
@@ -296,9 +339,11 @@ namespace FoodPop
             if (lane.customer != null)
                 yield return lane.customer.SlideOut(lane.slideDirection * slideDistance, slideDuration);
             lane.queueIndex++;
-            RefreshWaitingFigures(lane);
             if (lane.queueIndex < lane.queue.Count)
-                yield return BringNextCustomer(lane, true);
+            {
+                yield return StepQueueForward(lane);
+                yield return BringNextCustomer(lane);
+            }
             else
             {
                 if (lane.customer != null)
@@ -309,18 +354,18 @@ namespace FoodPop
 
         // EN: Shows the lane's next customer with their order, sliding in from the side when animate is true.
         // VI: Hiện khách tiếp theo của làn cùng order, trượt vào từ cạnh màn hình nếu animate là true.
-        private IEnumerator BringNextCustomer(Lane lane, bool animate)
+        private IEnumerator BringNextCustomer(Lane lane)
         {
             CustomerOrder order = lane.queue[lane.queueIndex];
             SetupOrder(lane, order);
             if (lane.customer != null)
             {
-                if (lane.portraits.Length > 0)
-                    lane.customer.SetPortrait(lane.portraits[lane.queueIndex % lane.portraits.Length]);
+                lane.customer.SetPortrait(GetPortrait(lane, lane.queueIndex));
+                lane.customer.SnapHome();
                 lane.customer.SetVisible(true);
-                if (animate)
-                    yield return lane.customer.SlideIn(lane.slideDirection * slideDistance, slideDuration);
             }
+            LayoutWaitingQueue(lane, 0f);
+            yield return null;
             lane.arrivalStamp = ++arrivalCounter;
             lane.ordering = true;
         }
@@ -375,16 +420,137 @@ namespace FoodPop
             lane.incoming.Add(0);
         }
 
-        // EN: Shows only as many waiting figures as there are customers still queued behind the current one.
-        // VI: Chỉ hiện số khách đứng chờ bằng số khách còn xếp hàng sau khách hiện tại.
-        private static void RefreshWaitingFigures(Lane lane)
+        // EN: Remembers the queue spots from the waiting figures placed in the scene (nearest first) and the step between them, used to place any number of waiting customers.
+        // VI: Ghi nhớ các vị trí hàng chờ từ khách đứng chờ đặt sẵn trong scene (gần quầy trước) và khoảng cách giữa chúng, dùng để xếp bao nhiêu khách chờ cũng được.
+        private void CaptureQueueSpots(Lane lane)
+        {
+            if (lane.queueCaptured)
+                return;
+            lane.queueCaptured = true;
+            foreach (SpriteRenderer figure in lane.waitingFigures)
+            {
+                if (figure == null)
+                    continue;
+                lane.figures.Add(figure);
+                lane.spots.Add(figure.transform.position);
+            }
+            Vector3 counter = lane.customer != null && lane.customer.Portrait != null ? lane.customer.Portrait.transform.position : Vector3.zero;
+            lane.queueOrigin = counter;
+            if (lane.spots.Count >= 2)
+                lane.spotStep = lane.spots[lane.spots.Count - 1] - lane.spots[lane.spots.Count - 2];
+            else if (lane.spots.Count == 1)
+                lane.spotStep = lane.spots[0] - counter;
+            else
+                lane.spotStep = new Vector3(lane.slideDirection * queueSpacing.x, queueSpacing.y, 0f);
+        }
+
+        // EN: World position of the k-th waiting spot (0 = right behind the counter), extending the scene spots by the last step.
+        // VI: Vị trí world của chỗ chờ thứ k (0 = ngay sau quầy), nối dài các chỗ trong scene theo bước cuối cùng.
+        private static Vector3 GetQueueSpot(Lane lane, int k)
+        {
+            if (k < lane.spots.Count)
+                return lane.spots[k];
+            Vector3 last = lane.spots.Count > 0 ? lane.spots[lane.spots.Count - 1] : lane.queueOrigin;
+            return last + lane.spotStep * (k - lane.spots.Count + 1);
+        }
+
+        // EN: Makes sure the lane has a figure per waiting customer, creating a plain sprite only when the pool (scene figures first) is too small.
+        // VI: Bảo đảm làn có đủ hình cho mỗi khách đang chờ, chỉ tạo sprite mới khi pool (ưu tiên hình đặt sẵn trong scene) không đủ.
+        private void EnsureFigures(Lane lane, int count)
+        {
+            while (lane.figures.Count < count)
+            {
+                SpriteRenderer figure = new GameObject($"Waiting customer {lane.figures.Count + 1}").AddComponent<SpriteRenderer>();
+                figure.transform.SetParent(transform, true);
+                lane.figures.Add(figure);
+            }
+        }
+
+        // EN: Places every waiting customer of the lane on its spot: smaller, darker and drawn behind the ordering customer, with each person further back drawn behind the one in front. stepT (0..1) blends from the previous spot for the walk-forward animation.
+        // VI: Đặt mọi khách đang chờ của làn vào chỗ của mình: nhỏ hơn, tối hơn và vẽ sau khách đang order, người đứng sau vẽ sau người phía trước. stepT (0..1) nội suy từ chỗ cũ để tạo hoạt cảnh dồn lên.
+        private void LayoutWaitingQueue(Lane lane, float stepT)
         {
             int waiting = lane.queue != null ? Mathf.Max(0, lane.queue.Count - lane.queueIndex - 1) : 0;
-            for (int i = 0; i < lane.waitingFigures.Length; i++)
+            EnsureFigures(lane, waiting);
+            SpriteRenderer active = lane.customer != null ? lane.customer.Portrait : null;
+            for (int k = 0; k < lane.figures.Count; k++)
             {
-                if (lane.waitingFigures[i] != null)
-                    lane.waitingFigures[i].gameObject.SetActive(i < waiting);
+                SpriteRenderer figure = lane.figures[k];
+                bool used = k < waiting;
+                figure.gameObject.SetActive(used);
+                if (!used)
+                    continue;
+                Sprite portrait = GetPortrait(lane, lane.queueIndex + 1 + k);
+                if (portrait != null)
+                    figure.sprite = portrait;
+                figure.color = waitingTint;
+                Vector3 target = GetQueueSpot(lane, k);
+                figure.transform.position = stepT > 0f ? Vector3.LerpUnclamped(GetQueueSpot(lane, k + 1), target, stepT) : target;
+                if (active != null)
+                {
+                    SetWorldScale(figure.transform, active.transform.lossyScale * waitingScale);
+                    figure.sortingLayerID = active.sortingLayerID;
+                    figure.sortingOrder = active.sortingOrder - 1 - k;
+                }
             }
+        }
+
+        // EN: Walks the queue forward one place: the first waiting customer moves to the counter while growing and brightening, the rest move up one spot.
+        // VI: Cho hàng chờ dồn lên một chỗ: khách đầu hàng đi tới quầy, to dần và sáng dần, những người còn lại tiến lên một chỗ.
+        private IEnumerator StepQueueForward(Lane lane)
+        {
+            SpriteRenderer active = lane.customer != null ? lane.customer.Portrait : null;
+            if (lane.figures.Count == 0 || active == null)
+                yield break;
+            SpriteRenderer walker = lane.figures[0];
+            lane.figures.RemoveAt(0);
+            lane.figures.Add(walker);
+            lane.customer.SnapHome();
+            lane.customer.SetVisible(false);
+            Vector3 from = walker.transform.position;
+            Vector3 fromScale = walker.transform.lossyScale;
+            Vector3 to = active.transform.position;
+            Vector3 toScale = active.transform.lossyScale;
+            walker.sortingOrder = active.sortingOrder;
+            float time = 0f;
+            while (time < stepForwardDuration)
+            {
+                time += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(time / stepForwardDuration));
+                walker.transform.position = Vector3.LerpUnclamped(from, to, t) + Vector3.up * (0.15f * Mathf.Sin(t * Mathf.PI));
+                SetWorldScale(walker.transform, Vector3.LerpUnclamped(fromScale, toScale, t));
+                walker.color = Color.Lerp(waitingTint, Color.white, t);
+                LayoutQueueBehind(lane, t);
+                yield return null;
+            }
+            walker.gameObject.SetActive(false);
+        }
+
+        // EN: Moves the remaining waiting customers (all but the one walking to the counter) one spot forward at progress t.
+        // VI: Đưa các khách chờ còn lại (trừ người đang đi tới quầy) tiến lên một chỗ theo tiến độ t.
+        private void LayoutQueueBehind(Lane lane, float t)
+        {
+            int waiting = lane.queue != null ? Mathf.Max(0, lane.queue.Count - lane.queueIndex - 1) : 0;
+            for (int k = 0; k < waiting && k < lane.figures.Count - 1; k++)
+            {
+                SpriteRenderer figure = lane.figures[k];
+                figure.transform.position = Vector3.LerpUnclamped(GetQueueSpot(lane, k + 1), GetQueueSpot(lane, k), t);
+            }
+        }
+
+        // EN: Returns the portrait for the customer at a queue index (cycling through the lane's portraits), or null when none are set.
+        // VI: Trả về ảnh của khách tại vị trí trong hàng (lặp lại danh sách ảnh của làn), hoặc null nếu chưa có ảnh.
+        private static Sprite GetPortrait(Lane lane, int index)
+        {
+            return lane.portraits.Length > 0 ? lane.portraits[index % lane.portraits.Length] : null;
+        }
+
+        // EN: Sets a transform's local scale so its world scale matches the given value.
+        // VI: Đặt scale cục bộ để scale world của transform bằng giá trị cho trước.
+        private static void SetWorldScale(Transform target, Vector3 worldScale)
+        {
+            Vector3 parent = target.parent != null ? target.parent.lossyScale : Vector3.one;
+            target.localScale = new Vector3(worldScale.x / Mathf.Max(0.0001f, parent.x), worldScale.y / Mathf.Max(0.0001f, parent.y), 1f);
         }
 
         // EN: Plays the heart burst just above the customer's portrait.

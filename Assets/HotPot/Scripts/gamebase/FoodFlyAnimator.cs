@@ -34,20 +34,26 @@ namespace FoodPop
         [Header("Âm thanh khi chạm")]
         [Tooltip("Âm thanh (tùy chọn) phát khi món chạm băng chuyền.")]
         [SerializeField] private AudioClip landSound;
+        [Tooltip("Khoảng cao độ ngẫu nhiên của tiếng chạm (1 = cao độ gốc).")]
+        [SerializeField] private Vector2 landPitchRange = new Vector2(0.85f, 1.2f);
+        [Tooltip("Độ chênh cao độ tối thiểu giữa các phần của cùng một đĩa, để mỗi phần rơi xuống nghe khác nhau.")]
+        [Range(0f, 0.15f)] [SerializeField] private float minPortionPitchGap = 0.06f;
         [Tooltip("Âm lượng âm thanh khi chạm.")]
         [Range(0f, 1f)] [SerializeField] private float landVolume = 1f;
-        [Tooltip("Độ lệch cao độ ngẫu nhiên của âm thanh phóng và chạm để nghe đỡ lặp lại.")]
+        [Tooltip("Độ lệch cao độ ngẫu nhiên của âm thanh phóng.")]
         [Range(0f, 0.3f)] [SerializeField] private float landPitchJitter = 0.08f;
 
         private sealed class Flight
         {
             public ConveyorSlot slot;
             public SpriteRenderer flyer;
+            public float pitch;
         }
 
         private readonly List<Flight> activeFlights = new List<Flight>();
         private readonly Stack<SpriteRenderer> flyerPool = new Stack<SpriteRenderer>();
         private Transform flyerRoot;
+        private readonly List<float> dishPitches = new List<float>();
 
         // EN: Launches one flying portion per target slot from the picked dish, hiding each slot's food until its portion lands.
         // VI: Phóng một phần bay cho mỗi slot đích từ đĩa vừa chọn, ẩn món trên slot cho tới khi phần đó chạm xuống.
@@ -60,6 +66,7 @@ namespace FoodPop
             int sortingLayer = source != null ? source.sortingLayerID : 0;
             int sortingOrder = (source != null ? source.sortingOrder : 0) + sortingOrderBoost;
             OneShotEffects.PlaySound(launchSound, launchVolume, landPitchJitter);
+            dishPitches.Clear();
             for (int i = 0; i < slots.Count; i++)
             {
                 ConveyorSlot slot = slots[i];
@@ -67,7 +74,7 @@ namespace FoodPop
                     continue;
                 slot.BeginFoodArrival();
                 SpriteRenderer flyer = RentFlyer(icon, sortingLayer, sortingOrder + i);
-                Flight flight = new Flight { slot = slot, flyer = flyer };
+                Flight flight = new Flight { slot = slot, flyer = flyer, pitch = PickPortionPitch() };
                 activeFlights.Add(flight);
                 StartCoroutine(FlyToSlot(flight, startPosition, startScale, startRotation, portionDelay * i));
             }
@@ -122,7 +129,34 @@ namespace FoodPop
             ReturnFlyer(flight.flyer);
             if (!landed || flight.slot == null || !flight.slot.CompleteFoodArrival())
                 return;
-            OneShotEffects.PlaySound(landSound, landVolume, landPitchJitter);
+            OneShotEffects.PlaySoundAtPitch(landSound, landVolume, flight.pitch);
+        }
+
+        // EN: Picks a random landing pitch inside landPitchRange that stays at least minPortionPitchGap away from the other portions of the same dish (gives up after a few tries).
+        // VI: Chọn ngẫu nhiên cao độ tiếng chạm trong landPitchRange, cách các phần khác của cùng đĩa ít nhất minPortionPitchGap (bỏ qua sau vài lần thử).
+        private float PickPortionPitch()
+        {
+            float pitch = 1f;
+            for (int attempt = 0; attempt < 8; attempt++)
+            {
+                pitch = Random.Range(landPitchRange.x, landPitchRange.y);
+                if (IsFarFromDishPitches(pitch))
+                    break;
+            }
+            dishPitches.Add(pitch);
+            return pitch;
+        }
+
+        // EN: True when the pitch differs enough from every pitch already used by this dish.
+        // VI: True khi cao độ đủ khác mọi cao độ đã dùng cho đĩa này.
+        private bool IsFarFromDishPitches(float pitch)
+        {
+            foreach (float used in dishPitches)
+            {
+                if (Mathf.Abs(used - pitch) < minPortionPitchGap)
+                    return false;
+            }
+            return true;
         }
 
         // EN: Takes a flyer sprite from the pool (creating one if needed) and applies the icon and sorting.

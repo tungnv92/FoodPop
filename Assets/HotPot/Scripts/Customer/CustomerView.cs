@@ -63,20 +63,20 @@ namespace FoodPop
                 orderCard.gameObject.SetActive(visible);
         }
 
+        // EN: Puts the customer and order card back at the counter immediately.
+        // VI: Đưa khách và thẻ order về ngay vị trí tại quầy.
+        public void SnapHome()
+        {
+            CaptureHome();
+            ApplyOffset(0f);
+        }
+
         // EN: Slides from the counter to an off-screen offset (positive x = right) over the duration.
         // VI: Trượt từ quầy ra vị trí lệch ngoài màn hình (x dương = sang phải) trong khoảng thời gian đã cho.
         public IEnumerator SlideOut(float offsetX, float duration)
         {
             CaptureHome();
             yield return Slide(0f, offsetX, duration, EaseIn);
-        }
-
-        // EN: Slides from an off-screen offset back to the counter over the duration.
-        // VI: Trượt từ vị trí lệch ngoài màn hình về quầy trong khoảng thời gian đã cho.
-        public IEnumerator SlideIn(float offsetX, float duration)
-        {
-            CaptureHome();
-            yield return Slide(offsetX, 0f, duration, EaseOut);
         }
 
         // EN: Moves customer and card together from one horizontal offset to another using an easing curve.
@@ -106,14 +106,5 @@ namespace FoodPop
         // EN: Quadratic ease-in (starts slow, leaves fast).
         // VI: Easing bậc hai tăng dần (bắt đầu chậm, rời đi nhanh).
         private static float EaseIn(float t) => t * t;
-
-        // EN: Back ease-out with a small overshoot so the customer "arrives" with a bounce.
-        // VI: Easing lùi có vượt nhẹ để khách "tới nơi" có chút nảy.
-        private static float EaseOut(float t)
-        {
-            const float Overshoot = 1.2f;
-            float u = t - 1f;
-            return 1f + u * u * ((Overshoot + 1f) * u + Overshoot);
-        }
     }
 }

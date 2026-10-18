@@ -37,6 +37,13 @@ namespace FoodPop
         // VI: Phát một âm thanh ngắn với cao độ thay đổi ngẫu nhiên một chút để các lần phát liên tiếp nghe đỡ đơn điệu.
         public static void PlaySound(AudioClip clip, float volume, float pitchJitter)
         {
+            PlaySoundAtPitch(clip, volume, 1f + Random.Range(-pitchJitter, pitchJitter));
+        }
+
+        // EN: Plays a short clip once at an exact pitch (used for rising combo sounds).
+        // VI: Phát một âm thanh ngắn với cao độ chính xác (dùng cho chuỗi âm tăng dần).
+        public static void PlaySoundAtPitch(AudioClip clip, float volume, float pitch)
+        {
             if (clip == null)
                 return;
             if (audioSource == null)
@@ -44,7 +51,7 @@ namespace FoodPop
                 audioSource = GetRoot().gameObject.AddComponent<AudioSource>();
                 audioSource.playOnAwake = false;
             }
-            audioSource.pitch = 1f + Random.Range(-pitchJitter, pitchJitter);
+            audioSource.pitch = pitch;
             audioSource.PlayOneShot(clip, volume);
         }
 

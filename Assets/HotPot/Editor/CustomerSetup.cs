@@ -202,7 +202,6 @@ namespace FoodPop
                 ("foodIconConfig", AssetDatabase.LoadAssetAtPath<FoodIconConfig>(FoodIconConfigPath)),
                 ("heartEffectPrefab", hearts),
                 ("serveSound", FoodLandEffectBuilder.ImportSound($"{SoundFolder}/CustomerServePop.wav")),
-                ("itemDoneSound", FoodLandEffectBuilder.ImportSound($"{SoundFolder}/OrderItemDone.wav")),
                 ("customerHappySound", FoodLandEffectBuilder.ImportSound($"{SoundFolder}/CustomerHappy.wav")));
             List<Transform> customers = group.Cast<Transform>().Where(child => child.name.StartsWith("Customer")).OrderBy(child => child.position.x).ToList();
             Transform waitingGroup = group.Cast<Transform>().FirstOrDefault(child => child.name.StartsWith("Waiting"));

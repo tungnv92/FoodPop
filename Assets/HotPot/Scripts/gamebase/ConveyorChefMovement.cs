@@ -132,6 +132,14 @@ namespace FoodPop
             return Mathf.Repeat(startOffset + progress + (float)index / count, 1f);
         }
 
+        // EN: Distance along the belt (normalized 0..1, in travel direction) until the slot reaches the start of the preparation station; a slot already inside has almost a full loop to go.
+        // VI: Quãng đường trên băng (chuẩn hóa 0..1, theo chiều chạy) tới khi slot chạm điểm đầu trạm sơ chế; slot đã ở trong trạm phải đi gần trọn một vòng.
+        public float GetDistanceToStation(int index)
+        {
+            float position = GetSlotNormalizedPosition(index);
+            return clockwise ? Mathf.Repeat(stationStart - position, 1f) : Mathf.Repeat(position - stationEnd, 1f);
+        }
+
         // EN: Returns how far a slot has travelled through the preparation station along the belt direction (0 = just entered, 1 = about to leave), or -1 when it is outside the station.
         // VI: Trả về mức slot đã đi qua trạm sơ chế theo chiều chạy của băng (0 = vừa vào, 1 = sắp ra), hoặc -1 khi slot nằm ngoài trạm.
         public float GetStationProgress(int index)
