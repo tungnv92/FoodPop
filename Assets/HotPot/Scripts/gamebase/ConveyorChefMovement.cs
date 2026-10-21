@@ -68,6 +68,12 @@ namespace FoodPop
         [Tooltip("Điểm kết thúc của trạm sơ chế trên đường băng (0..1). Nếu nhỏ hơn điểm bắt đầu thì trạm vắt qua điểm 0.")]
         [SerializeField, Range(0f, 1f)] private float stationEnd = 0.56f;
 
+        [Header("Đoạn ra món")]
+        [Tooltip("Điểm bắt đầu của đoạn ra món trên đường băng (0..1). Chỉ món đã sơ chế nằm trong đoạn này mới được bay lên slot trên khay.")]
+        [SerializeField, Range(0f, 1f)] private float stationExitStart = 0.56f;
+        [Tooltip("Điểm kết thúc của đoạn ra món trên đường băng (0..1). Nếu nhỏ hơn điểm bắt đầu thì đoạn vắt qua điểm 0.")]
+        [SerializeField, Range(0f, 1f)] private float stationExitEnd = 0.44f;
+
         [Header("Sorting")]
         [Tooltip("Sorting order thấp nhất của sprite trong slot; giữ cao hơn băng chuyền (0), lớp Front (66) và đầu bếp (65).")]
         [SerializeField] private int slotSortingOrder = 70;
@@ -138,6 +144,24 @@ namespace FoodPop
         {
             float position = GetSlotNormalizedPosition(index);
             return clockwise ? Mathf.Repeat(stationStart - position, 1f) : Mathf.Repeat(position - stationEnd, 1f);
+        }
+
+        // EN: Distance along the belt (normalized 0..1, in travel direction) the slot has travelled since leaving the end of the preparation station; 0 = just past Station End, values grow around the loop.
+        // VI: Quãng đường trên băng (chuẩn hóa 0..1, theo chiều chạy) slot đã đi kể từ khi rời điểm cuối trạm sơ chế; 0 = vừa qua Station End, càng đi vòng càng lớn.
+        public float GetDistanceFromStationEnd(int index)
+        {
+            float position = GetSlotNormalizedPosition(index);
+            return clockwise ? Mathf.Repeat(position - stationEnd, 1f) : Mathf.Repeat(stationStart - position, 1f);
+        }
+
+        // EN: True when the slot lies between Station Exit Start and Station Exit End (the segment may wrap past 0); only prepared food in this segment may fly to the tray.
+        // VI: True khi slot nằm giữa Station Exit Start và Station Exit End (đoạn có thể vắt qua điểm 0); chỉ món đã sơ chế trong đoạn này mới được bay lên khay.
+        public bool IsInExitZone(int index)
+        {
+            float length = Mathf.Repeat(stationExitEnd - stationExitStart, 1f);
+            if (length <= Mathf.Epsilon)
+                return false;
+            return Mathf.Repeat(GetSlotNormalizedPosition(index) - stationExitStart, 1f) <= length;
         }
 
         // EN: Returns how far a slot has travelled through the preparation station along the belt direction (0 = just entered, 1 = about to leave), or -1 when it is outside the station.
@@ -377,6 +401,27 @@ namespace FoodPop
                 Gizmos.DrawWireSphere(position, 0.12f);
             }
             DrawStationGizmo();
+            DrawExitGizmo();
+        }
+
+        // EN: Draws the exit segment as a green polyline along the spline, with spheres at its start and end.
+        // VI: Vẽ đoạn ra món thành đường gấp khúc màu xanh lá dọc spline, có hình cầu ở điểm đầu và điểm cuối.
+        private void DrawExitGizmo()
+        {
+            float length = Mathf.Repeat(stationExitEnd - stationExitStart, 1f);
+            if (length <= Mathf.Epsilon)
+                return;
+            Gizmos.color = new Color(0.2f, 0.9f, 0.3f, 1f);
+            const int Steps = 48;
+            Vector3 previous = splineContainer.EvaluatePosition(stationExitStart);
+            for (int i = 1; i <= Steps; i++)
+            {
+                Vector3 next = splineContainer.EvaluatePosition(Mathf.Repeat(stationExitStart + length * i / Steps, 1f));
+                Gizmos.DrawLine(previous, next);
+                previous = next;
+            }
+            Gizmos.DrawSphere((Vector3)splineContainer.EvaluatePosition(stationExitStart), 0.12f);
+            Gizmos.DrawSphere((Vector3)splineContainer.EvaluatePosition(stationExitEnd), 0.12f);
         }
 
         // EN: Draws the station segment as a thick orange polyline along the spline, with spheres at its start and end.

@@ -15,9 +15,13 @@ namespace FoodPop
         // ID 8 is retired; do not reuse it for another ingredient.
         SalmonRoe = 9,
         Unagi = 10,
-        Sesame = 11,
+        // EN: ID 11 is retired; never reuse it for another ingredient.
+        // VI: ID 11 đã ngừng dùng; không tái sử dụng cho nguyên liệu khác.
         Octopus = 12,
-        FriedTofu = 13,
-        Scallop = 14
+        Seaweed = 13,
+        Scallop = 14,
+        SoySauce = 15,
+        PickledGinger = 16,
+        Wasabi = 17
     }
 }

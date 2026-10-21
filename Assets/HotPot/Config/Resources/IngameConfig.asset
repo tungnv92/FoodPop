@@ -1,0 +1,116 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 944725d166234054ab789e406d87dc4d, type: 3}
+  m_Name: IngameConfig
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.IngameConfig
+  ingredientFlight:
+    serveFlyDuration: 0.4
+    serveArcHeight: 1.3
+    servePeakScale: 1.3
+    serveEndScale: 0.55
+    serveSortingBoost: 40
+    landPopDuration: 0.18
+    landPopAmount: 0.2
+  boardMotion:
+    shiftUpDuration: 0.25
+  boardFlight:
+    flyDuration: 0.4
+    arcHeight: 1.4
+    portionDelay: 0.1
+    moveCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    peakScale: 1.4
+    spinTurns: 0
+    sortingOrderBoost: 100
+  dishAssembly:
+    assembleDelay: 0.12
+    mergeDuration: 0.2
+    dishPopDuration: 0.3
+    dishPopAmount: 0.35
+  dishOrderFlight:
+    dishFlyDelay: 0.15
+    dishFlyDuration: 0.4
+    dishFlyArcHeight: 1.2
+    dishFlyPeakScale: 1.2
+  customers:
+    leaveDelay: 0.6
+    slideDuration: 0.45
+    slideDistance: 9
+    waitingTint: {r: 0.55, g: 0.55, b: 0.6, a: 1}
+    waitingScale: 0.8
+    stepForwardDuration: 0.4
+    queueSpacing: {x: 0.8, y: 0.16}
+  preparation:
+    preparationDuration: 1
+    chopPunch: 0.08
+    cuttingScale: 1.3
+    liftDuration: 0.25
+    dropDuration: 0.3
+    hopHeight: 0.6
+    cuttingSortingBoost: 20
+    debrisPerChop: 3
+    chopInterval: 0.167
+  orderPop:
+    popDuration: 0.25
+    popAmount: 0.3
+  iceHit:
+    iceHitDuration: 0.22
+    iceHitAmount: 0.12
+  trayStack:
+    stackStepRatio: 0.09
+    foodScale: 0.7
+    insertFromIngredient: 3
+    bounceDuration: 0.45
+    bounceStep: 0.2
+    bounceHold: 0.1
+  lidReveal:
+    fadeDuration: 0.35
+    liftHeight: 0.25
+    scaleUp: 1.15
+  praiseText:
+    entries:
+    - sprite: {fileID: 21300000, guid: fc4c6ce90fff4703b290e27f468ce5db, type: 3}
+    - sprite: {fileID: 21300000, guid: 212e1326a38a4d0fa5f990a5141e2f67, type: 3}
+    - sprite: {fileID: 21300000, guid: 44b7feb126ab4218933fb21eb4dcace6, type: 3}
+    - sprite: {fileID: 21300000, guid: 84c1d8a83acc4db1a2dde64f878c6f44, type: 3}
+    - sprite: {fileID: 21300000, guid: f9322239700744b3b15be68242c864fd, type: 3}
+    height: 0.9
+    maxWidth: 2.5
+    offset: {x: 0, y: 0.6}
+    riseHeight: 1
+    duration: 1.1
+    popScale: 1.2
+    maxTilt: 8
+  dishTwinkle:
+    minLayers: 2

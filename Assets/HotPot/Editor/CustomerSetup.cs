@@ -8,16 +8,17 @@ using UnityEngine.SceneManagement;
 
 namespace FoodPop
 {
-    // EN: Editor tool that builds the customer feedback assets (heart burst, checkmark, sounds) and wires every direct reference the runtime scripts need, so no runtime code has to search children or call GetComponent.
-    // VI: Công cụ editor dựng asset phản hồi khách (tim, dấu tích, âm thanh) và gán mọi tham chiếu trực tiếp mà script runtime cần, để code runtime không phải tìm child hay gọi GetComponent.
+    // EN: Editor tool that builds the customer feedback assets (checkmark, sounds) and wires every direct reference the runtime scripts need, so no runtime code has to search children or call GetComponent.
+    // VI: Công cụ editor dựng asset phản hồi khách (dấu tích, âm thanh) và gán mọi tham chiếu trực tiếp mà script runtime cần, để code runtime không phải tìm child hay gọi GetComponent.
     public static class CustomerSetup
     {
-        private const string HeartTexturePath = "Assets/HotPot/Art/Sprites/Effects/FxHeart.png";
         private const string CheckmarkPath = "Assets/HotPot/Art/Sprites/Orders/OrderCheckmark.png";
-        private const string HeartPrefabPath = "Assets/HotPot/Prefabs/Effects/CustomerHearts.prefab";
         private const string SoundFolder = "Assets/HotPot/Audio/SFX/Customer";
         private const string DishPrefabPath = "Assets/HotPot/Prefabs/Ingame/IngredientDish.prefab";
         private const string FoodIconConfigPath = "Assets/HotPot/Config/FoodIconConfig.asset";
+        private const string FinalFoodConfigPath = "Assets/HotPot/Config/FinalFoodConfig.asset";
+        private const string DishCompleteEffectPath = "Assets/HotPot/Prefabs/Effects/FoodPreparedEffect.prefab";
+        private const int OrderLinesPerCard = CustomerOrder.MaxDishes;
         private const float IceCoverScaleX = 1.07f;
         private const float IceCoverScaleY = 1.32f;
         private static readonly string[] IceStagePaths =
@@ -40,72 +41,16 @@ namespace FoodPop
         {
             Scene scene = EditorSceneManager.GetActiveScene();
             bool hadUnsavedChanges = scene.isDirty;
-            ParticleEffect hearts = BuildHeartPrefab();
             Sprite checkmark = ImportSprite(CheckmarkPath);
             BindDishPrefab();
             BindConveyorSlots();
             BindFoodBoard();
-            CustomerManager manager = BindCustomers(hearts, checkmark);
+            CustomerManager manager = BindCustomers(checkmark);
             BindLevelController(manager);
             EditorSceneManager.MarkSceneDirty(scene);
             if (!hadUnsavedChanges)
                 EditorSceneManager.SaveScene(scene);
             Debug.Log("[CustomerSetup] Đã dựng hiệu ứng khách và gán toàn bộ tham chiếu trực tiếp.");
-        }
-
-        // EN: Builds the reward heart burst: a handful of hearts popping up and floating away, saved as a ParticleEffect prefab.
-        // VI: Dựng hiệu ứng tim khen thưởng: vài trái tim bung lên rồi bay lơ lửng, lưu thành prefab ParticleEffect.
-        private static ParticleEffect BuildHeartPrefab()
-        {
-            Texture2D texture = FoodLandEffectBuilder.ImportEffectTexture(HeartTexturePath);
-            if (texture == null)
-            {
-                Debug.LogWarning($"[CustomerSetup] Thiếu {HeartTexturePath}.");
-                return null;
-            }
-            Material material = FoodLandEffectBuilder.GetOrCreateMaterial("CustomerHeart", texture);
-            GameObject root = new GameObject("CustomerHearts");
-            try
-            {
-                ConfigureHearts(root.AddComponent<ParticleSystem>(), material);
-                FoodLandEffectBuilder.EnsureFolder("Assets/HotPot/Prefabs/Effects");
-                return FoodLandEffectBuilder.SaveEffectPrefab(root, HeartPrefabPath);
-            }
-            finally
-            {
-                Object.DestroyImmediate(root);
-            }
-        }
-
-        // EN: Hearts: one burst of 10, launched upward in a cone, slowing down, swaying and fading while they grow then shrink.
-        // VI: Tim: một đợt 10 trái bắn lên theo hình nón, chậm dần, đung đưa và mờ dần, phóng to rồi thu nhỏ.
-        private static void ConfigureHearts(ParticleSystem system, Material material)
-        {
-            ParticleSystem.MainModule main = FoodLandEffectBuilder.ApplyCommonMain(system, 1f);
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.9f, 1.3f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(2.5f, 4f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.35f, 0.6f);
-            main.startRotation = new ParticleSystem.MinMaxCurve(-0.35f, 0.35f);
-            main.gravityModifier = -0.15f;
-            FoodLandEffectBuilder.SetBurst(system, 10);
-            ParticleSystem.ShapeModule shape = system.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 35f;
-            shape.radius = 0.3f;
-            shape.rotation = new Vector3(-90f, 0f, 0f);
-            ParticleSystem.LimitVelocityOverLifetimeModule limit = system.limitVelocityOverLifetime;
-            limit.enabled = true;
-            limit.limit = 0.6f;
-            limit.dampen = 0.15f;
-            ParticleSystem.NoiseModule noise = system.noise;
-            noise.enabled = true;
-            noise.strength = 0.4f;
-            noise.frequency = 0.8f;
-            FoodLandEffectBuilder.SetSizeOverLifetime(system, new AnimationCurve(
-                new Keyframe(0f, 0.2f), new Keyframe(0.15f, 1.15f), new Keyframe(0.3f, 1f), new Keyframe(1f, 0.6f)));
-            FoodLandEffectBuilder.SetFadeOut(system, Color.white, 1f, 0.6f);
-            FoodLandEffectBuilder.ApplyRenderer(system, material, 0);
         }
 
         // EN: Imports a PNG as a single sprite (100 pixels per unit, no compression).
@@ -327,9 +272,9 @@ namespace FoodPop
             SetArray(board, "sceneDishes", dishes.ToArray());
         }
 
-        // EN: Creates (or reuses) the CustomerManager and wires both lanes from the "Customers and orders" group: customer, order card lines with a checkmark each, waiting figures and portraits.
-        // VI: Tạo (hoặc dùng lại) CustomerManager và gán hai làn từ nhóm "Customers and orders": khách, các dòng thẻ order kèm dấu tích, khách đứng chờ và ảnh khách.
-        private static CustomerManager BindCustomers(ParticleEffect hearts, Sprite checkmark)
+        // EN: Assigns customer configs to the manager and links each lane to its own serving component and order view.
+        // VI: Gán cấu hình khách cho manager và nối từng làn với component phục vụ riêng cùng thẻ order.
+        private static CustomerManager BindCustomers(Sprite checkmark)
         {
             Transform group = FindSceneRoot(name => name.Contains("Customers and orders"));
             if (group == null)
@@ -346,8 +291,7 @@ namespace FoodPop
             }
             SetFields(manager,
                 ("conveyor", Object.FindFirstObjectByType<ConveyorChefMovement>(FindObjectsInactive.Include)),
-                ("foodIconConfig", AssetDatabase.LoadAssetAtPath<FoodIconConfig>(FoodIconConfigPath)),
-                ("heartEffectPrefab", hearts));
+                ("finalFoodConfig", LoadFinalFoodConfig()));
             SetFields(FoodLandEffectBuilder.EnsureSoundManager(),
                 ("serveSound", FoodLandEffectBuilder.ImportSound($"{SoundFolder}/CustomerServePop.wav")),
                 ("customerHappySound", FoodLandEffectBuilder.ImportSound($"{SoundFolder}/CustomerHappy.wav")));
@@ -357,18 +301,22 @@ namespace FoodPop
             SerializedProperty lanes = serialized.FindProperty("lanes");
             lanes.arraySize = 2;
             string[] sides = { "Left", "Right" };
+            List<ServingTrayView> trays = Object.FindObjectsByType<ServingTrayView>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .OrderBy(tray => tray.transform.position.x).ToList();
             for (int side = 0; side < 2; side++)
             {
                 Transform customer = side < customers.Count ? customers[side] : null;
                 Transform orderCard = group.Cast<Transform>().FirstOrDefault(child => child.name.StartsWith($"{sides[side]} order"));
-                BindLane(lanes.GetArrayElementAtIndex(side), customer, orderCard, waitingGroup, sides[side], side == 0 ? -1 : 1, checkmark);
+                SerializedProperty lane = lanes.GetArrayElementAtIndex(side);
+                BindLane(lane, customer, orderCard, waitingGroup, sides[side], side == 0 ? -1 : 1, checkmark);
+                BindServingTray(lane, trays.Count == 2 ? trays[side] : null);
             }
             serialized.ApplyModifiedProperties();
             return manager;
         }
 
-        // EN: Wires one lane: adds CustomerView to the customer, OrderItemView (with a checkmark child) to each order line, and collects the waiting figures nearest to the counter first.
-        // VI: Gán một làn: thêm CustomerView cho khách, OrderItemView (kèm child dấu tích) cho từng dòng order, và gom các khách đứng chờ theo thứ tự gần quầy trước.
+        // EN: Wires one lane: adds CustomerView to the customer, sets up the OrderView of its order card and collects the waiting figures nearest to the counter first (the serving tray is bound separately).
+        // VI: Gán một làn: thêm CustomerView cho khách, dựng OrderView cho thẻ order và gom các khách đứng chờ theo thứ tự gần quầy trước (khay phục vụ được gán riêng).
         private static void BindLane(SerializedProperty lane, Transform customer, Transform orderCard, Transform waitingGroup, string side, int direction, Sprite checkmark)
         {
             CustomerView view = null;
@@ -382,16 +330,8 @@ namespace FoodPop
             lane.FindPropertyRelative("customer").objectReferenceValue = view;
             lane.FindPropertyRelative("slideDirection").intValue = direction;
 
-            List<OrderItemView> items = new List<OrderItemView>();
-            if (orderCard != null)
-            {
-                foreach (Transform line in orderCard)
-                {
-                    if (line.name.StartsWith("Order"))
-                        items.Add(BindOrderItem(line, checkmark));
-                }
-            }
-            SetArrayProperty(lane.FindPropertyRelative("orderItems"), items.Cast<Object>().ToArray());
+            OrderView orderView = orderCard != null ? BindOrderView(orderCard, checkmark) : null;
+            lane.FindPropertyRelative("orderView").objectReferenceValue = orderView;
 
             List<SpriteRenderer> waiting = new List<SpriteRenderer>();
             if (waitingGroup != null && customer != null)
@@ -411,6 +351,184 @@ namespace FoodPop
             SetArrayProperty(lane.FindPropertyRelative("portraits"), portraits.Cast<Object>().ToArray());
         }
 
+        // EN: Loads FinalFoodConfig, building it from the built-in recipes when the asset is missing.
+        // VI: Nạp FinalFoodConfig, tự dựng từ công thức có sẵn nếu chưa có asset.
+        private static FinalFoodConfig LoadFinalFoodConfig()
+        {
+            FinalFoodConfig config = AssetDatabase.LoadAssetAtPath<FinalFoodConfig>(FinalFoodConfigPath);
+            if (config == null)
+            {
+                FinalFoodConfigMenu.Build();
+                config = AssetDatabase.LoadAssetAtPath<FinalFoodConfig>(FinalFoodConfigPath);
+            }
+            return config;
+        }
+
+        // EN: Returns exactly count order slots of the card (children named "Order…"): duplicates the last one when there are fewer (prefab instances stay linked) and deletes the extra ones (with Undo).
+        // VI: Trả về đúng count ô order của thẻ (child tên "Order…"): nhân bản ô cuối khi thiếu (bản sao prefab vẫn giữ liên kết) và xoá các ô thừa (có Undo).
+        private static List<Transform> EnsureOrderLines(Transform orderCard, int count)
+        {
+            List<Transform> lines = orderCard.Cast<Transform>().Where(child => child.name.StartsWith("Order")).ToList();
+            if (lines.Count == 0)
+            {
+                Debug.LogWarning($"[CustomerSetup] Thẻ {orderCard.name} không có dòng order nào để nhân bản.");
+                return lines;
+            }
+            while (lines.Count < count)
+                lines.Add(DuplicateOrderLine(lines[lines.Count - 1], lines.Count + 1));
+            while (lines.Count > count)
+            {
+                Undo.DestroyObjectImmediate(lines[lines.Count - 1].gameObject);
+                lines.RemoveAt(lines.Count - 1);
+            }
+            return lines;
+        }
+
+        // EN: Creates a copy of an order line next to it (as a prefab instance when the source is one) and names it by its slot number.
+        // VI: Tạo bản sao của một dòng order ngay cạnh nó (dạng prefab instance nếu dòng gốc là prefab) và đặt tên theo số thứ tự ô.
+        private static Transform DuplicateOrderLine(Transform source, int number)
+        {
+            GameObject prefab = PrefabUtility.GetCorrespondingObjectFromSource(source.gameObject);
+            GameObject copy = prefab != null
+                ? (GameObject)PrefabUtility.InstantiatePrefab(prefab, source.parent)
+                : Object.Instantiate(source.gameObject, source.parent);
+            Undo.RegisterCreatedObjectUndo(copy, "Create Order Line");
+            copy.name = $"Order · Slot {number}";
+            copy.transform.SetLocalPositionAndRotation(source.localPosition, source.localRotation);
+            copy.transform.localScale = source.localScale;
+            copy.transform.SetSiblingIndex(source.GetSiblingIndex() + 1);
+            return copy.transform;
+        }
+
+        // EN: Binds a lane to the tray's own ServingFood and ensures its stack and serving components exist on the prefab.
+        // VI: Nối làn với ServingFood riêng của khay và bảo đảm component chồng cùng phục vụ có trên prefab.
+        private static void BindServingTray(SerializedProperty lane, ServingTrayView tray)
+        {
+            SerializedProperty property = lane.FindPropertyRelative("servingFood");
+            if (property == null)
+                return;
+            if (tray == null)
+            {
+                ServingFood existing = property.objectReferenceValue as ServingFood;
+                tray = existing != null ? existing.GetComponent<ServingTrayView>() : null;
+            }
+            if (tray == null)
+            {
+                Debug.LogWarning("[CustomerSetup] Không ghép được khay phục vụ cho làn; hãy gán ServingFood tay trên CustomerManager.");
+                return;
+            }
+            TrayDishStack stack = EnsureTrayDishStack(tray);
+            if (stack != null && tray.DishStack != stack)
+                SetFields(tray, ("dishStack", stack));
+            property.objectReferenceValue = EnsureServingFood(tray);
+        }
+
+        // EN: Adds the serving component to the tray prefab when missing so both scene instances keep independent serving resources.
+        // VI: Thêm component phục vụ vào prefab khay khi thiếu để hai instance trong scene giữ tài nguyên phục vụ độc lập.
+        private static ServingFood EnsureServingFood(ServingTrayView tray)
+        {
+            ServingFood serving = tray.GetComponent<ServingFood>();
+            if (serving != null)
+                return serving;
+            string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(tray.gameObject);
+            if (string.IsNullOrEmpty(path))
+            {
+                serving = Undo.AddComponent<ServingFood>(tray.gameObject);
+                SetFields(serving, ("tray", tray),
+                    ("ingameConfig", AssetDatabase.LoadAssetAtPath<IngameConfig>("Assets/HotPot/Config/Resources/IngameConfig.asset")),
+                    ("dishCompleteEffect", AssetDatabase.LoadAssetAtPath<ParticleEffect>(DishCompleteEffectPath)));
+                return serving;
+            }
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                foreach (ServingTrayView prefabTray in root.GetComponentsInChildren<ServingTrayView>(true))
+                {
+                    ServingFood prefabServing = prefabTray.GetComponent<ServingFood>();
+                    if (prefabServing == null)
+                        prefabServing = prefabTray.gameObject.AddComponent<ServingFood>();
+                    SetFields(prefabServing, ("tray", prefabTray),
+                        ("ingameConfig", AssetDatabase.LoadAssetAtPath<IngameConfig>("Assets/HotPot/Config/Resources/IngameConfig.asset")),
+                        ("dishCompleteEffect", AssetDatabase.LoadAssetAtPath<ParticleEffect>(DishCompleteEffectPath)));
+                }
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+            return tray.GetComponent<ServingFood>();
+        }
+
+        // EN: Returns the tray's TrayDishStack; when it is missing and the tray is a prefab instance, adds it to the prefab asset (both components linked to each other) so every instance gets it, otherwise to the scene object.
+        // VI: Trả về TrayDishStack của khay; nếu chưa có và khay là prefab instance thì thêm vào prefab gốc (hai component nối với nhau) để mọi instance đều có, ngược lại thêm vào object trong scene.
+        private static TrayDishStack EnsureTrayDishStack(ServingTrayView tray)
+        {
+            TrayDishStack stack = tray.GetComponent<TrayDishStack>();
+            if (stack != null)
+                return stack;
+            ServingTrayView source = PrefabUtility.GetCorrespondingObjectFromSource(tray);
+            string path = source != null ? AssetDatabase.GetAssetPath(source) : null;
+            if (string.IsNullOrEmpty(path))
+            {
+                stack = Undo.AddComponent<TrayDishStack>(tray.gameObject);
+                SetFields(stack, ("tray", tray));
+                SetFields(tray, ("dishStack", stack));
+                return stack;
+            }
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                foreach (ServingTrayView prefabTray in root.GetComponentsInChildren<ServingTrayView>(true))
+                {
+                    TrayDishStack prefabStack = prefabTray.GetComponent<TrayDishStack>();
+                    if (prefabStack == null)
+                        prefabStack = prefabTray.gameObject.AddComponent<TrayDishStack>();
+                    SetFields(prefabStack, ("tray", prefabTray));
+                    SetFields(prefabTray, ("dishStack", prefabStack));
+                }
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+            Debug.Log($"[CustomerSetup] Đã thêm TrayDishStack vào prefab {path}.");
+            return tray.GetComponent<TrayDishStack>();
+        }
+
+        // EN: Adds OrderView to an order card, removes leftovers of older card layouts, makes sure it has exactly CustomerOrder.MaxDishes slots (OrderItemView + checkmark each), wires them and the "Artwork" background, and previews the layout with every slot.
+        // VI: Thêm OrderView cho thẻ order, xoá phần còn lại của bố cục thẻ cũ, bảo đảm thẻ có đúng CustomerOrder.MaxDishes ô (mỗi ô có OrderItemView và dấu tích), gán các ô và nền "Artwork", rồi xem trước bố cục với đủ ô.
+        private static OrderView BindOrderView(Transform orderCard, Sprite checkmark)
+        {
+            OrderView orderView = GetOrAdd<OrderView>(orderCard.gameObject);
+            RemoveChild(orderCard, "FinalFood");
+            RemoveChild(orderCard, "DishCount");
+            List<OrderItemView> items = new List<OrderItemView>();
+            foreach (Transform line in EnsureOrderLines(orderCard, OrderLinesPerCard))
+                items.Add(BindOrderItem(line, checkmark));
+            SetArray(orderView, "items", items.Cast<Object>().ToArray());
+            SpriteRenderer background = FindRenderer(orderCard, "Artwork");
+            if (background != null)
+                SetFields(orderView, ("background", background));
+            List<Object> touched = items.SelectMany(item => new Object[] { item.transform, item.gameObject }).ToList();
+            if (background != null)
+                touched.AddRange(new Object[] { background, background.transform });
+            Undo.RecordObjects(touched.ToArray(), "Layout order slots");
+            OrderViewSetup.Setup(orderView);
+            orderView.Layout(items.Count);
+            return orderView;
+        }
+
+        // EN: Deletes (with Undo) a child left by an earlier card layout, such as the old single-dish picture or dish counter.
+        // VI: Xoá (có Undo) child còn lại từ bố cục thẻ cũ, như ảnh món đơn hoặc nhãn đếm món trước đây.
+        private static void RemoveChild(Transform parent, string childName)
+        {
+            Transform child = parent.Find(childName);
+            if (child != null)
+                Undo.DestroyObjectImmediate(child.gameObject);
+        }
+
         // EN: Adds OrderItemView to an order line, wires its icon and count label and creates a hidden checkmark at the icon's lower-right corner.
         // VI: Thêm OrderItemView cho một dòng order, gán icon và nhãn số lượng, và tạo dấu tích (ẩn) ở góc dưới bên phải của icon.
         private static OrderItemView BindOrderItem(Transform line, Sprite checkmarkSprite)
@@ -421,8 +539,31 @@ namespace FoodPop
             TMP_Text text = line.GetComponentInChildren<TMP_Text>(true);
             GameObject countRoot = text != null ? TopChildOf(line, text.transform).gameObject : null;
             SpriteRenderer checkmark = EnsureCheckmark(line, ingredient, card, checkmarkSprite);
-            SetFields(item, ("ingredientRenderer", ingredient), ("countText", text), ("countRoot", countRoot), ("checkmark", checkmark));
+            SpriteRenderer dishShadow = EnsureDishShadow(ingredient);
+            SetFields(item, ("ingredientRenderer", ingredient), ("countText", text), ("countRoot", countRoot), ("checkmark", checkmark), ("dishShadow", dishShadow));
             return item;
+        }
+
+        // EN: Returns the "DishShadow" child of an order slot's icon (creating it when missing), drawn just behind the icon; OrderItemView fills its sprite, colour and offset at runtime.
+        // VI: Trả về child "DishShadow" của icon trong ô order (tạo mới nếu chưa có), vẽ ngay sau icon; OrderItemView gán sprite, màu và độ lệch khi chạy.
+        private static SpriteRenderer EnsureDishShadow(SpriteRenderer ingredient)
+        {
+            if (ingredient == null)
+                return null;
+            SpriteRenderer shadow = FindRenderer(ingredient.transform, "DishShadow");
+            if (shadow == null)
+            {
+                GameObject go = new GameObject("DishShadow");
+                Undo.RegisterCreatedObjectUndo(go, "Create Dish Shadow");
+                go.transform.SetParent(ingredient.transform, false);
+                shadow = go.AddComponent<SpriteRenderer>();
+            }
+            shadow.sortingLayerID = ingredient.sortingLayerID;
+            shadow.sortingOrder = ingredient.sortingOrder - 1;
+            shadow.gameObject.layer = ingredient.gameObject.layer;
+            shadow.color = new Color(0f, 0f, 0f, 0.35f);
+            shadow.enabled = false;
+            return shadow;
         }
 
         // EN: Returns the existing "Checkmark" child or creates one, sized to about half the card and drawn above the icon.

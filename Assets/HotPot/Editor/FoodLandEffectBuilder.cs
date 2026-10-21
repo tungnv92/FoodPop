@@ -50,8 +50,8 @@ namespace FoodPop
             }
         }
 
-        // EN: Builds the chop debris of every ingredient (main layer plus an optional extra layer) and the matching chop sound path.
-        // VI: Danh sách vụn khi chặt của từng nguyên liệu (lớp chính và lớp phụ tùy chọn) cùng đường dẫn âm thanh chặt tương ứng.
+        // EN: Defines ingredient debris, including green seaweed shreds, while condiments use the category fallback.
+        // VI: Định nghĩa vụn nguyên liệu, gồm vụn rong biển xanh; gia vị dùng hiệu ứng mặc định theo nhóm.
         private static (FoodType type, DebrisLayer main, DebrisLayer? extra)[] GetChopSpecs()
         {
             return new (FoodType, DebrisLayer, DebrisLayer?)[]
@@ -70,12 +70,9 @@ namespace FoodPop
                 (FoodType.SalmonRoe, new DebrisLayer("FxBead", new Color(1f, 0.45f, 0.1f), new Color(1f, 0.62f, 0.22f), 0.06f, 0.1f), null),
                 (FoodType.Unagi, new DebrisLayer("FxChunk", new Color(0.45f, 0.25f, 0.12f), new Color(0.62f, 0.36f, 0.18f), 0.09f, 0.15f),
                     new DebrisLayer("FxDrop", new Color(0.3f, 0.15f, 0.06f), new Color(0.42f, 0.22f, 0.08f), 0.06f, 0.09f)),
-                (FoodType.Sesame, new DebrisLayer("FxSeed", new Color(0.98f, 0.93f, 0.8f), new Color(0.9f, 0.82f, 0.65f), 0.04f, 0.07f),
-                    new DebrisLayer("FxSeed", new Color(0.15f, 0.12f, 0.1f), new Color(0.25f, 0.2f, 0.16f), 0.04f, 0.07f)),
                 (FoodType.Octopus, new DebrisLayer("FxTentacleRing", new Color(0.85f, 0.35f, 0.45f), new Color(0.95f, 0.55f, 0.62f), 0.08f, 0.13f),
                     new DebrisLayer("FxChunk", new Color(1f, 0.9f, 0.92f), new Color(0.98f, 0.82f, 0.85f), 0.06f, 0.1f)),
-                (FoodType.FriedTofu, new DebrisLayer("FxChunk", new Color(0.9f, 0.6f, 0.2f), new Color(1f, 0.76f, 0.36f), 0.06f, 0.11f),
-                    new DebrisLayer("FxChunk", new Color(1f, 0.96f, 0.82f), new Color(0.98f, 0.9f, 0.72f), 0.06f, 0.09f)),
+                (FoodType.Seaweed, new DebrisLayer("FxShred", new Color(0.16f, 0.24f, 0.04f), new Color(0.3f, 0.4f, 0.08f), 0.06f, 0.11f), null),
                 (FoodType.Scallop, new DebrisLayer("FxChunk", new Color(1f, 0.96f, 0.88f), new Color(0.98f, 0.88f, 0.75f), 0.08f, 0.13f), null),
             };
         }

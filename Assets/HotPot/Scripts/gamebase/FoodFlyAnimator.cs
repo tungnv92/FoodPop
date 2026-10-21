@@ -9,22 +9,12 @@ namespace FoodPop
     [DisallowMultipleComponent]
     public class FoodFlyAnimator : MonoBehaviour
     {
-        [Header("Bay vòng cung")]
-        [Tooltip("Thời gian (giây) một phần nguyên liệu bay từ đĩa lên slot băng chuyền.")]
-        [Min(0.01f)] [SerializeField] private float flyDuration = 0.4f;
-        [Tooltip("Độ cao đỉnh vòng cung (đơn vị world) so với đường thẳng nối điểm đầu và điểm cuối.")]
-        [Min(0f)] [SerializeField] private float arcHeight = 1.5f;
-        [Tooltip("Độ trễ (giây) giữa các phần khi một đĩa có nhiều phần.")]
-        [Min(0f)] [SerializeField] private float portionDelay = 0.06f;
-        [Tooltip("Đường cong tiến độ bay theo thời gian (trục ngang 0→1 là thời gian, trục dọc 0→1 là quãng đường).")]
-        [SerializeField] private AnimationCurve moveCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
-        [Tooltip("Hệ số phóng to ở đỉnh vòng cung so với kích thước bình thường.")]
-        [Min(1f)] [SerializeField] private float peakScale = 1.25f;
-        [Tooltip("Số vòng xoay trong lúc bay; 0 để không xoay.")]
-        [SerializeField] private float spinTurns = 1f;
-        [Tooltip("Cộng thêm vào thứ tự vẽ để món đang bay luôn nằm trên board và băng chuyền.")]
-        [SerializeField] private int sortingOrderBoost = 100;
+        [Tooltip("Cấu hình thời gian và hiệu ứng dùng chung trong màn chơi; để trống dùng asset mặc định.")]
+        [SerializeField] private IngameConfig ingameConfig;
 
+        // EN: Resolves shared gameplay tuning while supporting an explicitly assigned configuration asset.
+        // VI: Lấy thông số màn chơi dùng chung, hỗ trợ asset cấu hình được gán riêng.
+        private IngameConfig Config => IngameConfig.Resolve(ingameConfig);
 
         private sealed class Flight
         {
@@ -46,7 +36,7 @@ namespace FoodPop
             Vector3 startScale = source != null ? source.transform.lossyScale : Vector3.one;
             Quaternion startRotation = source != null ? source.transform.rotation : Quaternion.identity;
             int sortingLayer = source != null ? source.sortingLayerID : 0;
-            int sortingOrder = (source != null ? source.sortingOrder : 0) + sortingOrderBoost;
+            int sortingOrder = (source != null ? source.sortingOrder : 0) + Config.boardFlight.sortingOrderBoost;
             IngameSoundManager sound = IngameSoundManager.Instance;
             if (sound != null)
                 sound.PlayDishLaunch();
@@ -59,7 +49,7 @@ namespace FoodPop
                 SpriteRenderer flyer = RentFlyer(icon, sortingLayer, sortingOrder + i);
                 Flight flight = new Flight { slot = slot, flyer = flyer, pitch = sound != null ? sound.NextPortionPitch() : 1f };
                 activeFlights.Add(flight);
-                StartCoroutine(FlyToSlot(flight, startPosition, startScale, startRotation, portionDelay * i));
+                StartCoroutine(FlyToSlot(flight, startPosition, startScale, startRotation, Config.boardFlight.portionDelay * i));
             }
         }
 
@@ -75,7 +65,7 @@ namespace FoodPop
             flyerTransform.localScale = startScale;
             flight.flyer.gameObject.SetActive(true);
             float time = 0f;
-            while (time < flyDuration)
+            while (time < Config.boardFlight.flyDuration)
             {
                 if (flight.slot == null || !flight.slot.IsFoodArriving)
                 {
@@ -83,7 +73,7 @@ namespace FoodPop
                     yield break;
                 }
                 time += Time.deltaTime;
-                float t = Mathf.Clamp01(time / flyDuration);
+                float t = Mathf.Clamp01(time / Config.boardFlight.flyDuration);
                 ApplyArcPose(flyerTransform, flight.slot, start, startScale, startRotation, t);
                 yield return null;
             }
@@ -94,12 +84,12 @@ namespace FoodPop
         // VI: Đặt món bay tại thời điểm t trên vòng cung: di chuyển theo đường cong, cộng độ cao parabol, phóng to ở đỉnh và xoay (tùy chọn).
         private void ApplyArcPose(Transform flyer, ConveyorSlot slot, Vector3 start, Vector3 startScale, Quaternion startRotation, float t)
         {
-            float progress = moveCurve != null ? moveCurve.Evaluate(t) : t;
+            float progress = Config.boardFlight.moveCurve != null ? Config.boardFlight.moveCurve.Evaluate(t) : t;
             Vector3 position = Vector3.LerpUnclamped(start, slot.LandingPosition, progress);
-            position.y += arcHeight * 4f * t * (1f - t);
-            float pop = 1f + (peakScale - 1f) * Mathf.Sin(t * Mathf.PI);
+            position.y += Config.boardFlight.arcHeight * 4f * t * (1f - t);
+            float pop = 1f + (Config.boardFlight.peakScale - 1f) * Mathf.Sin(t * Mathf.PI);
             Quaternion rotation = Quaternion.Slerp(startRotation, slot.LandingRotation, progress) *
-                                  Quaternion.Euler(0f, 0f, -360f * spinTurns * progress);
+                                  Quaternion.Euler(0f, 0f, -360f * Config.boardFlight.spinTurns * progress);
             flyer.SetPositionAndRotation(position, rotation);
             flyer.localScale = Vector3.LerpUnclamped(startScale, slot.LandingScale, progress) * pop;
         }

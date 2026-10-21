@@ -322,6 +322,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 278d3f2ccd4ea8d4aa78a4a5aac0df08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoodPop.Food
+  ingameConfig: {fileID: 11400000, guid: 0af0b967b5230bf4ea0d3b26fb39945f, type: 2}
   foodType: 1
   amount: 3
   isHidden: 0
@@ -345,8 +346,6 @@ MonoBehaviour:
   countCanvas: {fileID: 4281713838197293923}
   iceRenderer: {fileID: 6909204075803011591}
   blockText: {fileID: 4707601284013260803}
-  iceHitDuration: 0.22
-  iceHitAmount: 0.12
 --- !u!114 &3664608803163009805
 MonoBehaviour:
   m_ObjectHideFlags: 0

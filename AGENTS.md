@@ -48,7 +48,7 @@ public void ExampleFunction()
 ## Mandatory file and asset organization
 
 - Every newly created, generated, imported, or copied project file must be placed in the correct folder for its type and gameplay feature. This is mandatory alongside bilingual function comments.
-- Main game content belongs under `Assets/CardDrop`. Follow `Assets/CardDrop/Documentation/AssetFolders.md` and the existing feature subfolders:
+- Main game content belongs under `Assets/HotPot`. Follow `Assets/HotPot/Documentation/AssetFolders.md` and the existing feature subfolders:
   - Sprites/textures: `Art/Sprites/<feature>`.
   - Source fonts and TMP font assets: `Art/Fonts`; font material presets: `Art/Fonts/Materials`.
   - Shaders: `Art/Shaders/<feature>`.
@@ -60,8 +60,8 @@ public void ExampleFunction()
 - Create a clearly named feature subfolder when needed. Do not mix sprites, shaders, materials, fonts, animations, or code in one folder, or leave generated assets loose in the project root.
 - Keep temporary outputs and source-art backups outside `Assets`, following the existing workspace conventions.
 - Preserve `.meta` files and GUIDs when moving existing Unity assets. Update path-based loaders and documentation, and verify consuming references after moves.
-- Do not reorganize external libraries or folders outside `Assets/CardDrop` unless explicitly requested.
-- Quy tắc bắt buộc: mọi file được tạo, sinh, import hoặc sao chép phải nằm đúng thư mục theo loại và chức năng, theo cấu trúc trên. Không để lẫn sprite, font, shader, material, animation và code. Khi di chuyển asset Unity phải giữ `.meta`/GUID, cập nhật đường dẫn và kiểm tra tham chiếu. File tạm và bản sao lưu ảnh nguồn phải ở ngoài `Assets`; không sắp xếp thư viện ngoài hoặc thư mục ngoài `Assets/CardDrop` khi chưa được yêu cầu.
+- Do not reorganize external libraries or folders outside `Assets/HotPot` unless explicitly requested.
+- Quy tắc bắt buộc: mọi file được tạo, sinh, import hoặc sao chép phải nằm đúng thư mục theo loại và chức năng, theo cấu trúc trên. Không để lẫn sprite, font, shader, material, animation và code. Khi di chuyển asset Unity phải giữ `.meta`/GUID, cập nhật đường dẫn và kiểm tra tham chiếu. File tạm và bản sao lưu ảnh nguồn phải ở ngoài `Assets`; không sắp xếp thư viện ngoài hoặc thư mục ngoài `Assets/HotPot` khi chưa được yêu cầu.
 
 
 

@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2f6f3683d28f7b40b592a993dbe68ec, type: 3}
+  m_Name: IngredientForms_1Dish
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.IngredientGridFormConfig
+  forms:
+  - ingredientCount: 2
+    columns: 1
+    iconScale: 0.35
+    spacing: {x: 0.36, y: 0.6}
+    backgroundSize: {x: 1.1, y: 2.2}
+    collapseLayout: 0
+    collapseTime: 2
+    collapseLayoutPosition: {x: 0, y: 0}
+  - ingredientCount: 3
+    columns: 1
+    iconScale: 0.35
+    spacing: {x: 0.34, y: 0.6}
+    backgroundSize: {x: 1.1, y: 2.2}
+    collapseLayout: 0
+    collapseTime: 2
+    collapseLayoutPosition: {x: 0, y: 0}
+  - ingredientCount: 4
+    columns: 1
+    iconScale: 0.3
+    spacing: {x: 0.3, y: 0.5}
+    backgroundSize: {x: 1.1, y: 2.2}
+    collapseLayout: 0
+    collapseTime: 2
+    collapseLayoutPosition: {x: 0, y: 0}
+  - ingredientCount: 5
+    columns: 2
+    iconScale: 0.27
+    spacing: {x: 0.55, y: 0.55}
+    backgroundSize: {x: 1.1, y: 2.2}
+    collapseLayout: 0
+    collapseTime: 2
+    collapseLayoutPosition: {x: 0, y: 0}
+  - ingredientCount: 5
+    columns: 2
+    iconScale: 0.27
+    spacing: {x: 0.55, y: 0.55}
+    backgroundSize: {x: 1.1, y: 2.2}
+    collapseLayout: 0
+    collapseTime: 2
+    collapseLayoutPosition: {x: 0, y: 0}

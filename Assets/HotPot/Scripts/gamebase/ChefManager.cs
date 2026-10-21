@@ -9,6 +9,13 @@ namespace FoodPop
     [DisallowMultipleComponent]
     public class ChefManager : MonoBehaviour
     {
+        [Tooltip("Cấu hình thời gian và hiệu ứng dùng chung trong màn chơi; để trống dùng asset mặc định.")]
+        [SerializeField] private IngameConfig ingameConfig;
+
+        // EN: Resolves shared gameplay tuning while supporting an explicitly assigned configuration asset.
+        // VI: Lấy thông số màn chơi dùng chung, hỗ trợ asset cấu hình được gán riêng.
+        private IngameConfig Config => IngameConfig.Resolve(ingameConfig);
+
         private static ChefManager instance;
         private static readonly ConveyorSlot[] EmptySlots = new ConveyorSlot[0];
         private static readonly int IsChoppingId = Animator.StringToHash("IsChopping");
@@ -17,8 +24,7 @@ namespace FoodPop
         [SerializeField] private Animator chefAnimator;
         [Tooltip("Component điều khiển đường đi và chuyển động các đĩa trên băng chuyền.")]
         [SerializeField] private ConveyorChefMovement conveyorMovement;
-        [Tooltip("Thời gian sơ chế một nguyên liệu, tính bằng giây.")]
-        [Min(0.01f)] [SerializeField] private float preparationDuration = 1f;
+
         [Tooltip("Bật để đầu bếp tự sơ chế món thô khi món đi vào trạm sơ chế trên băng chuyền.")]
         [SerializeField] private bool autoPrepareInStation = true;
 
@@ -29,20 +35,10 @@ namespace FoodPop
         [SerializeField] private Transform cuttingBoard;
         [Tooltip("Sprite bóng đổ (tùy chọn) hiện dưới món khi món nằm trên thớt.")]
         [SerializeField] private Sprite foodShadowSprite;
-        [Tooltip("Độ nảy của món và thớt ở mỗi nhát chặt (0.08 = bẹp 8%).")]
-        [Range(0f, 0.3f)] [SerializeField] private float chopPunch = 0.08f;
+
         [Tooltip("Độ lệch (world) từ vị trí đầu bếp tới điểm cắt khi chưa gán Cutting Point.")]
         [SerializeField] private Vector3 cuttingOffset = new Vector3(0f, -0.6f, 0f);
-        [Tooltip("Hệ số phóng to món khi nằm trước mặt đầu bếp so với kích thước trên đĩa.")]
-        [Min(0.1f)] [SerializeField] private float cuttingScale = 1.3f;
-        [Tooltip("Thời gian (giây) món bay từ đĩa lên trước mặt đầu bếp.")]
-        [Min(0.01f)] [SerializeField] private float liftDuration = 0.25f;
-        [Tooltip("Thời gian (giây) món đã sơ chế rơi lại vào đĩa.")]
-        [Min(0.01f)] [SerializeField] private float dropDuration = 0.3f;
-        [Tooltip("Độ cao vòng cung (world) khi món bay lên và rơi xuống.")]
-        [Min(0f)] [SerializeField] private float hopHeight = 0.6f;
-        [Tooltip("Cộng thêm vào thứ tự vẽ của món để món nằm trên đầu bếp và băng chuyền khi đang cắt.")]
-        [SerializeField] private int cuttingSortingBoost = 20;
+
         [Tooltip("Prefab khói (lặp lại, tùy chọn) bốc lên từ món trong lúc cắt.")]
         [SerializeField] private ParticleEffect chopSmokePrefab;
 
@@ -51,10 +47,6 @@ namespace FoodPop
         [SerializeField] private ParticleEffect meatDebrisPrefab;
         [Tooltip("Prefab vụn rau (tùy chọn) bắn ra ở mỗi nhát chặt món rau/đồ mềm.")]
         [SerializeField] private ParticleEffect vegetableDebrisPrefab;
-        [Tooltip("Số mảnh vụn bắn ra ở mỗi nhát chặt.")]
-        [Min(0)] [SerializeField] private int debrisPerChop = 3;
-        [Tooltip("Khoảng thời gian (giây) giữa hai nhát chặt; chỉnh cho khớp nhịp hoạt ảnh cắt.")]
-        [Min(0.05f)] [SerializeField] private float chopInterval = 0.167f;
 
         [Header("Hiệu ứng khi sơ chế xong")]
         [Tooltip("Prefab particle (tùy chọn) chạy tại slot khi món vừa sơ chế xong.")]
@@ -172,8 +164,23 @@ namespace FoodPop
                 instance = null;
         }
 
-        // EN: Collects the given number of active empty slots, soonest to reach the preparation station first; returns false and leaves the list empty when there are not enough.
-        // VI: Lấy đủ số slot rỗng đang hoạt động, ưu tiên slot sắp tới trạm sơ chế sớm nhất; trả về false và để danh sách rỗng khi không đủ slot.
+        // EN: Number of active empty conveyor slots right now (same rule TryGetNearestEmptySlots uses); lets boosters check whether a dish fits before picking it.
+        // VI: Số slot rỗng đang hoạt động trên băng chuyền lúc này (cùng quy tắc với TryGetNearestEmptySlots); booster dùng để kiểm tra đĩa có vừa trước khi lấy.
+        public int CountEmptySlots()
+        {
+            int count = 0;
+            IReadOnlyList<ConveyorSlot> slots = Slots;
+            for (int i = 0; i < slots.Count; i++)
+            {
+                ConveyorSlot slot = slots[i];
+                if (slot != null && slot.isActiveAndEnabled && slot.isEmpty)
+                    count++;
+            }
+            return count;
+        }
+
+        // EN: Collects the given number of active empty slots, counted from Station End onward along the belt direction (the first free slot past the station comes first); returns false and leaves the list empty when there are not enough.
+        // VI: Lấy đủ số slot rỗng đang hoạt động, tính từ vị trí Station End trở đi theo chiều chạy của băng (slot trống đầu tiên sau trạm được ưu tiên); trả về false và để danh sách rỗng khi không đủ slot.
         public bool TryGetNearestEmptySlots(Vector3 worldPosition, int count, List<ConveyorSlot> result)
         {
             result.Clear();
@@ -200,15 +207,14 @@ namespace FoodPop
             return true;
         }
 
-        // EN: Sort key for an empty slot: the slot that will reach the preparation station soonest comes first; slots already inside rank last because they leave before the food lands.
-        // VI: Khóa sắp xếp cho slot trống: slot sắp tới trạm sơ chế sớm nhất được ưu tiên; slot đang ở trong trạm xếp cuối vì sẽ ra khỏi trạm trước khi món bay tới.
+        // EN: Sort key for an empty slot: distance travelled since Station End, so the slot just past the station end comes first and slots inside the station rank last.
+        // VI: Khóa sắp xếp cho slot trống: quãng đường đã đi kể từ Station End, slot vừa qua điểm cuối trạm được ưu tiên, slot đang trong trạm xếp cuối.
         private float GetSlotPriority(int index, ConveyorSlot slot, Vector3 worldPosition)
         {
             if (conveyorMovement == null)
                 return (slot.transform.position - worldPosition).sqrMagnitude;
-            return conveyorMovement.GetDistanceToStation(index);
+            return conveyorMovement.GetDistanceFromStationEnd(index);
         }
-
 
         // EN: Checks membership against the conveyor's slot references rather than hierarchy position.
         // VI: Kiểm tra slot thuộc băng chuyền bằng reference thay vì vị trí trong hierarchy.
@@ -244,10 +250,10 @@ namespace FoodPop
             SpriteRenderer icon = slot.IngredientRenderer;
             SpriteRenderer flyer = SetupCuttingFood(icon);
             Vector3 plateScale = slot.LandingScale;
-            Vector3 cutScale = plateScale * cuttingScale;
+            Vector3 cutScale = plateScale * Config.preparation.cuttingScale;
             slot.BeginFoodArrival();
 
-            yield return Hop(flyer.transform, () => slot.LandingPosition, GetCuttingPosition, plateScale, cutScale, liftDuration);
+            yield return Hop(flyer.transform, () => slot.LandingPosition, GetCuttingPosition, plateScale, cutScale, Config.preparation.liftDuration);
             if (!IsStillPreparing(slot))
             {
                 FinishPreparation();
@@ -257,7 +263,7 @@ namespace FoodPop
             SetShadow(true, flyer, cutScale);
             SetChopping(true);
             SetSmoke(true, flyer);
-            yield return PlayChops(Mathf.Max(0.01f, preparationDuration), preparingFood, flyer, cutScale);
+            yield return PlayChops(Mathf.Max(0.01f, Config.preparation.preparationDuration), preparingFood, flyer, cutScale);
             SetSmoke(false, flyer);
             SetChopping(false);
             if (!IsStillPreparing(slot) || !preparingFood.Prepare())
@@ -268,7 +274,7 @@ namespace FoodPop
 
             yield return PlayPreparedPoof(flyer, icon != null ? icon.sprite : flyer.sprite, cutScale);
             SetShadow(false, null, Vector3.one);
-            yield return Hop(flyer.transform, GetCuttingPosition, () => slot.LandingPosition, cutScale, plateScale, dropDuration);
+            yield return Hop(flyer.transform, GetCuttingPosition, () => slot.LandingPosition, cutScale, plateScale, Config.preparation.dropDuration);
             FinishPreparation();
         }
 
@@ -291,7 +297,7 @@ namespace FoodPop
                 float t = Mathf.Clamp01(time / duration);
                 float eased = Mathf.SmoothStep(0f, 1f, t);
                 Vector3 position = Vector3.LerpUnclamped(from(), to(), eased);
-                position.y += hopHeight * 4f * t * (1f - t);
+                position.y += Config.preparation.hopHeight * 4f * t * (1f - t);
                 target.position = position;
                 target.localScale = Vector3.LerpUnclamped(fromScale, toScale, eased);
                 yield return null;
@@ -305,7 +311,6 @@ namespace FoodPop
         private IEnumerator PlayPreparedPoof(SpriteRenderer flyer, Sprite preparedSprite, Vector3 restScale)
         {
             flyer.sprite = preparedSprite;
-            OneShotEffects.PlayParticle(preparedEffectPrefab, flyer.transform.position, flyer.sortingLayerID, flyer.sortingOrder + 2);
             IngameSoundManager.Instance?.PlayPrepared();
             const float Duration = 0.22f;
             float time = 0f;
@@ -359,7 +364,7 @@ namespace FoodPop
             }
             cuttingFood.sprite = source != null ? source.sprite : null;
             cuttingFood.sortingLayerID = source != null ? source.sortingLayerID : 0;
-            cuttingFood.sortingOrder = (source != null ? source.sortingOrder : 0) + cuttingSortingBoost;
+            cuttingFood.sortingOrder = (source != null ? source.sortingOrder : 0) + Config.preparation.cuttingSortingBoost;
             cuttingFood.gameObject.layer = source != null ? source.gameObject.layer : 0;
             Transform target = cuttingFood.transform;
             target.position = preparingSlot.LandingPosition;
@@ -388,8 +393,8 @@ namespace FoodPop
             chopSmoke.Play();
         }
 
-        // EN: Waits for the given duration and, on every chop (each chopInterval, starting immediately), plays the food's own knife sound, throws a few of its own debris pieces and punches the food and board; restores the food's rest scale at the end.
-        // VI: Chờ trong khoảng thời gian đã cho và ở mỗi nhát chặt (mỗi chopInterval, bắt đầu ngay), phát tiếng dao riêng của món, bắn vài mảnh vụn riêng và làm món cùng thớt nảy nhẹ; trả món về scale chuẩn khi kết thúc.
+        // EN: Waits for the given duration and, on every chop (each Config.preparation.chopInterval, starting immediately), plays the food's own knife sound, throws a few of its own debris pieces and punches the food and board; restores the food's rest scale at the end.
+        // VI: Chờ trong khoảng thời gian đã cho và ở mỗi nhát chặt (mỗi Config.preparation.chopInterval, bắt đầu ngay), phát tiếng dao riêng của món, bắn vài mảnh vụn riêng và làm món cùng thớt nảy nhẹ; trả món về scale chuẩn khi kết thúc.
         private IEnumerator PlayChops(float duration, Food food, SpriteRenderer foodSprite, Vector3 restScale)
         {
             ParticleEffect debris = GetDebris(food);
@@ -403,7 +408,7 @@ namespace FoodPop
                     IngameSoundManager.Instance?.PlayChop(food);
                     EmitDebris(debris, foodSprite);
                     lastChop = nextChop;
-                    nextChop += chopInterval;
+                    nextChop += Config.preparation.chopInterval;
                 }
                 ApplyChopPunch(foodSprite.transform, restScale, elapsed - lastChop);
                 yield return null;
@@ -417,7 +422,7 @@ namespace FoodPop
         private void ApplyChopPunch(Transform food, Vector3 restScale, float timeSinceChop)
         {
             const float PunchTime = 0.1f;
-            float strength = timeSinceChop < PunchTime ? chopPunch * (1f - timeSinceChop / PunchTime) : 0f;
+            float strength = timeSinceChop < PunchTime ? Config.preparation.chopPunch * (1f - timeSinceChop / PunchTime) : 0f;
             food.localScale = Vector3.Scale(restScale, new Vector3(1f + strength, 1f - strength, 1f));
             if (cuttingBoard != null)
                 cuttingBoard.localScale = Vector3.Scale(boardBaseScale, new Vector3(1f + strength * 0.25f, 1f - strength * 0.4f, 1f));
@@ -466,15 +471,15 @@ namespace FoodPop
             return instance;
         }
 
-        // EN: Moves the debris emitter to the food, draws it just above the food and emits debrisPerChop pieces from the main layer and about half as many from each extra layer (e.g. sauce drops, shell bits).
-        // VI: Đưa bộ phát vụn tới vị trí món, vẽ ngay phía trên món, bắn debrisPerChop mảnh ở lớp chính và khoảng một nửa số đó ở mỗi lớp phụ (ví dụ giọt sốt, mảnh vỏ).
+        // EN: Moves the debris emitter to the food, draws it just above the food and emits Config.preparation.debrisPerChop pieces from the main layer and about half as many from each extra layer (e.g. sauce drops, shell bits).
+        // VI: Đưa bộ phát vụn tới vị trí món, vẽ ngay phía trên món, bắn Config.preparation.debrisPerChop mảnh ở lớp chính và khoảng một nửa số đó ở mỗi lớp phụ (ví dụ giọt sốt, mảnh vỏ).
         private void EmitDebris(ParticleEffect debris, SpriteRenderer food)
         {
-            if (debris == null || food == null || debrisPerChop <= 0)
+            if (debris == null || food == null || Config.preparation.debrisPerChop <= 0)
                 return;
             debris.transform.position = food.transform.position;
             debris.SetSorting(food.sortingLayerID, food.sortingOrder + 1);
-            debris.Emit(debrisPerChop, Mathf.Max(1, debrisPerChop / 2));
+            debris.Emit(Config.preparation.debrisPerChop, Mathf.Max(1, Config.preparation.debrisPerChop / 2));
         }
 
         // EN: Stops the current job without changing the food's processing state, puts the food back on its plate and returns the chef to idle.

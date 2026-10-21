@@ -1,0 +1,175 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f29ea31c77534d459fc67762a8ce9139, type: 3}
+  m_Name: FinalFoodConfig
+  m_EditorClassIdentifier: Assembly-CSharp::FinalFoodConfig
+  recipes:
+  - finalFood: 12
+    displayName: "Nigiri c\xE1 h\u1ED3i (2 m\xF3n)"
+    sprite: {fileID: 21300000, guid: fe71ac93b61e69f4b9ea62dd7ccff52d, type: 3}
+    ingredients: 0100000002000000
+  - finalFood: 13
+    displayName: "Nigiri c\xE1 h\u1ED3i (3 m\xF3n)"
+    sprite: {fileID: 21300000, guid: d045be94dca7d884ca8e7244084e6e1b, type: 3}
+    ingredients: 010000000200000009000000
+  - finalFood: 14
+    displayName: "Nigiri c\xE1 h\u1ED3i (4 m\xF3n)"
+    sprite: {fileID: 21300000, guid: ef141e6fcfe820d4a90d844fa18d1d76, type: 3}
+    ingredients: 0100000002000000090000000d000000
+  - finalFood: 15
+    displayName: "Nigiri c\xE1 h\u1ED3i (5 m\xF3n)"
+    sprite: {fileID: 21300000, guid: c8e43dca072b7b549a957607279df472, type: 3}
+    ingredients: 0100000002000000090000000d00000007000000
+  - finalFood: 16
+    displayName: "Nigiri c\xE1 h\u1ED3i (6 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 4020dfae67ebffc49894173d5f25c7ed, type: 3}
+    ingredients: 0100000002000000090000000d0000000700000011000000
+  - finalFood: 22
+    displayName: "Nigiri c\xE1 ng\u1EEB (2 m\xF3n)"
+    sprite: {fileID: 21300000, guid: f51bd417b45abc343b47fd9a6fa5870d, type: 3}
+    ingredients: 0100000003000000
+  - finalFood: 23
+    displayName: "Nigiri c\xE1 ng\u1EEB (3 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 69a4c60a166be0f4d9411b712ca2b32b, type: 3}
+    ingredients: 010000000300000011000000
+  - finalFood: 24
+    displayName: "Nigiri c\xE1 ng\u1EEB (4 m\xF3n)"
+    sprite: {fileID: 21300000, guid: ae3a2b767228da141bce4e0ba4c682b8, type: 3}
+    ingredients: 0100000003000000110000000d000000
+  - finalFood: 25
+    displayName: "Nigiri c\xE1 ng\u1EEB (5 m\xF3n)"
+    sprite: {fileID: 21300000, guid: dff06254c7cb1094a89ab51db74ad352, type: 3}
+    ingredients: 0100000003000000110000000d00000007000000
+  - finalFood: 26
+    displayName: "Nigiri c\xE1 ng\u1EEB (6 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 319d01996880a5c4190d81bd9eb34719, type: 3}
+    ingredients: 0100000003000000110000000d000000070000000f000000
+  - finalFood: 32
+    displayName: "Nigiri t\xF4m (2 m\xF3n)"
+    sprite: {fileID: 21300000, guid: c885f3fe2e6cfbc4b9b9c64b0d61cbfd, type: 3}
+    ingredients: 0100000004000000
+  - finalFood: 33
+    displayName: "Nigiri t\xF4m (3 m\xF3n)"
+    sprite: {fileID: 21300000, guid: d4465c828cc54954780e8f4b5ccc3daa, type: 3}
+    ingredients: 010000000400000007000000
+  - finalFood: 34
+    displayName: "Nigiri t\xF4m (4 m\xF3n)"
+    sprite: {fileID: 21300000, guid: c6d662bc4f704224ebca008c35e9175b, type: 3}
+    ingredients: 0100000004000000070000000d000000
+  - finalFood: 35
+    displayName: "Nigiri t\xF4m (5 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 33c70a9b560c8cb4ba553679e3bd572e, type: 3}
+    ingredients: 0100000004000000070000000d00000009000000
+  - finalFood: 36
+    displayName: "Nigiri t\xF4m (6 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 70efeea23a579554fa18afa1a5249d88, type: 3}
+    ingredients: 0100000004000000070000000d000000090000000f000000
+  - finalFood: 42
+    displayName: "Nigiri tr\u1EE9ng cu\u1ED9n (2 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 833f818e7685a8549bc05918d85fe9c6, type: 3}
+    ingredients: 0100000006000000
+  - finalFood: 43
+    displayName: "Nigiri tr\u1EE9ng cu\u1ED9n (3 m\xF3n)"
+    sprite: {fileID: 21300000, guid: ff673dcf23c29dc429d71d121ca63478, type: 3}
+    ingredients: 01000000060000000d000000
+  - finalFood: 44
+    displayName: "Nigiri tr\u1EE9ng cu\u1ED9n (4 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 185da63271dbbbe4fb5a5167a4cccb59, type: 3}
+    ingredients: 01000000060000000d00000007000000
+  - finalFood: 45
+    displayName: "Nigiri tr\u1EE9ng cu\u1ED9n (5 m\xF3n)"
+    sprite: {fileID: 21300000, guid: b22b7153c14dbae49ae77dfaa544dc72, type: 3}
+    ingredients: 01000000060000000d0000000700000005000000
+  - finalFood: 46
+    displayName: "Nigiri tr\u1EE9ng cu\u1ED9n (6 m\xF3n)"
+    sprite: {fileID: 21300000, guid: a0c5e8c9c567ce041a97444184f125c1, type: 3}
+    ingredients: 01000000060000000d000000070000000500000010000000
+  - finalFood: 52
+    displayName: "Nigiri l\u01B0\u01A1n (2 m\xF3n)"
+    sprite: {fileID: 21300000, guid: d8f02ec2a123a7c478199dc080285f50, type: 3}
+    ingredients: 010000000a000000
+  - finalFood: 53
+    displayName: "Nigiri l\u01B0\u01A1n (3 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 2767411a11a5b1c41bffbe9ba32f8836, type: 3}
+    ingredients: 010000000a00000007000000
+  - finalFood: 54
+    displayName: "Nigiri l\u01B0\u01A1n (4 m\xF3n)"
+    sprite: {fileID: 21300000, guid: b3593ba8a62742a41a0eca57d5492b6f, type: 3}
+    ingredients: 010000000a000000070000000d000000
+  - finalFood: 55
+    displayName: "Nigiri l\u01B0\u01A1n (5 m\xF3n)"
+    sprite: {fileID: 21300000, guid: d8eb2c02602f2a0448cb940328b25c75, type: 3}
+    ingredients: 010000000a000000070000000d00000006000000
+  - finalFood: 56
+    displayName: "Nigiri l\u01B0\u01A1n (6 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 433ceeeb679f476409bc042cc02d4486, type: 3}
+    ingredients: 010000000a000000070000000d000000060000000f000000
+  - finalFood: 62
+    displayName: "Nigiri b\u1EA1ch tu\u1ED9c (2 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 2d3b6845461c54b4b917dbb882977c51, type: 3}
+    ingredients: 010000000c000000
+  - finalFood: 63
+    displayName: "Nigiri b\u1EA1ch tu\u1ED9c (3 m\xF3n)"
+    sprite: {fileID: 21300000, guid: ea2cad17cf62b2945b817e0717b947a4, type: 3}
+    ingredients: 010000000c0000000d000000
+  - finalFood: 64
+    displayName: "Nigiri b\u1EA1ch tu\u1ED9c (4 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 27479f433173d884ab7f3a4b4d2f53cc, type: 3}
+    ingredients: 010000000c0000000d00000007000000
+  - finalFood: 65
+    displayName: "Nigiri b\u1EA1ch tu\u1ED9c (5 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 3ebbba3322302084289f01e0c56ef35b, type: 3}
+    ingredients: 010000000c0000000d0000000700000009000000
+  - finalFood: 66
+    displayName: "Nigiri b\u1EA1ch tu\u1ED9c (6 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 50164aefef773f749913da0b228e7d98, type: 3}
+    ingredients: 010000000c0000000d000000070000000900000011000000
+  - finalFood: 72
+    displayName: "Nigiri s\xF2 \u0111i\u1EC7p (2 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 2fc7d48e6d281024da94cafaf81f882d, type: 3}
+    ingredients: 010000000e000000
+  - finalFood: 73
+    displayName: "Nigiri s\xF2 \u0111i\u1EC7p (3 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 220a72657c23c7f4296cb9f75a862e83, type: 3}
+    ingredients: 010000000e00000009000000
+  - finalFood: 74
+    displayName: "Nigiri s\xF2 \u0111i\u1EC7p (4 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 990c22b576b8c1b41aa6833d6533ee29, type: 3}
+    ingredients: 010000000e000000090000000d000000
+  - finalFood: 75
+    displayName: "Nigiri s\xF2 \u0111i\u1EC7p (5 m\xF3n)"
+    sprite: {fileID: 21300000, guid: b6c634cc69b6a164c9c1b59c9c710cfd, type: 3}
+    ingredients: 010000000e000000090000000d00000007000000
+  - finalFood: 76
+    displayName: "Nigiri s\xF2 \u0111i\u1EC7p (6 m\xF3n)"
+    sprite: {fileID: 21300000, guid: e9b3d6e3837d93c45a8f7afa29e5f8a8, type: 3}
+    ingredients: 010000000e000000090000000d0000000700000011000000
+  - finalFood: 82
+    displayName: "Nigiri thanh cua (2 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 7d7e3ac263f961747b4c146abcc5d884, type: 3}
+    ingredients: 0100000005000000
+  - finalFood: 83
+    displayName: "Nigiri thanh cua (3 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 1d27f43717ae082479832a58809b48c4, type: 3}
+    ingredients: 01000000050000000d000000
+  - finalFood: 84
+    displayName: "Nigiri thanh cua (4 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 3cda0139d34df6c40a1845b6750c1258, type: 3}
+    ingredients: 01000000050000000d00000007000000
+  - finalFood: 85
+    displayName: "Nigiri thanh cua (5 m\xF3n)"
+    sprite: {fileID: 21300000, guid: 9fb2e432830dff141b9176d93d259739, type: 3}
+    ingredients: 01000000050000000d0000000700000006000000
+  - finalFood: 86
+    displayName: "Nigiri thanh cua (6 m\xF3n)"
+    sprite: {fileID: 21300000, guid: b881d15c541630c47899fcc3a52110f9, type: 3}
+    ingredients: 01000000050000000d00000007000000060000000f000000

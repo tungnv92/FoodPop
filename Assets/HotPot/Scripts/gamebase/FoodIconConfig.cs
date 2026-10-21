@@ -90,17 +90,19 @@ namespace FoodPop
         }
 
 #if UNITY_EDITOR
-        // EN: Fills both sushi processing-state sprites while preserving existing valid assignments.
-        // VI: Điền sprite sushi cho hai trạng thái và giữ các ảnh hợp lệ đã gán.
+        // EN: Fills ingredient sprites from HotPot, shares seaweed and condiment icons across states, and removes retired entries.
+        // VI: Điền sprite nguyên liệu từ HotPot, dùng chung ảnh rong biển và gia vị giữa hai trạng thái và xóa loại đã ngừng dùng.
         [ContextMenu("Tự điền từ Art/Sprites/Foods")]
         private void FillFromFoodsFolder()
         {
             UnityEditor.Undo.RecordObject(this, "Fill Food Icons");
+            icons.RemoveAll(icon => icon == null || !Enum.IsDefined(typeof(FoodType), icon.foodType));
             foreach (FoodType type in Enum.GetValues(typeof(FoodType)))
             {
                 if (type == FoodType.None)
                     continue;
                 string file = System.Text.RegularExpressions.Regex.Replace(type.ToString(), "(?<!^)([A-Z])", "-$1").ToLowerInvariant();
+                Sprite shared = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/HotPot/Art/Sprites/Foods/Sushi/Shared/{file}.png");
                 FoodIcon entry = icons.Find(icon => icon != null && icon.foodType == type);
                 if (entry == null)
                 {
@@ -108,9 +110,9 @@ namespace FoodPop
                     icons.Add(entry);
                 }
                 if (entry.sprite == null)
-                    entry.sprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/HotPot/Art/Sprites/Foods/Sushi/Raw/{file}.png");
+                    entry.sprite = shared != null ? shared : UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/HotPot/Art/Sprites/Foods/Sushi/Raw/{file}.png");
                 if (entry.preparedSprite == null)
-                    entry.preparedSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/HotPot/Art/Sprites/Foods/Sushi/Prepared/{file}.png");
+                    entry.preparedSprite = shared != null ? shared : UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/HotPot/Art/Sprites/Foods/Sushi/Prepared/{file}.png");
             }
             icons.Sort((a, b) => ((int)a.foodType).CompareTo((int)b.foodType));
             UnityEditor.EditorUtility.SetDirty(this);

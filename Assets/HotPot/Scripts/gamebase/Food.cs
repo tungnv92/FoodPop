@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 
@@ -8,6 +9,13 @@ namespace FoodPop
     // VI: Một nguyên liệu trong game: loại nguyên liệu và trạng thái chế biến (thô -> đã sơ chế).
     public class Food : MonoBehaviour
     {
+        [Tooltip("Cấu hình thời gian và hiệu ứng dùng chung trong màn chơi; để trống dùng asset mặc định.")]
+        [SerializeField] private IngameConfig ingameConfig;
+
+        // EN: Resolves shared gameplay tuning while supporting an explicitly assigned configuration asset.
+        // VI: Lấy thông số màn chơi dùng chung, hỗ trợ asset cấu hình được gán riêng.
+        private IngameConfig Config => IngameConfig.Resolve(ingameConfig);
+
         public FoodType foodType;
         public int amount;
         [Tooltip("Che nguyên liệu bằng nắp; tự mở khi đĩa trở thành phần tử đầu cột.")]
@@ -37,10 +45,6 @@ namespace FoodPop
         [SerializeField] SpriteRenderer iceRenderer;
         [Tooltip("Text hiển thị giá trị khối băng còn lại.")]
         [SerializeField] TextMeshPro blockText;
-        [Tooltip("Thời gian (giây) khối băng nảy mỗi khi bị trừ giá trị.")]
-        [Min(0.01f)] [SerializeField] float iceHitDuration = 0.22f;
-        [Tooltip("Độ nảy tối đa của khối băng khi bị trừ giá trị (0.12 = phồng 12%).")]
-        [Range(0f, 0.5f)] [SerializeField] float iceHitAmount = 0.12f;
 
         private Sprite[] iceBlockSprites;
         private Vector3 iceBaseScale = Vector3.one;
@@ -80,8 +84,157 @@ namespace FoodPop
         public void SetHidden(bool hidden)
         {
             isHidden = hidden;
+            SetLidAlpha(1f);
+            RestoreLidRest();
             RefreshHiddenVisual();
             RefreshCountVisual();
+        }
+
+        // EN: Lifts the lid up by liftHeight (world units) and scales it to scaleUp while it fades out and the ingredient fades in over the given duration; then restores the lid transform and clears the hidden state.
+        // VI: Nhấc nắp lên liftHeight (đơn vị thế giới) và phóng to tới scaleUp trong lúc nắp mờ dần và nguyên liệu hiện dần trong thời gian đã cho; sau đó trả lại vị trí/scale nắp và bỏ trạng thái ẩn.
+        public IEnumerator FadeOutLid(float duration, float liftHeight = 0f, float scaleUp = 1f)
+        {
+            if (lidRenderer != null && duration > 0f)
+            {
+                Transform lid = lidRenderer.transform;
+                CaptureLidRest();
+                Vector3 lidPosition = lidRestPosition;
+                Vector3 lidScale = lidRestScale;
+                float parentScaleY = lid.parent != null ? Mathf.Max(0.0001f, Mathf.Abs(lid.parent.lossyScale.y)) : 1f;
+                Vector3 liftTarget = lidPosition + Vector3.up * (liftHeight / parentScaleY);
+                Color iconColor = iconRenderer != null ? iconRenderer.color : Color.white;
+                if (iconRenderer != null)
+                {
+                    iconRenderer.color = new Color(iconColor.r, iconColor.g, iconColor.b, 0f);
+                    iconRenderer.gameObject.SetActive(true);
+                }
+                for (float time = 0f; time < duration; )
+                {
+                    time += Time.deltaTime;
+                    float t = Mathf.Clamp01(time / duration);
+                    float ease = 1f - (1f - t) * (1f - t);
+                    lid.localPosition = Vector3.LerpUnclamped(lidPosition, liftTarget, ease);
+                    lid.localScale = lidScale * Mathf.LerpUnclamped(1f, scaleUp, ease);
+                    SetLidAlpha(1f - t);
+                    if (iconRenderer != null)
+                        iconRenderer.color = new Color(iconColor.r, iconColor.g, iconColor.b, iconColor.a * t);
+                    yield return null;
+                }
+                if (iconRenderer != null)
+                    iconRenderer.color = iconColor;
+                lid.localPosition = lidPosition;
+                lid.localScale = lidScale;
+            }
+            SetHidden(false);
+        }
+
+        private bool lidRestCaptured;
+        private Vector3 lidRestPosition;
+        private Vector3 lidRestScale;
+        private Quaternion lidRestRotation;
+        private Material lidDefaultMaterial;
+
+        // EN: Direct reference to the lid renderer (used by boosters).
+        // VI: Tham chiếu trực tiếp tới renderer nắp (booster dùng).
+        public SpriteRenderer LidRenderer => lidRenderer;
+
+        // EN: Closes the lid over a visible dish: the lid drops in from dropHeight (world units) above, shrinks from a slightly bigger size and fades in; the count badge hides and, once the lid is down, the food picture hides so it cannot peek out. The hidden state is not changed.
+        // VI: Đóng nắp lên đĩa đang mở: nắp rơi xuống từ độ cao dropHeight (đơn vị thế giới), thu từ cỡ hơi to về cỡ thường và hiện dần; nhãn số lượng ẩn đi và khi nắp đã đóng thì ảnh đồ ăn cũng ẩn để không lòi ra ngoài nắp. Không đổi trạng thái ẩn.
+        public IEnumerator CloseLid(float duration, float dropHeight)
+        {
+            if (lidRenderer == null)
+                yield break;
+            CaptureLidRest();
+            Transform lid = lidRenderer.transform;
+            float parentScaleY = lid.parent != null ? Mathf.Max(0.0001f, Mathf.Abs(lid.parent.lossyScale.y)) : 1f;
+            Vector3 from = lidRestPosition + Vector3.up * (dropHeight / parentScaleY);
+            if (canvasCount != null)
+                canvasCount.SetActive(false);
+            lid.gameObject.SetActive(true);
+            if (plateRenderer != null)
+            {
+                lidRenderer.sortingLayerID = plateRenderer.sortingLayerID;
+                lidRenderer.sortingOrder = plateRenderer.sortingOrder + 3;
+            }
+            for (float time = 0f; time < duration; )
+            {
+                time += Time.deltaTime;
+                float t = duration > 0f ? Mathf.Clamp01(time / duration) : 1f;
+                float ease = 1f - (1f - t) * (1f - t);
+                lid.localPosition = Vector3.LerpUnclamped(from, lidRestPosition, ease);
+                lid.localScale = lidRestScale * Mathf.LerpUnclamped(1.15f, 1f, ease);
+                SetLidAlpha(t);
+                yield return null;
+            }
+            RestoreLidRest();
+            SetLidAlpha(1f);
+            if (iconRenderer != null)
+                iconRenderer.gameObject.SetActive(false);
+        }
+
+        // EN: Hides the quantity badge until the next visibility refresh (used while a booster animates the dish).
+        // VI: Ẩn nhãn số lượng tới lần cập nhật hiển thị kế tiếp (dùng khi booster đang chạy hiệu ứng trên đĩa).
+        public void HideCountBadge()
+        {
+            if (canvasCount != null)
+                canvasCount.SetActive(false);
+        }
+
+        // EN: Tilts the lid by the given angle (degrees) around its resting rotation, for the shake effect.
+        // VI: Nghiêng nắp theo góc đã cho (độ) quanh góc nghỉ, dùng cho hiệu ứng rung.
+        public void SetLidTilt(float angle)
+        {
+            if (lidRenderer == null)
+                return;
+            CaptureLidRest();
+            lidRenderer.transform.localRotation = lidRestRotation * Quaternion.Euler(0f, 0f, angle);
+        }
+
+        // EN: Swaps the lid material (null restores the original one).
+        // VI: Đổi material của nắp (null để trả lại material gốc).
+        public void SetLidMaterial(Material material)
+        {
+            if (lidRenderer == null)
+                return;
+            if (lidDefaultMaterial == null)
+                lidDefaultMaterial = lidRenderer.sharedMaterial;
+            lidRenderer.sharedMaterial = material != null ? material : lidDefaultMaterial;
+        }
+
+        // EN: Remembers the lid's resting position, scale and rotation once, so animations can always be undone.
+        // VI: Ghi nhớ một lần vị trí, scale và góc nghỉ của nắp, để luôn hoàn tác được các hiệu ứng.
+        private void CaptureLidRest()
+        {
+            if (lidRestCaptured || lidRenderer == null)
+                return;
+            Transform lid = lidRenderer.transform;
+            lidRestPosition = lid.localPosition;
+            lidRestScale = lid.localScale;
+            lidRestRotation = lid.localRotation;
+            lidRestCaptured = true;
+        }
+
+        // EN: Puts the lid back at its resting position, scale and rotation.
+        // VI: Đặt nắp về lại vị trí, scale và góc nghỉ.
+        private void RestoreLidRest()
+        {
+            if (!lidRestCaptured || lidRenderer == null)
+                return;
+            Transform lid = lidRenderer.transform;
+            lid.localPosition = lidRestPosition;
+            lid.localScale = lidRestScale;
+            lid.localRotation = lidRestRotation;
+        }
+
+        // EN: Sets the lid's opacity, keeping its colour.
+        // VI: Đặt độ trong suốt của nắp, giữ nguyên màu.
+        private void SetLidAlpha(float alpha)
+        {
+            if (lidRenderer == null)
+                return;
+            Color color = lidRenderer.color;
+            color.a = alpha;
+            lidRenderer.color = color;
         }
 
         // EN: Covers hidden food with the lid and hides its ingredient/shadow objects.
@@ -194,11 +347,11 @@ namespace FoodPop
                 iceScaleCaptured = true;
             }
             float time = 0f;
-            while (time < iceHitDuration)
+            while (time < Config.iceHit.iceHitDuration)
             {
                 time += Time.deltaTime;
-                float t = Mathf.Clamp01(time / iceHitDuration);
-                float wobble = Mathf.Sin(t * Mathf.PI * 2f) * (1f - t) * iceHitAmount;
+                float t = Mathf.Clamp01(time / Config.iceHit.iceHitDuration);
+                float wobble = Mathf.Sin(t * Mathf.PI * 2f) * (1f - t) * Config.iceHit.iceHitAmount;
                 ice.localScale = Vector3.Scale(iceBaseScale, new Vector3(1f + wobble, 1f - wobble, 1f));
                 yield return null;
             }
