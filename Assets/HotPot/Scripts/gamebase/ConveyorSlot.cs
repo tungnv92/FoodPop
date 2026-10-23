@@ -23,10 +23,106 @@ namespace FoodPop
         [SerializeField] private Food slotFood;
         private Vector3 ingredientBaseScale = Vector3.one;
         private Coroutine squashRoutine;
+        private Transform collectionPlate;
+        private Vector3 plateRestPosition;
+        private Vector3 plateRestScale;
+        private float collectionLift;
+        private Coroutine plateDrop;
+
+        public bool IsPlateReturning => plateDrop != null;
+
+        // EN: Captures the plate child once so collection effects never move the spline-controlled slot root.
+        // VI: Ghi nhớ child đĩa một lần để hiệu ứng thu không di chuyển root slot do spline điều khiển.
+        private bool ResolveCollectionPlate()
+        {
+            if (collectionPlate != null)
+                return true;
+            collectionPlate = transform.Find("Plate");
+            if (collectionPlate == null)
+                return false;
+            plateRestPosition = collectionPlate.localPosition;
+            plateRestScale = collectionPlate.localScale;
+            return true;
+        }
+
+        // EN: Raises only the plate artwork by a world-space height, following the food's preflight lift.
+        // VI: Nâng riêng hình đĩa theo độ cao world, đi cùng nhịp nhấc food trước khi bay.
+        public void SetCollectionLift(float height)
+        {
+            if (!ResolveCollectionPlate())
+                return;
+            if (plateDrop != null) StopCoroutine(plateDrop);
+            plateDrop = null;
+            ApplyPlateLift(Mathf.Max(0f, height));
+        }
+
+        // EN: Drops the empty plate onto its slot with a small impact bounce.
+        // VI: Thả đĩa trống về slot với một nhịp nảy nhẹ khi chạm.
+        public void DropCollectionPlate(float duration)
+        {
+            if (!ResolveCollectionPlate() || !isActiveAndEnabled)
+                return;
+            if (plateDrop != null) StopCoroutine(plateDrop);
+            plateDrop = StartCoroutine(ReturnCollectionPlate(Mathf.Max(0.01f, duration)));
+        }
+
+        // EN: Applies the visual offset relative to the stationary slot, retaining its authored scale.
+        // VI: Áp dụng độ dịch hình so với slot cố định, giữ scale đã thiết kế.
+        private void ApplyPlateLift(float height)
+        {
+            collectionLift = height;
+            collectionPlate.localPosition = plateRestPosition + collectionPlate.parent.InverseTransformVector(Vector3.up * height);
+        }
+
+        // EN: Accelerates the plate downward and settles it with a scaled-time bounce.
+        // VI: Cho đĩa rơi nhanh dần và ổn định bằng nhịp nảy theo thời gian game.
+        private IEnumerator ReturnCollectionPlate(float duration)
+        {
+            float height = collectionLift;
+            for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+            {
+                float t = Mathf.Clamp01(elapsed / duration);
+                ApplyPlateLift(height * (1f - t * t));
+                yield return null;
+            }
+            ApplyPlateLift(0f);
+            const float BounceDuration = 0.12f;
+            for (float elapsed = 0f; elapsed < BounceDuration; elapsed += Time.deltaTime)
+            {
+                float t = Mathf.Clamp01(elapsed / BounceDuration);
+                float bounce = Mathf.Sin(t * Mathf.PI);
+                ApplyPlateLift(height * 0.12f * bounce);
+                collectionPlate.localScale = Vector3.Scale(plateRestScale, new Vector3(1f + 0.05f * bounce, 1f - 0.05f * bounce, 1f));
+                yield return null;
+            }
+            RestorePlateVisual();
+            plateDrop = null;
+        }
+
+        // EN: Restores the plate transform after landing without modifying its slot or food.
+        // VI: Khôi phục transform đĩa sau khi chạm mà không thay đổi slot hoặc food.
+        private void RestorePlateVisual()
+        {
+            collectionLift = 0f;
+            if (collectionPlate == null)
+                return;
+            collectionPlate.localPosition = plateRestPosition;
+            collectionPlate.localScale = plateRestScale;
+        }
+
+        // EN: Cancels any plate drop and restores its authored transform for replay, reuse or destruction.
+        // VI: Hủy lượt rơi đĩa và khôi phục transform thiết kế khi chơi lại, dùng lại hoặc hủy.
+        public void ResetCollectionPlate()
+        {
+            if (plateDrop != null) StopCoroutine(plateDrop);
+            plateDrop = null;
+            RestorePlateVisual();
+        }
 
         // EN: True while a picked portion is still flying toward this slot; the slot is reserved but its food is not shown yet.
         // VI: True khi một phần nguyên liệu vừa chọn vẫn đang bay tới slot; slot đã được giữ chỗ nhưng chưa hiện món.
         public bool IsFoodArriving { get; private set; }
+        public int ArrivalId { get; private set; }
 
         // EN: World position where a flying portion should land (the Ingredient child, or the slot itself).
         // VI: Vị trí world mà phần nguyên liệu bay sẽ đáp xuống (child Ingredient, hoặc chính slot).
@@ -63,11 +159,12 @@ namespace FoodPop
             ClearFood();
         }
 
-        // EN: Marks the slot as waiting for a flying portion and hides its ingredient sprite until the portion lands.
-        // VI: Đánh dấu slot đang chờ phần nguyên liệu bay tới và ẩn sprite nguyên liệu cho tới khi phần đó đáp xuống.
+        // EN: Creates a new arrival identity and hides food until that specific flight lands.
+        // VI: Tạo mã nhận diện lượt đáp mới và ẩn food đến khi đúng chuyến bay đó chạm xuống.
         public void BeginFoodArrival()
         {
             StopSquash();
+            unchecked { ArrivalId++; }
             IsFoodArriving = true;
             SetIngredientVisible(false);
         }
@@ -82,6 +179,30 @@ namespace FoodPop
             SetIngredientVisible(true);
             if (!isEmpty && landSquashDuration > 0f && landSquashAmount > 0f && ingredientRenderer != null && isActiveAndEnabled)
                 squashRoutine = StartCoroutine(PlayLandSquash());
+            return true;
+        }
+
+        // EN: Checks whether a pending arrival still belongs to the caller, including same-type slot reuse.
+        // VI: Kiểm tra lượt đáp đang chờ còn thuộc nơi gọi, kể cả khi slot dùng lại cùng loại food.
+        public bool OwnsFoodArrival(int arrivalId)
+        {
+            return IsFoodArriving && ArrivalId == arrivalId;
+        }
+
+        // EN: Completes only the matching arrival so stale flights cannot finish a newer portion.
+        // VI: Chỉ hoàn tất lượt đáp có mã khớp để chuyến bay cũ không kết thúc phần food mới.
+        public bool CompleteFoodArrival(int arrivalId)
+        {
+            return OwnsFoodArrival(arrivalId) && CompleteFoodArrival();
+        }
+
+        // EN: Clears only the caller's reservation and leaves any replacement food untouched.
+        // VI: Chỉ xóa phần giữ chỗ của nơi gọi, không tác động food thay thế.
+        public bool CancelFoodArrival(int arrivalId)
+        {
+            if (!OwnsFoodArrival(arrivalId))
+                return false;
+            ClearFood();
             return true;
         }
 
@@ -122,11 +243,12 @@ namespace FoodPop
                 ingredientRenderer.enabled = visible;
         }
 
-        // EN: Restores the resting look when the slot is disabled, so a pooled or paused belt never keeps a half-finished squash.
-        // VI: Khôi phục hình ảnh gốc khi slot bị tắt, để băng chuyền tạm dừng hoặc tái sử dụng không giữ hiệu ứng nảy dở dang.
+        // EN: Restores food squash and plate lift when disabled so reuse never keeps unfinished landing effects.
+        // VI: Khôi phục nhịp nảy food và độ nâng đĩa khi tắt để không giữ hiệu ứng đáp dở khi dùng lại.
         private void OnDisable()
         {
             StopSquash();
+            ResetCollectionPlate();
         }
 
         // EN: Fills this empty slot with one raw portion of the given type, reusing the slot's own Food component (assigned in the prefab) so the chef can prepare it.
@@ -145,10 +267,11 @@ namespace FoodPop
             return true;
         }
 
-        // EN: Empties the slot and returns the food it held (null if it was already empty); the slot's own Food is switched off so it stops driving the icon. Also cancels any portion still flying here and any landing squash.
-        // VI: Làm rỗng slot và trả về food đang giữ (null nếu slot đã rỗng); Food riêng của slot được tắt để không điều khiển icon nữa. Đồng thời hủy phần nguyên liệu đang bay tới và hiệu ứng nảy.
+        // EN: Clears food and invalidates its arrival identity so old flight callbacks cannot affect slot reuse.
+        // VI: Xóa food và làm mất hiệu lực mã đáp để callback chuyến bay cũ không tác động slot dùng lại.
         public Food ClearFood()
         {
+            unchecked { ArrivalId++; }
             Food removed = food;
             food = null;
             isEmpty = true;

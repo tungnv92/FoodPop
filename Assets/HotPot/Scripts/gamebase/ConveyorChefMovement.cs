@@ -83,6 +83,7 @@ namespace FoodPop
 
         public IReadOnlyList<ConveyorSlot> Slots => slots;
         public SplineContainer Path => splineContainer;
+        public bool BoosterPaused { get; set; }
 
         private Transform SlotParent
         {
@@ -120,11 +121,11 @@ namespace FoodPop
             PlaceSlots();
         }
 
-        // EN: Advances the belt and moves every slot to its new spline position.
-        // VI: Cho băng chạy tiếp và đặt mọi slot vào vị trí mới trên spline.
+        // EN: Advances the belt unless a booster has temporarily paused slot movement.
+        // VI: Cho băng chạy tiếp trừ khi booster đang tạm dừng chuyển động slot.
         private void Update()
         {
-            if (!isMoving || pathLength <= Mathf.Epsilon)
+            if (BoosterPaused || !isMoving || pathLength <= Mathf.Epsilon)
                 return;
             AdvanceProgress(Time.deltaTime);
             PlaceSlots();

@@ -27,29 +27,19 @@ namespace FoodPop
         [Tooltip("Lệch của hàng món so với tâm thẻ (đơn vị world).")]
         [SerializeField] private Vector2 columnsOffset = Vector2.zero;
 
-        [Header("Nền tối của phần nguyên liệu (dùng chung cho mọi bố cục)")]
-        [Tooltip("Bật nền tối phía sau lưới nguyên liệu khi chọn món.")]
-        [SerializeField] private bool showIngredientBackground = true;
-        [Tooltip("Sprite nền (nên là sprite 9-slice); để trống dùng sprite nền thẻ order.")]
-        [SerializeField] private Sprite ingredientBackgroundSprite;
-        [Tooltip("Màu nền (đen bán trong suốt = tối màu).")]
-        [SerializeField] private Color ingredientBackgroundColor = new Color(0.32f, 0.235f, 0.183f, 0.55f);
-        [Tooltip("Chỉ dùng khi mẫu để backgroundSize = 0: lề của nền so với cột (local của thẻ); số dương = nền nhỏ hơn cột.")]
-        [SerializeField] private Vector2 ingredientBackgroundInset = new Vector2(0.03f, 0.03f);
-
         [Header("Hiệu ứng chuyển")]
-        [Tooltip("Bật hiệu ứng chuyển (mở/đóng nguyên liệu, ẩn/hiện món, nháy nguyên liệu vừa tới). Tắt = đổi tức thì.")]
+        [Tooltip("Bật hiệu ứng chuyển (mở/đóng layout nguyên liệu, ẩn/hiện món khi collapse). Tắt = đổi tức thì. Hiệu ứng mở/đóng nguyên liệu chỉnh trên từng prefab layout (IngredientPreviewView).")]
         [SerializeField] private bool animateTransitions = true;
-        [Tooltip("Thời gian mở lưới nguyên liệu (giây): ảnh món thu nhỏ, nền tối hiện dần, nguyên liệu nảy ra.")]
-        [Min(0f)] [SerializeField] private float openDuration = 0.22f;
-        [Tooltip("Độ trễ giữa hai nguyên liệu khi lần lượt nảy ra (giây).")]
-        [Min(0f)] [SerializeField] private float ingredientStagger = 0.035f;
-        [Tooltip("Thời gian đóng lưới nguyên liệu (giây): nguyên liệu thu lại, ảnh món nảy trở lại.")]
-        [Min(0f)] [SerializeField] private float closeDuration = 0.16f;
+        [Tooltip("Collapse: món khác bị ẩn khi layout nguyên liệu che quá tỉ lệ này chiều rộng cột của nó (0.25 = che hơn 1/4 cột).")]
+        [Range(0f, 1f)] [SerializeField] private float coverThreshold = 0.25f;
         [Tooltip("Thời gian ẩn/hiện các món khác khi collapse (giây).")]
         [Min(0f)] [SerializeField] private float dishHideDuration = 0.16f;
-        [Tooltip("Thời gian nháy của nguyên liệu vừa tới khi lưới đang mở (giây).")]
-        [Min(0f)] [SerializeField] private float arrivalFlashDuration = 0.3f;
+
+        [Header("Ẩn/hiện thẻ theo khách")]
+        [Tooltip("Thời gian thẻ thu nhỏ biến mất khi khách bắt đầu rời quầy (giây).")]
+        [Min(0f)] [SerializeField] private float cardHideDuration = 0.2f;
+        [Tooltip("Thời gian thẻ nảy hiện ra khi khách tới quầy (giây).")]
+        [Min(0f)] [SerializeField] private float cardShowDuration = 0.28f;
 
         [Header("Chạm để xem nguyên liệu")]
         [Tooltip("Bật: chạm vào món để ẩn ảnh món và hiện nguyên liệu raw; chạm lại để thu về.")]
@@ -68,15 +58,18 @@ namespace FoodPop
         private readonly List<Sprite> iconBuffer = new List<Sprite>();
         private bool[] expanded = new bool[0];
         private Coroutine[] collapseRoutines = new Coroutine[0];
+        private int[] suspended = new int[0];
+        private Vector3 cardRestScale = Vector3.one;
+        private bool cardScaleCaptured;
+        private bool cardHidden;
+        private OrderLayout[] displayLayouts = new OrderLayout[0];
         private OrderLayout activeLayout;
-        private int focusedDish = -1;
         private OrderTweens tweens;
         private readonly Dictionary<Transform, Vector3> restScales = new Dictionary<Transform, Vector3>();
 
         // EN: Tween runner for the dish show/hide animations.
         // VI: Bộ chạy tween cho hoạt cảnh ẩn/hiện món.
         private OrderTweens Tweens => tweens ?? (tweens = new OrderTweens(this));
-        private OrderLayout focusedLayout;
         private int activeCount;
 
         // EN: The dish slots of the card, in display order.
@@ -91,25 +84,82 @@ namespace FoodPop
         // VI: Các giá trị dùng chung cho component bố cục.
         public SpriteRenderer Background => background;
         public Vector2 Padding => backgroundPadding;
+
+        // EN: Number of dishes on the current order and the position of a dish slot among them (-1 when not active).
+        // VI: Số món của order hiện tại và vị trí của một ô món trong đó (-1 nếu không dùng).
+        public int ActiveDishCount => activeCount;
+        public int IndexOfDish(OrderItemView item)
+        {
+            for (int i = 0; i < activeCount && i < items.Length; i++)
+                if (items[i] == item)
+                    return i;
+            return -1;
+        }
+
+        // EN: True when the layout is the one arranging the whole card (false for the 1-dish layout drawing a collapsed dish of a bigger card).
+        // VI: True khi bố cục là bố cục đang xếp cả thẻ (false với bố cục 1 món đang vẽ món đã thu của thẻ nhiều món).
+        public bool IsCardLayout(OrderLayout layout) => layout == activeLayout;
+
+        // EN: World scale of the card at its normal size (ignores the hide/show animation of the root), used by layouts so slots and colliders are never computed from a shrunken card.
+        // VI: Scale world của thẻ ở kích thước gốc (bỏ qua hoạt cảnh ẩn/hiện của root), bố cục dùng để không tính ô món và collider từ thẻ đang bị thu nhỏ.
+        public Vector3 RestLossyScale
+        {
+            get
+            {
+                CaptureCardScale();
+                Vector3 parent = transform.parent != null ? transform.parent.lossyScale : Vector3.one;
+                return Vector3.Scale(parent, cardRestScale);
+            }
+        }
         public Vector2 ColumnSize => columnSize;
         public float ColumnSpacing => columnSpacing;
         public float DishFill => dishFill;
         public Vector2 ColumnsOffset => columnsOffset;
-        public bool ShowIngredientBackground => showIngredientBackground;
-        public Sprite IngredientBackgroundSprite => ingredientBackgroundSprite;
-        public Color IngredientBackgroundColor => ingredientBackgroundColor;
-        public Vector2 IngredientBackgroundInset => ingredientBackgroundInset;
-        public float OpenDuration => animateTransitions ? openDuration : 0f;
-        public float IngredientStagger => animateTransitions ? ingredientStagger : 0f;
-        public float CloseDuration => animateTransitions ? closeDuration : 0f;
+        public bool AnimateTransitions => animateTransitions;
         public float DishHideDuration => animateTransitions ? dishHideDuration : 0f;
-        public float ArrivalFlashDuration => animateTransitions ? arrivalFlashDuration : 0f;
 
         // EN: Adds missing layout components and tap colliders at runtime.
         // VI: Thêm component bố cục và collider vùng chạm còn thiếu khi chạy game.
         private void Awake()
         {
             EnsureComponents();
+            CaptureCardScale();
+        }
+
+        // EN: Shrinks the card root away (only the root's scale changes, children keep theirs) and returns the duration so the caller can wait before the customer leaves; taps are ignored until it shows again.
+        // VI: Thu nhỏ root của thẻ cho biến mất (chỉ đổi scale của root, các con giữ nguyên) và trả về thời gian để bên gọi chờ xong rồi khách mới rời đi; bỏ qua chạm cho tới khi thẻ hiện lại.
+        public float PlayHide()
+        {
+            CaptureCardScale();
+            cardHidden = true;
+            Transform card = transform;
+            Vector3 from = card.localScale;
+            Tweens.Run(card, cardHideDuration, t => card.localScale = Vector3.Lerp(from, Vector3.zero, t * t),
+                () => card.localScale = Vector3.zero);
+            return isActiveAndEnabled ? cardHideDuration : 0f;
+        }
+
+        // EN: Pops the card back from zero to its normal scale (customer arrives at the counter).
+        // VI: Cho thẻ nảy từ 0 về scale gốc (khách tới quầy).
+        public void PlayShow()
+        {
+            CaptureCardScale();
+            cardHidden = false;
+            Transform card = transform;
+            card.localScale = Vector3.zero;
+            Vector3 rest = cardRestScale;
+            Tweens.Run(card, cardShowDuration, t => card.localScale = Vector3.LerpUnclamped(Vector3.zero, rest, OrderTweens.EaseOutBack(t)),
+                () => card.localScale = rest);
+        }
+
+        // EN: Remembers the card's normal scale once (before any hide/show animation).
+        // VI: Ghi nhớ scale gốc của thẻ một lần (trước mọi hoạt cảnh ẩn/hiện).
+        private void CaptureCardScale()
+        {
+            if (cardScaleCaptured)
+                return;
+            cardRestScale = transform.localScale;
+            cardScaleCaptured = true;
         }
 
         // EN: Stores each dish's recipe (in recipe order, base first) and clears arrival progress; call before Layout when an order starts.
@@ -161,6 +211,8 @@ namespace FoodPop
             activeCount = count;
             expanded = new bool[items.Length];
             collapseRoutines = new Coroutine[items.Length];
+            suspended = new int[items.Length];
+            displayLayouts = new OrderLayout[items.Length];
             for (int i = 0; i < items.Length; i++)
                 if (items[i] != null)
                     items[i].gameObject.SetActive(i < count);
@@ -205,9 +257,9 @@ namespace FoodPop
             if (value)
             {
                 expanded[dish] = true;
-                if (focus)
-                    SetOtherDishesVisible(dish, false);
                 ShowIngredients(dish);
+                if (focus)
+                    HideCoveredDishes(dish);
                 float delay = activeLayout.GetAutoCollapseDelay(recipes[dish].Count);
                 if (focus && delay >= 0f && isActiveAndEnabled)
                     collapseRoutines[dish] = StartCoroutine(CollapseToSingle(dish, delay));
@@ -216,19 +268,16 @@ namespace FoodPop
             {
                 DisplayLayout(dish).HideIngredients(items[dish]);
                 expanded[dish] = false;
-                if (focusedDish == dish)
-                {
-                    focusedDish = -1;
-                    focusedLayout = null;
-                }
+                displayLayouts[dish] = null;
                 if (focus)
                     SetOtherDishesVisible(dish, true);
             }
         }
 
-        // EN: Layout currently drawing a dish: the 1-dish layout while the card is collapsed onto it, otherwise the card's layout.
-        // VI: Bố cục đang vẽ một món: bố cục 1 món khi thẻ đang thu về món đó, ngược lại là bố cục của thẻ.
-        private OrderLayout DisplayLayout(int dish) => dish == focusedDish && focusedLayout != null ? focusedLayout : activeLayout;
+        // EN: Layout currently drawing a dish: the 1-dish layout once that dish has collapsed, otherwise the card's layout (several dishes may be collapsed at once).
+        // VI: Bố cục đang vẽ một món: bố cục 1 món khi món đó đã thu về, ngược lại là bố cục của thẻ (có thể nhiều món cùng ở trạng thái đã thu).
+        private OrderLayout DisplayLayout(int dish) =>
+            dish >= 0 && dish < displayLayouts.Length && displayLayouts[dish] != null ? displayLayouts[dish] : activeLayout;
 
         // EN: After the form's collapseTime, shows the other dishes again and keeps showing the selected dish's ingredients in its own column, drawn with OrderLayout1Dish's ingredient forms; tapping it again closes it.
         // VI: Sau collapseTime của mẫu, hiện lại các món khác và tiếp tục hiện nguyên liệu của món đang chọn trong cột của nó, vẽ theo mẫu nguyên liệu của OrderLayout1Dish; chạm lại để đóng.
@@ -242,34 +291,74 @@ namespace FoodPop
             if (single == null || single == activeLayout)
                 yield break;
             activeLayout.HideIngredients(items[dish], false, false);
-            SetOtherDishesVisible(dish, true);
-            focusedDish = dish;
-            focusedLayout = single;
+            displayLayouts[dish] = single;
             ShowIngredients(dish);
+            SetOtherDishesVisible(dish, true);
         }
 
-        // EN: Hides (closing their ingredient views) or shows again every active dish except one; used while a collapseLayout dish shows its ingredients.
-        // VI: Ẩn (đóng luôn lưới nguyên liệu của chúng) hoặc hiện lại mọi món đang dùng trừ một món; dùng khi món có collapseLayout đang hiện nguyên liệu.
-        private void SetOtherDishesVisible(int keep, bool visible)
+        // EN: Hides (closing their ingredient views) or shows again every active dish except one (optionally only those matching a filter); used while a collapseLayout dish shows its ingredients. A dish that was open when hidden is restored when shown again: an open non-collapse dish reopens in place, an already-collapsed dish returns to its collapsed ingredient view (1-dish forms) without hiding the others; a collapse dish still in its first phase is not restored.
+        // VI: Ẩn (đóng luôn lưới nguyên liệu của chúng) hoặc hiện lại mọi món đang dùng trừ một món; dùng khi món có collapseLayout đang hiện nguyên liệu. Món đang mở lúc bị ẩn được khôi phục khi hiện lại: món không collapse mở lại tại chỗ, món đã thu về hiện lại lưới nguyên liệu theo mẫu 1 món mà không ẩn các món khác; món collapse còn ở giai đoạn đầu thì không khôi phục.
+        // EN: Hides only the dishes whose column the open collapse layout of a dish covers by more than coverThreshold of its width (all others stay visible and tappable).
+        // VI: Chỉ ẩn những món có cột bị layout collapse đang mở che quá coverThreshold chiều rộng (các món khác vẫn hiện và chạm được).
+        private void HideCoveredDishes(int dish)
+        {
+            if (!activeLayout.TryGetOpenArea(items[dish], out Rect area))
+                return;
+            Vector3 lossy = RestLossyScale;
+            Vector2 half = new Vector2(columnSize.x / Mathf.Max(0.0001f, Mathf.Abs(lossy.x)), columnSize.y / Mathf.Max(0.0001f, Mathf.Abs(lossy.y))) * 0.5f;
+            SetOtherDishesVisible(dish, false, i =>
+            {
+                Vector2 centre = items[i].transform.localPosition;
+                Rect column = new Rect(centre - half, half * 2f);
+                float overlapX = Mathf.Min(column.xMax, area.xMax) - Mathf.Max(column.xMin, area.xMin);
+                float overlapY = Mathf.Min(column.yMax, area.yMax) - Mathf.Max(column.yMin, area.yMin);
+                return overlapY > 0f && overlapX > column.width * coverThreshold;
+            });
+        }
+
+        private void SetOtherDishesVisible(int keep, bool visible, System.Func<int, bool> filter = null)
         {
             for (int i = 0; i < activeCount; i++)
             {
                 if (i == keep || items[i] == null)
                     continue;
-                if (!visible && IsExpanded(i))
+                if (filter != null && !filter(i))
+                    continue;
+                if (!visible && IsExpanded(i) && i < suspended.Length)
                 {
+                    bool collapsed = displayLayouts[i] != null;
+                    bool collapseForm = i < recipes.Count && activeLayout.IsCollapseLayout(recipes[i].Count);
+                    suspended[i] = collapsed ? SuspendedCollapsed : collapseForm ? SuspendedNone : SuspendedOpen;
                     expanded[i] = false;
                     StopAutoCollapse(i);
                     DisplayLayout(i).HideIngredients(items[i], true);
-                    if (focusedDish == i)
-                    {
-                        focusedDish = -1;
-                        focusedLayout = null;
-                    }
+                    displayLayouts[i] = null;
                 }
                 AnimateDishVisible(items[i], visible);
+                if (visible && i < suspended.Length && suspended[i] != SuspendedNone)
+                {
+                    int mode = suspended[i];
+                    suspended[i] = SuspendedNone;
+                    if (mode == SuspendedCollapsed)
+                    {
+                        OrderLayout single = FindLayout(1);
+                        if (single != null && single != activeLayout)
+                        {
+                            expanded[i] = true;
+                            displayLayouts[i] = single;
+                            ShowIngredients(i);
+                            continue;
+                        }
+                    }
+                    else
+                        SetExpanded(i, true);
+                }
             }
         }
+
+        private const int SuspendedNone = 0;
+        private const int SuspendedOpen = 1;
+        private const int SuspendedCollapsed = 2;
 
         // EN: Shrinks a dish slot away and deactivates it, or reactivates it and pops it back to its laid-out scale; its tap collider is off while hidden.
         // VI: Thu nhỏ ô món rồi tắt, hoặc bật lại và nảy về scale theo bố cục; collider vùng chạm tắt khi đang ẩn.
@@ -368,7 +457,7 @@ namespace FoodPop
         // VI: Đọc chạm lên thẻ và bật/tắt lưới nguyên liệu của món được chạm.
         private void Update()
         {
-            if (!tapToShowIngredients || activeLayout == null)
+            if (!tapToShowIngredients || activeLayout == null || cardHidden)
                 return;
             Pointer pointer = Pointer.current;
             Camera cam = inputCamera != null ? inputCamera : Camera.main;
@@ -438,8 +527,8 @@ namespace FoodPop
             for (int i = 0; i < expanded.Length; i++)
                 if (expanded[i] && activeLayout != null && i < items.Length && items[i] != null)
                     DisplayLayout(i).HideIngredients(items[i], true);
-            focusedDish = -1;
-            focusedLayout = null;
+            for (int i = 0; i < displayLayouts.Length; i++)
+                displayLayouts[i] = null;
         }
 
         // EN: Layout used for counts that have no component yet (3-4 dishes for now): the one handling the most dishes.

@@ -29,6 +29,7 @@ namespace FoodPop
 
         private Vector3 restScale;
         private Color restColor;
+        private float baseBrightness = 1f;
         private bool restCaptured;
         private Coroutine routine;
 
@@ -97,13 +98,28 @@ namespace FoodPop
             routine = null;
         }
 
-        // EN: Sets the target to restScale * scale and its tint to the resting colour times brightness (alpha kept).
-        // VI: Đặt cỡ target bằng restScale * scale và màu bằng màu lúc nghỉ nhân độ sáng (giữ nguyên alpha).
+        // EN: Sets the target to restScale * scale and its tint to the resting colour times brightness times the base brightness (alpha kept).
+        // VI: Đặt cỡ target bằng restScale * scale và màu bằng màu lúc nghỉ nhân độ sáng nhân độ sáng nền (giữ nguyên alpha).
         private void ApplyPose(float scale, float brightness)
         {
             Target.localScale = restScale * scale;
             if (tintTarget != null)
-                tintTarget.color = new Color(restColor.r * brightness, restColor.g * brightness, restColor.b * brightness, restColor.a);
+            {
+                float value = brightness * baseBrightness;
+                tintTarget.color = new Color(restColor.r * value, restColor.g * value, restColor.b * value, restColor.a);
+            }
+        }
+
+        // EN: Sets a lasting brightness multiplier for the tinted sprite (e.g. 0.55 while the button is unavailable); the press animation darkens on top of it, and it applies at once when no press is playing.
+        // VI: Đặt hệ số độ sáng lâu dài cho sprite đổi màu (ví dụ 0.55 khi nút đang không dùng được); hiệu ứng nhấn làm tối thêm trên nền đó, và áp dụng ngay khi không có hiệu ứng nhấn đang chạy.
+        public void SetBaseBrightness(float value)
+        {
+            baseBrightness = value;
+            if (tintTarget == null)
+                return;
+            CaptureRest();
+            if (routine == null)
+                ApplyPose(1f, 1f);
         }
 
         // EN: Assigns the animated transform and the tinted sprite (used by the setup tool and when a booster adds this component at runtime). Must be called before the first Play().

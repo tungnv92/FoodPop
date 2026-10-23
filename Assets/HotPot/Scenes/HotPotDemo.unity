@@ -119,6 +119,72 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1001 &23799051
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1098229389}
+    m_Modifications:
+    - target: {fileID: 1908694740406745361, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_Name
+      value: FoodHoldingTray
+      objectReference: {fileID: 0}
+    - target: {fileID: 5869253504191990989, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: conveyor
+      value: 
+      objectReference: {fileID: 333948239}
+    - target: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.396
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 8.647
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+--- !u!4 &23799052 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7351862992669434092, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+  m_PrefabInstance: {fileID: 23799051}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &36912599
 GameObject:
   m_ObjectHideFlags: 0
@@ -383,7 +449,6 @@ GameObject:
   - component: {fileID: 162125540}
   - component: {fileID: 162125541}
   - component: {fileID: 162125542}
-  - component: {fileID: 162125543}
   m_Layer: 0
   m_Name: Pickup
   m_TagString: Untagged
@@ -478,7 +543,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoodPop.PickupHandBooster
   icon: {fileID: 162125541}
-  pressFx: {fileID: 162125543}
+  unavailableBrightness: 0.55
   promptRoot: {fileID: 575546730}
   promptText: {fileID: 565027775}
   promptMessage: "Ch\u1ECDn \u0111\u0129a \u0111\u1EC3 pickup"
@@ -491,25 +556,6 @@ MonoBehaviour:
   maxVisibleRows: 6
   cameraMoveDuration: 0.35
   boardBottomPadding: 0.2
---- !u!114 &162125543
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 162125539}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e964852761fde49408b89cdb37161877, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ButtonPressFx
-  target: {fileID: 162125540}
-  tintTarget: {fileID: 162125541}
-  pressScale: 0.9
-  pressDuration: 0.07
-  pressBrightness: 0.9
-  releaseOvershoot: 1.06
-  releaseDuration: 0.16
 --- !u!1001 &164856989
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -825,6 +871,13 @@ MonoBehaviour:
   - {fileID: 6697439232440167734, guid: ac43971b3f2646b4b849df8ce78edebd, type: 3}
   - {fileID: -1050554854137718869, guid: 28dd608c5d557ac41b41eaf10e5c56fa, type: 3}
   ingredientDishPrefab: {fileID: 3317517828834347235, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
+  horizontalDoublePlate: {fileID: 2900171902416358097, guid: d62ddf88c4e30ba45b8ce5883097a80e, type: 3}
+  verticalDoublePlate: {fileID: -7456578855202941668, guid: 94990ba7e6f482e489e5cdc1ca508443, type: 3}
+  horizontalDoubleOutline: {fileID: 21300000, guid: 323d8c9793e5fdb44b7749726b57f9b7, type: 3}
+  verticalDoubleOutline: {fileID: 21300000, guid: b23d7bd92072fb745b44c34c13de4f18, type: 3}
+  horizontalDoubleLid: {fileID: 6406491339563618149, guid: 19d149076faed144a8c3473d30043bdd, type: 3}
+  verticalDoubleLid: {fileID: -7255925912914760906, guid: f1b8a88af801e48449c6f4b7101e4975, type: 3}
+  doublePlateOutlineMaterial: {fileID: 2100000, guid: 5a23fe8e02cb69a4d9277eea8cc559dd, type: 2}
   dishPoolRoot: {fileID: 1235972041}
   inputCamera: {fileID: 1990410786}
   rowSpacing: 1.31
@@ -3174,7 +3227,6 @@ GameObject:
   - component: {fileID: 665911490}
   - component: {fileID: 665911491}
   - component: {fileID: 665911492}
-  - component: {fileID: 665911493}
   m_Layer: 0
   m_Name: Shuffle
   m_TagString: Untagged
@@ -3269,7 +3321,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ShuffleBooster
   icon: {fileID: 665911491}
-  pressFx: {fileID: 665911493}
+  unavailableBrightness: 0.55
   glowDuration: 0.2
   glowScale: 1.08
   lidCloseDuration: 0.22
@@ -3283,25 +3335,6 @@ MonoBehaviour:
   lidOpenDuration: 0.3
   lidOpenLift: 0.25
   lidOpenScale: 1.15
---- !u!114 &665911493
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 665911489}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e964852761fde49408b89cdb37161877, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.ButtonPressFx
-  target: {fileID: 665911490}
-  tintTarget: {fileID: 665911491}
-  pressScale: 0.9
-  pressDuration: 0.07
-  pressBrightness: 0.9
-  releaseOvershoot: 1.06
-  releaseDuration: 0.16
 --- !u!1001 &766531956
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3353,6 +3386,10 @@ PrefabInstance:
     - target: {fileID: 3651663465806898711, guid: 941e00f611de72e4a926a63fde05f994, type: 3}
       propertyPath: m_Name
       value: Serving food
+      objectReference: {fileID: 0}
+    - target: {fileID: 7523476099800764589, guid: 941e00f611de72e4a926a63fde05f994, type: 3}
+      propertyPath: spacingX
+      value: 1.25
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3712,6 +3749,17 @@ SpriteRenderer:
   m_CorrespondingSourceObject: {fileID: 3009306320015417827, guid: c805210223d483e4895ce8f85249a5f1, type: 3}
   m_PrefabInstance: {fileID: 1502907820}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &910287483 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5869253504191990989, guid: a9c9700084ff4e84a8dcfce30d115385, type: 3}
+  m_PrefabInstance: {fileID: 23799051}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e097aed4ef46674e9612a06ee92c103, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.FoodHoldingStorage
 --- !u!1 &928443299
 GameObject:
   m_ObjectHideFlags: 0
@@ -4351,6 +4399,38 @@ Transform:
   - {fileID: 1512050672}
   m_Father: {fileID: 333948237}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1098229388
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1098229389}
+  m_Layer: 0
+  m_Name: FoodHoding
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1098229389
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1098229388}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 23799052}
+  m_Father: {fileID: 2030850579}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &1099732597 stripped
 SpriteRenderer:
   m_CorrespondingSourceObject: {fileID: 2469330124222021973, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
@@ -4792,8 +4872,11 @@ MonoBehaviour:
   inputCamera: {fileID: 1990410786}
   boosters:
   - {fileID: 162125542}
+  - {fileID: 1453994738}
   - {fileID: 665911492}
+  - {fileID: 2013834293}
   boosterRoot: {fileID: 1796021012}
+  holdingStorage: {fileID: 910287483}
 --- !u!114 &1272309135
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5466,6 +5549,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 1091114242}
     m_Modifications:
     - target: {fileID: 417396345460198502, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 5812dd92a8155cd49825ab5723007d01, type: 3}
+    - target: {fileID: 417396345460198502, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
       propertyPath: m_SortingOrder
       value: 72
       objectReference: {fileID: 0}
@@ -5510,6 +5597,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2469330124222021973, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 5812dd92a8155cd49825ab5723007d01, type: 3}
+    - target: {fileID: 2469330124222021973, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
       propertyPath: m_SortingOrder
       value: 73
       objectReference: {fileID: 0}
@@ -5524,6 +5615,10 @@ PrefabInstance:
     - target: {fileID: 4496898627574555513, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
       propertyPath: m_Name
       value: Conveyor_Slot_08
+      objectReference: {fileID: 0}
+    - target: {fileID: 6747423287274230285, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7738802343028918148, guid: fa5ba0d559e40a548a2cc27a09a5ce4b, type: 3}
       propertyPath: slotFood
@@ -5551,8 +5646,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1453994735}
   - component: {fileID: 1453994736}
+  - component: {fileID: 1453994738}
   m_Layer: 0
-  m_Name: Img (2)
+  m_Name: Clean
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5632,6 +5728,44 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &1453994738
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1453994734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6662cffd10181d441b4e0938ed48ab6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.CleanBrushBooster
+  icon: {fileID: 1453994736}
+  unavailableBrightness: 0.55
+  collectInterval: 0.07
+  liftDuration: 0.15
+  collectionHighlight: {fileID: 2100000, guid: 5d1a6f216e80c3c4ca93aae874090c80, type: 2}
+  collectPulse: 0.12
+  plateDropDuration: 0.2
+  collectionTrail: {fileID: 7781685953151845657, guid: 2e35bcae066991a4abbb90f99c2a389e, type: 3}
+  broomSprite: {fileID: 8947617555226608883, guid: 2c55a9aa9365ff04fbd5c1d2fc7c53aa, type: 3}
+  bubbleSprite: {fileID: -8407578736931964437, guid: 024bdb5438abd3d498eafb6eadfbc2af, type: 3}
+  foamTrail: {fileID: 2742989460304838034, guid: a427cb006a3030d43a0278e1e1026119, type: 3}
+  foamPuff: {fileID: 3494423481458604501, guid: 5d270e3dc53895e4caa8508704d802b7, type: 3}
+  bubblePop: {fileID: 6681957741682598928, guid: 069f1e0709f2aaa42bd4292cc184a95a, type: 3}
+  sortingOrder: 500
+  broomSize: 1.1
+  broomOffset: {x: 0.15, y: 0.45}
+  sweepDuration: 1.5
+  wobbleAngle: 14
+  wobbleSpeed: 2.3
+  bubbleSize: 0.95
+  itemSize: 0.6
+  liftHeight: 0.35
+  bubbleFormDuration: 0.22
+  hoverDuration: 0.25
+  flyDuration: 0.5
+  flyArc: 1.2
 --- !u!114 &1461960110 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3317517828834347235, guid: c2ae33d63cad4064ebeb690c435f4778, type: 3}
@@ -5672,8 +5806,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoodPop.Food
   ingameConfig: {fileID: 11400000, guid: 0af0b967b5230bf4ea0d3b26fb39945f, type: 2}
-  foodType: 0
-  amount: 0
+  foodType: 2
+  amount: 1
   isHidden: 0
   state: 0
   isFrozen: 0
@@ -7614,8 +7748,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2013834290}
   - component: {fileID: 2013834291}
+  - component: {fileID: 2013834293}
   m_Layer: 0
-  m_Name: Img (4)
+  m_Name: AutoComplete
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7695,6 +7830,42 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &2013834293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2013834289}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a708a606cf2691f46a63f345aa255011, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.AutoCompleteBooster
+  icon: {fileID: 2013834291}
+  unavailableBrightness: 0.55
+  starEffect: {fileID: 5776420003824683510, guid: d221a015eabb91f4e8459ce552201922, type: 3}
+  burstEffect: {fileID: 3441710174444613645, guid: b07e37fc643d4ac4d9da9ea7682ca625, type: 3}
+  sparkleEffect: {fileID: 1216086741960323124, guid: c442aad59273ac942829c64b6a06b349, type: 3}
+  sortingOrder: 500
+  starScale: 1
+  starOffset: {x: 0, y: 1.6}
+  chefScale: 1.6
+  slotScale: 0.8
+  appearDuration: 0.35
+  absorbPulse: 0.2
+  gatherInterval: 0.13
+  gatherDuration: 0.4
+  gatherArcHeight: 1.2
+  ingredientSize: 0.7
+  shineHold: 0.15
+  flyDuration: 0.7
+  flyArc: 1.5
+  burstHeight: 0.6
+  vanishDuration: 0.1
+  popDistance: 0.9
+  popDuration: 0.22
+  dropInterval: 0.12
 --- !u!1001 &2014795835
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7900,6 +8071,7 @@ Transform:
   - {fileID: 1279952016}
   - {fileID: 465019575}
   - {fileID: 1235972041}
+  - {fileID: 1098229389}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2062194253
@@ -8265,34 +8437,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 768806715}
     m_Modifications:
-    - target: {fileID: 2811974876898389599, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
-      propertyPath: m_Size.x
-      value: 0.98
-      objectReference: {fileID: 0}
-    - target: {fileID: 2811974876898389599, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
-      propertyPath: m_Size.y
-      value: 2.205
-      objectReference: {fileID: 0}
-    - target: {fileID: 2974168797637170460, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.9718173
-      objectReference: {fileID: 0}
-    - target: {fileID: 2974168797637170460, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.9718173
-      objectReference: {fileID: 0}
-    - target: {fileID: 2974168797637170460, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.9718173
-      objectReference: {fileID: 0}
-    - target: {fileID: 2974168797637170460, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0.56547624
-      objectReference: {fileID: 0}
-    - target: {fileID: 3056278458033416260, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 4799218594409214930, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1.15
@@ -8337,10 +8481,6 @@ PrefabInstance:
       propertyPath: inputCamera
       value: 
       objectReference: {fileID: 1990410786}
-    - target: {fileID: 5073190399085676734, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
-      propertyPath: previewDishCount
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 8393286426560304450, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.9718173
@@ -8352,10 +8492,6 @@ PrefabInstance:
     - target: {fileID: 8393286426560304450, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
       propertyPath: m_LocalScale.z
       value: 0.9718173
-      objectReference: {fileID: 0}
-    - target: {fileID: 8393286426560304450, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8515722888976422174, guid: 3c5b7a09a191f8c4e866a554330a2c6e, type: 3}
       propertyPath: m_Name

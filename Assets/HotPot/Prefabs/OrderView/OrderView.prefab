@@ -450,7 +450,7 @@ SpriteRenderer:
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 1
-  m_Size: {x: 1, y: 2.3}
+  m_Size: {x: 1, y: 2.4}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -609,16 +609,11 @@ MonoBehaviour:
   columnSpacing: 0.15
   dishFill: 1
   columnsOffset: {x: 0, y: 0}
-  showIngredientBackground: 1
-  ingredientBackgroundSprite: {fileID: 0}
-  ingredientBackgroundColor: {r: 0.32, g: 0.235, b: 0.183, a: 0.55}
-  ingredientBackgroundInset: {x: 0.03, y: 0.03}
   animateTransitions: 1
-  openDuration: 0.22
-  ingredientStagger: 0.035
-  closeDuration: 0.16
+  coverThreshold: 0.25
   dishHideDuration: 0.16
-  arrivalFlashDuration: 0.3
+  cardHideDuration: 0.2
+  cardShowDuration: 0.28
   tapToShowIngredients: 1
   foodIconConfig: {fileID: 11400000, guid: 8e8a947c10e8406f9e6f03211e19a357, type: 2}
   inputCamera: {fileID: 0}
@@ -638,46 +633,30 @@ MonoBehaviour:
   ingredientFormConfig: {fileID: 11400000, guid: 2df46cafc5f6556418595159b4c840df, type: 2}
   ingredientForms:
   - ingredientCount: 2
-    columns: 1
-    iconScale: 0.35
-    spacing: {x: 0.36, y: 0.6}
-    backgroundSize: {x: 1.1, y: 2.2}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 3
-    columns: 1
-    iconScale: 0.35
-    spacing: {x: 0.34, y: 0.6}
-    backgroundSize: {x: 1.1, y: 2.2}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 4
-    columns: 1
-    iconScale: 0.3
-    spacing: {x: 0.3, y: 0.5}
-    backgroundSize: {x: 1.1, y: 2.2}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 5
-    columns: 2
-    iconScale: 0.27
-    spacing: {x: 0.55, y: 0.55}
-    backgroundSize: {x: 1.1, y: 2.2}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 5
-    columns: 2
-    iconScale: 0.27
-    spacing: {x: 0.55, y: 0.55}
-    backgroundSize: {x: 1.1, y: 2.2}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
-  doneBrightness: 0.35
   ingredientGridOffset: {x: 0, y: 0}
 --- !u!114 &7413502449254682664
 MonoBehaviour:
@@ -694,46 +673,30 @@ MonoBehaviour:
   ingredientFormConfig: {fileID: 11400000, guid: 79c2c29382d194749b24613272930d0a, type: 2}
   ingredientForms:
   - ingredientCount: 2
-    columns: 1
-    iconScale: 0.35
-    spacing: {x: 0.36, y: 0.6}
-    backgroundSize: {x: 1.1, y: 2.2}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 3
-    columns: 1
-    iconScale: 0.35
-    spacing: {x: 0.36, y: 0.6}
-    backgroundSize: {x: 1.1, y: 2.2}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 4
-    columns: 2
-    iconScale: 0.4
-    spacing: {x: 1, y: 0.8}
-    backgroundSize: {x: 2.1, y: 2.2}
+    template: {fileID: 0}
     collapseLayout: 1
     collapseTime: 3
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 5
-    columns: 2
-    iconScale: 0.4
-    spacing: {x: 1, y: 0.7}
-    backgroundSize: {x: 2.1, y: 2.2}
+    template: {fileID: 0}
     collapseLayout: 1
     collapseTime: 3
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 5
-    columns: 2
-    iconScale: 0.4
-    spacing: {x: 1, y: 0.7}
-    backgroundSize: {x: 2.1, y: 2.2}
+    template: {fileID: 0}
     collapseLayout: 1
     collapseTime: 3
     collapseLayoutPosition: {x: 0, y: 0}
-  doneBrightness: 0.35
   ingredientGridOffset: {x: 0, y: 0}
 --- !u!114 &7435034573535233810
 MonoBehaviour:
@@ -750,46 +713,30 @@ MonoBehaviour:
   ingredientFormConfig: {fileID: 11400000, guid: 67d5fc92df0b4254db92127ffd878633, type: 2}
   ingredientForms:
   - ingredientCount: 2
-    columns: 1
-    iconScale: 0.12
-    spacing: {x: 0.36, y: 0.36}
-    backgroundSize: {x: 0, y: 0}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 3
-    columns: 1
-    iconScale: 0.11
-    spacing: {x: 0.34, y: 0.34}
-    backgroundSize: {x: 0, y: 0}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 4
-    columns: 2
-    iconScale: 0.11
-    spacing: {x: 0.34, y: 0.34}
-    backgroundSize: {x: 0, y: 0}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 5
-    columns: 2
-    iconScale: 0.1
-    spacing: {x: 0.32, y: 0.32}
-    backgroundSize: {x: 0, y: 0}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
   - ingredientCount: 6
-    columns: 2
-    iconScale: 0.1
-    spacing: {x: 0.32, y: 0.32}
-    backgroundSize: {x: 0, y: 0}
+    template: {fileID: 0}
     collapseLayout: 0
     collapseTime: 2
     collapseLayoutPosition: {x: 0, y: 0}
-  doneBrightness: 0.35
   ingredientGridOffset: {x: 0, y: 0}
 --- !u!1 &8747869622896594019
 GameObject:
@@ -1261,7 +1208,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.00000007095791
+      value: 0.56547624
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalPosition.y

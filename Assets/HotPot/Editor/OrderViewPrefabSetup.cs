@@ -7,11 +7,11 @@ using UnityEngine.SceneManagement;
 
 namespace FoodPop
 {
-    // EN: Editor tool that turns the order cards into one shared prefab: the left card (smallest x) is saved as Assets/HotPot/Prefabs/Ingame/OrderView.prefab (or the existing prefab is reused), every other card is replaced by an instance at the same place with the same name, and every scene reference to the old card (CustomerManager lanes, CustomerView.orderCard, ...) is moved to the new instance.
-    // VI: Công cụ editor biến các thẻ order thành một prefab dùng chung: thẻ bên trái (x nhỏ nhất) được lưu thành Assets/HotPot/Prefabs/Ingame/OrderView.prefab (hoặc dùng lại prefab đã có), các thẻ còn lại được thay bằng instance cùng vị trí, cùng tên, và mọi tham chiếu trong scene tới thẻ cũ (làn của CustomerManager, CustomerView.orderCard, ...) được chuyển sang instance mới.
+    // EN: Editor tool that turns the order cards into one shared prefab: the left card (smallest x) is saved as Assets/HotPot/Prefabs/OrderView/OrderView.prefab (or the existing prefab is reused), every other card is replaced by an instance at the same place with the same name, and every scene reference to the old card (CustomerManager lanes, CustomerView.orderCard, ...) is moved to the new instance.
+    // VI: Công cụ editor biến các thẻ order thành một prefab dùng chung: thẻ bên trái (x nhỏ nhất) được lưu thành Assets/HotPot/Prefabs/OrderView/OrderView.prefab (hoặc dùng lại prefab đã có), các thẻ còn lại được thay bằng instance cùng vị trí, cùng tên, và mọi tham chiếu trong scene tới thẻ cũ (làn của CustomerManager, CustomerView.orderCard, ...) được chuyển sang instance mới.
     public static class OrderViewPrefabSetup
     {
-        public const string PrefabPath = "Assets/HotPot/Prefabs/Ingame/OrderView.prefab";
+        public const string PrefabPath = "Assets/HotPot/Prefabs/OrderView/OrderView.prefab";
 
         // EN: Runs on the active scene and saves it when it had no other unsaved changes.
         // VI: Chạy trên scene đang mở và lưu scene nếu scene không có thay đổi khác chưa lưu.
@@ -34,8 +34,8 @@ namespace FoodPop
             {
                 OrderView template = views[0];
                 OrderViewSetup.Setup(template);
-                if (!AssetDatabase.IsValidFolder("Assets/HotPot/Prefabs/Ingame"))
-                    AssetDatabase.CreateFolder("Assets/HotPot/Prefabs", "Ingame");
+                if (!AssetDatabase.IsValidFolder("Assets/HotPot/Prefabs/OrderView"))
+                    AssetDatabase.CreateFolder("Assets/HotPot/Prefabs", "OrderView");
                 prefab = PrefabUtility.SaveAsPrefabAssetAndConnect(template.gameObject, PrefabPath, InteractionMode.UserAction);
                 if (prefab == null)
                 {

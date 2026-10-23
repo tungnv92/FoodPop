@@ -97,6 +97,52 @@ namespace FoodPop
             return true;
         }
 
+        // EN: Starts a flight for an ingredient that does not come from the belt (AutoComplete booster): it flies from start along the usual serving arc onto the dish's stack and is delivered like a normal serve. The customer must already have reserved the ingredient.
+        // VI: Cho một nguyên liệu không đến từ băng chuyền (booster AutoComplete) bay từ start theo vòng cung phục vụ thường lên chồng của món và được giao như phục vụ thường. Khách phải đã giữ chỗ nguyên liệu này.
+        public bool LaunchBoosterServe(int dish, FoodType type, Sprite sprite, Vector3 start, Vector3 startScale)
+        {
+            if (!isActiveAndEnabled || orderView == null || dish < 0 || dish >= dishTypes.Count ||
+                completingDishes.Contains(dish) || deliveredDishes.Contains(dish))
+                return false;
+            int trayOrder = tray != null ? tray.StackSortingOrder + CustomerOrder.MaxDishes * 8 : 0;
+            ServeFlight flight = new ServeFlight
+            {
+                dish = dish,
+                type = type,
+                flyer = RentFlyer(sprite, EffectSortingLayer, trayOrder + Config.ingredientFlight.serveSortingBoost),
+                start = start,
+                startScale = startScale
+            };
+            incomingDishes.Add(dish);
+            StartCoroutine(FlyToTray(flight));
+            return true;
+        }
+
+        // EN: True while an ingredient is still flying to the given dish slot.
+        // VI: True khi còn nguyên liệu đang bay tới ô món đã cho.
+        public bool IsReceiving(int dish) => incomingDishes.Contains(dish);
+
+        // EN: World centre of a dish slot on this tray (the order card dish when there is no tray stack).
+        // VI: Tâm world của ô món trên khay này (món trên thẻ order khi không có chồng trên khay).
+        public Vector3 GetDishSlotCenter(int dish)
+        {
+            if (DishStack != null && DishStack.HasSlot(dish))
+                return DishStack.GetSlotCenter(dish);
+            return orderView != null && dish >= 0 && dish < orderView.Items.Count && orderView.Items[dish] != null
+                ? orderView.Items[dish].TargetPosition : transform.position;
+        }
+
+        // EN: World scale an ingredient has once stacked on the dish slot (Vector3.one when there is no stack).
+        // VI: Scale world của nguyên liệu khi đã nằm trên chồng của ô món (Vector3.one khi không có chồng).
+        public Vector3 GetStackedScale(int dish, FoodType type)
+        {
+            return DishStack != null && DishStack.HasSlot(dish) ? DishStack.GetPieceWorldScale(dish, type) : Vector3.one;
+        }
+
+        // EN: Sorting layer of the food on this tray (effects drawn over the tray use it).
+        // VI: Sorting layer của món trên khay này (hiệu ứng vẽ trên khay dùng nó).
+        public int EffectSortingLayer => DishStack != null ? DishStack.SortingLayer : 0;
+
         // EN: Places an arriving ingredient on this tray and notifies customer progress only after the landing is recorded.
         // VI: Đặt nguyên liệu vừa đáp lên khay này và chỉ báo tiến độ khách sau khi ghi nhận việc đáp xuống.
         private void DeliverIngredient(ServeFlight flight)

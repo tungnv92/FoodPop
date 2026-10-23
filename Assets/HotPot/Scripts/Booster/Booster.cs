@@ -3,15 +3,12 @@ using UnityEngine;
 
 namespace FoodPop
 {
-    // EN: Base of every booster button: owns its icon and icon feedback (the button-press click from ButtonPressFx on every use, plus a sideways shake when the booster cannot be used); the gameplay logic is run by BoosterController (use counts will come from separate data).
-    // VI: Lớp gốc của mọi nút booster: giữ icon và phản hồi trên icon (hiệu ứng bấm nút của ButtonPressFx mỗi lần dùng, cộng thêm lắc ngang khi không dùng được); logic chơi do BoosterController chạy (số lượt sẽ lấy từ data riêng sau).
+    // EN: Owns booster hit areas, availability tint and denied-use shake; BoosterController starts gameplay immediately.
+    // VI: Quản lý vùng chạm, màu khả dụng và nhịp lắc khi bị từ chối; BoosterController bắt đầu gameplay ngay.
     public abstract class Booster : MonoBehaviour
     {
         [Tooltip("Icon của booster, cũng là vùng chạm để kích hoạt.")]
         [SerializeField] private SpriteRenderer icon;
-        [Tooltip("Hiệu ứng bấm nút khi chạm vào booster; để trống sẽ tự thêm lúc chạy.")]
-        [SerializeField] private ButtonPressFx pressFx;
-
         private Coroutine shakeRoutine;
 
         // EN: Which booster this is.
@@ -22,36 +19,25 @@ namespace FoodPop
         // VI: Renderer icon (lớp con có thể dùng lại sprite của nó).
         protected SpriteRenderer Icon => icon;
 
-        // EN: Length (seconds) of the click animation, so callers can wait for it before hiding the button.
-        // VI: Thời gian (giây) của hiệu ứng bấm, để nơi gọi có thể chờ xong rồi mới ẩn nút.
-        public float PressDuration => PressFx != null ? PressFx.Duration : 0f;
-
-        // EN: The click effect: the assigned one, otherwise one found or added on the icon (configured to scale and tint the icon).
-        // VI: Hiệu ứng bấm: cái đã gán, nếu không thì tìm hoặc thêm trên icon (cấu hình co giãn và đổi màu icon).
-        private ButtonPressFx PressFx
-        {
-            get
-            {
-                if (pressFx == null && icon != null)
-                {
-                    pressFx = icon.GetComponent<ButtonPressFx>();
-                    if (pressFx == null)
-                    {
-                        pressFx = icon.gameObject.AddComponent<ButtonPressFx>();
-                        pressFx.Configure(icon.transform, icon);
-                    }
-                }
-                return pressFx;
-            }
-        }
-
-        // EN: Puts the icon rotation back when the button is hidden mid-shake (the click effect restores its own scale and colour).
-        // VI: Trả lại góc xoay của icon khi nút bị ẩn giữa lúc lắc (hiệu ứng bấm tự trả lại cỡ và màu của nó).
+        // EN: Restores icon rotation when hidden during a denied-use shake.
+        // VI: Khôi phục góc xoay icon khi bị ẩn giữa nhịp lắc từ chối.
         private void OnDisable()
         {
             shakeRoutine = null;
             if (icon != null)
                 icon.transform.localRotation = Quaternion.identity;
+        }
+
+        [Tooltip("Độ sáng của icon khi booster đang không dùng được (có booster khác đang chạy).")]
+        [Range(0f, 1f)] [SerializeField] private float unavailableBrightness = 0.55f;
+
+        // EN: Dims unavailable booster icons directly and restores brightness when available.
+        // VI: Làm mờ trực tiếp icon booster không khả dụng và khôi phục độ sáng khi dùng được.
+        public void SetAvailable(bool available)
+        {
+            float value = available ? 1f : unavailableBrightness;
+            if (icon != null)
+                icon.color = new Color(value, value, value, icon.color.a);
         }
 
         // EN: True when the world point is on this booster's icon.
@@ -64,20 +50,10 @@ namespace FoodPop
             return worldPoint.x >= bounds.min.x && worldPoint.x <= bounds.max.x && worldPoint.y >= bounds.min.y && worldPoint.y <= bounds.max.y;
         }
 
-        // EN: Booster accepted: plays the button click.
-        // VI: Booster được dùng: chạy hiệu ứng bấm nút.
-        public void PlayActivated()
-        {
-            if (PressFx != null)
-                PressFx.Play();
-        }
-
-        // EN: Booster cannot be used now: plays the button click and shakes the icon sideways.
-        // VI: Lúc này không dùng được booster: chạy hiệu ứng bấm nút và lắc icon sang ngang.
+        // EN: Shakes the icon sideways when the booster cannot be used, without a press animation.
+        // VI: Lắc icon sang ngang khi booster không dùng được, không chạy hiệu ứng nhấn.
         public void PlayDenied()
         {
-            if (PressFx != null)
-                PressFx.Play();
             if (icon == null || !isActiveAndEnabled)
                 return;
             if (shakeRoutine != null)
@@ -102,13 +78,11 @@ namespace FoodPop
         }
 
 #if UNITY_EDITOR
-        // EN: Editor-only: assigns the icon renderer and its click effect (used by the setup tool).
-        // VI: Chỉ dùng trong editor: gán renderer icon và hiệu ứng bấm của nó (công cụ setup gọi).
-        public void SetIcon(SpriteRenderer renderer, ButtonPressFx press = null)
+        // EN: Editor-only: assigns the icon renderer used for hit detection and availability tint.
+        // VI: Chỉ dùng trong editor: gán renderer icon dùng cho vùng chạm và màu khả dụng.
+        public void SetIcon(SpriteRenderer renderer)
         {
             icon = renderer;
-            if (press != null)
-                pressFx = press;
         }
 #endif
     }

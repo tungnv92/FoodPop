@@ -1,10 +1,16 @@
 fileFormatVersion: 2
-guid: aba529b7fab719344bea7aa83ddfbcda
+guid: e37a1f35aa552ab4bbbe7cd6bedcea2b
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4810440786432060188
-    second: ConveyorStandalone_0
+      213: 1015749429304450375
+    second: FoodHoldingTrayBack_0
+  - first:
+      213: -4369409585503722270
+    second: FoodHoldingTrayBack_1
+  - first:
+      213: 3914438804358464682
+    second: FoodHoldingTrayBack_2
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,13 +132,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: ConveyorStandalone_0
+      name: FoodHoldingTrayBack_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 1534
-        height: 1016
+        x: 9
+        y: 10
+        width: 298
+        height: 195
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +147,52 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 4e49aaf6791ed3db0800000000000000
-      internalID: -4810440786432060188
+      spriteID: 74d5f7a69baa81e00800000000000000
+      internalID: 1015749429304450375
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FoodHoldingTrayBack_1
+      rect:
+        serializedVersion: 2
+        x: 155
+        y: 200
+        width: 84
+        height: 5
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2e42dd1d12dbc53c0800000000000000
+      internalID: -4369409585503722270
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: FoodHoldingTrayBack_2
+      rect:
+        serializedVersion: 2
+        x: 290
+        y: 161
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aa48acc5a51e25630800000000000000
+      internalID: 3914438804358464682
       vertices: []
       indices: 
       edges: []
@@ -161,7 +211,9 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      ConveyorStandalone_0: -4810440786432060188
+      FoodHoldingTrayBack_0: 1015749429304450375
+      FoodHoldingTrayBack_1: -4369409585503722270
+      FoodHoldingTrayBack_2: 3914438804358464682
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

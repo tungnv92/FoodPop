@@ -17,106 +17,6 @@ namespace FoodPop
         // VI: Lấy thông số màn chơi dùng chung, hỗ trợ asset cấu hình được gán riêng.
         private IngameConfig Config => IngameConfig.Resolve(ingameConfig);
 
-        // EN: One counter lane: the customer spot, its order card lines, the waiting figures behind it and the portraits used for its customers.
-        // VI: Một làn quầy: vị trí khách, thẻ order (OrderView), các khách đứng chờ phía sau và danh sách ảnh dùng cho khách của làn.
-        [Serializable]
-        private class Lane
-        {
-            [Tooltip("Khách đang đứng ở làn này (kèm thẻ order).")]
-            public CustomerView customer;
-            [Tooltip("Thẻ order của làn (Left order / Right order), giữ các ô món và bố cục lưới.")]
-            public OrderView orderView;
-            [Tooltip("Component phục vụ riêng của làn, quản lý hoạt cảnh và khay của khách này.")]
-            public ServingFood servingFood;
-            [Tooltip("Ảnh các khách đứng chờ đặt sẵn trong scene (người gần quầy nhất trước); dùng làm vị trí hàng chờ và làm mẫu khi cần thêm người.")]
-            public SpriteRenderer[] waitingFigures = new SpriteRenderer[0];
-            [Tooltip("Ảnh khách dùng lần lượt cho các khách của làn (lặp lại khi hết).")]
-            public Sprite[] portraits = new Sprite[0];
-            [Tooltip("Hướng trượt ra/vào: -1 = mép trái màn hình, 1 = mép phải.")]
-            public int slideDirection = -1;
-
-            [NonSerialized] public List<CustomerOrder> queue;
-            [NonSerialized] public int queueIndex;
-            [NonSerialized] public bool ordering;
-            [NonSerialized] public long arrivalStamp;
-            [NonSerialized] public readonly List<DishProgress> dishes = new List<DishProgress>();
-            [NonSerialized] public readonly List<SpriteRenderer> figures = new List<SpriteRenderer>();
-            [NonSerialized] public readonly List<Vector3> spots = new List<Vector3>();
-            [NonSerialized] public Vector3 spotStep;
-            [NonSerialized] public Vector3 queueOrigin;
-            [NonSerialized] public bool queueCaptured;
-        }
-
-        // EN: Progress of one ordered final dish: its recipe (the first ingredient is the base that must come first), ingredients still to send, ingredients flying to it and whether it has been assembled on the tray.
-        // VI: Tiến độ của một món hoàn chỉnh được order: công thức (nguyên liệu đầu tiên là đế, phải tới trước), nguyên liệu còn phải gửi, nguyên liệu đang bay tới và trạng thái đã ghép xong trên khay.
-        private sealed class DishProgress
-        {
-            public readonly FinalFoodType type;
-            public readonly List<FoodType> recipe;
-            public readonly List<FoodType> missing;
-            public int incoming;
-            public bool baseReserved;
-            public bool assembled;
-
-            // EN: Creates the record of a dish: every recipe ingredient starts as missing (ingredients of type None are skipped).
-            // VI: Tạo bản ghi của một món: mọi nguyên liệu trong công thức ban đầu đều đang thiếu (bỏ qua nguyên liệu None).
-            public DishProgress(FinalFoodType type, IReadOnlyList<FoodType> ingredients)
-            {
-                this.type = type;
-                recipe = new List<FoodType>();
-                foreach (FoodType ingredient in ingredients)
-                {
-                    if (ingredient != FoodType.None)
-                        recipe.Add(ingredient);
-                }
-                missing = new List<FoodType>(recipe);
-            }
-
-            // EN: The base ingredient (first of the recipe) that must reach the dish before any other.
-            // VI: Nguyên liệu đế (đầu tiên trong công thức) phải tới món trước mọi nguyên liệu khác.
-            public FoodType BaseIngredient => recipe.Count > 0 ? recipe[0] : FoodType.None;
-
-            // EN: Accepts a missing ingredient only when this dish has no incoming flight; the base must land before other recipe ingredients can depart.
-            // VI: Chỉ nhận nguyên liệu còn thiếu khi món không có nguyên liệu đang bay tới; đế phải đáp xuống trước khi nguyên liệu khác trong công thức được rời băng chuyền.
-            public bool CanAccept(FoodType ingredient)
-            {
-                if (incoming > 0 || !missing.Contains(ingredient))
-                    return false;
-                return ingredient == BaseIngredient || baseReserved;
-            }
-
-            // EN: Books one ingredient for this dish as it leaves the belt.
-            // VI: Giữ chỗ một nguyên liệu cho món khi nó rời băng chuyền.
-            public void Reserve(FoodType ingredient)
-            {
-                missing.Remove(ingredient);
-                incoming++;
-                if (ingredient == BaseIngredient)
-                    baseReserved = true;
-            }
-
-            // EN: Releases a failed dispatch reservation without consuming an ingredient or keeping the slot busy.
-            // VI: Bỏ giữ chỗ khi không phóng được món, không mất nguyên liệu hoặc làm ô bị khóa.
-            public void CancelReservation(FoodType ingredient)
-            {
-                missing.Add(ingredient);
-                incoming = Mathf.Max(0, incoming - 1);
-                if (ingredient == BaseIngredient)
-                    baseReserved = false;
-            }
-
-            // EN: Records one booked ingredient landing on the dish.
-            // VI: Ghi nhận một nguyên liệu đã giữ chỗ đáp xuống món.
-            public void Arrive()
-            {
-                incoming = Mathf.Max(0, incoming - 1);
-            }
-
-            // EN: True once every ingredient has arrived (nothing missing, nothing still flying).
-            // VI: True khi mọi nguyên liệu đã tới (không còn thiếu, không còn đang bay).
-            public bool Done => missing.Count == 0 && incoming == 0;
-        }
-
         private static CustomerManager instance;
 
         // EN: Returns the scene singleton, resolving it once when Awake has not run yet.
@@ -176,11 +76,13 @@ namespace FoodPop
             instance = null;
         }
 
-        // EN: Each frame, sends every prepared food inside the belt's exit segment (Station Exit Start..End) to the earliest customer still needing it.
-        // VI: Mỗi frame, gửi mọi món đã sơ chế nằm trong đoạn ra món của băng (Station Exit Start..End) tới khách đến sớm nhất còn cần món đó.
+        public bool BoosterPaused { get; set; }
+
+        // EN: Sends prepared belt food to customers unless collection has temporarily paused new serving flights.
+        // VI: Gửi food đã sơ chế trên băng cho khách trừ khi lượt thu đang tạm dừng chuyến phục vụ mới.
         private void Update()
         {
-            if (conveyor == null)
+            if (BoosterPaused || conveyor == null)
                 return;
             IReadOnlyList<ConveyorSlot> slots = conveyor.Slots;
             for (int i = 0; i < slots.Count; i++)
@@ -238,6 +140,65 @@ namespace FoodPop
         // EN: True when some ordering customer has a dish that can take this ingredient right now (ingredients already flying are counted).
         // VI: True khi có khách đang order có món nhận được nguyên liệu này ngay lúc này (đã tính nguyên liệu đang bay tới).
         public bool TryFindCustomer(FoodType type) => TryFindCustomer(type, out _, out _);
+
+        // EN: A dish the AutoComplete booster will finish: its tray, its slot index and the ingredients it still needed (now reserved, in recipe order, base first).
+        // VI: Món mà booster AutoComplete sẽ hoàn thành: khay, chỉ số ô và các nguyên liệu nó còn thiếu (đã được giữ chỗ, theo thứ tự công thức, đế trước).
+        public sealed class AutoCompleteJob
+        {
+            public ServingFood serving;
+            public int dish;
+            public readonly List<FoodType> ingredients = new List<FoodType>();
+        }
+
+        // EN: True when some ordering customer has a dish the AutoComplete booster can finish right now.
+        // VI: True khi có khách đang order có món mà booster AutoComplete hoàn thành được ngay lúc này.
+        public bool HasAutoCompleteTarget() => FindAutoCompleteDish(out _, out _);
+
+        // EN: Picks the dish missing the most ingredients among every ordering customer (ties: earlier customer, then earlier dish on the card), skipping dishes with an ingredient still flying in or already assembling. Reserves all of its missing ingredients so the belt no longer serves them, and returns them in recipe order.
+        // VI: Chọn món còn thiếu nhiều nguyên liệu nhất trong mọi khách đang order (bằng nhau thì khách đến sớm hơn, rồi món đứng trước trên thẻ), bỏ qua món đang có nguyên liệu bay tới hoặc đang ghép. Giữ chỗ mọi nguyên liệu còn thiếu để băng chuyền không gửi tới nữa, và trả về chúng theo thứ tự công thức.
+        public bool TryReserveAutoComplete(out AutoCompleteJob job)
+        {
+            job = null;
+            if (!FindAutoCompleteDish(out Lane lane, out int dish))
+                return false;
+            DishProgress progress = lane.dishes[dish];
+            job = new AutoCompleteJob { serving = lane.servingFood, dish = dish };
+            foreach (FoodType ingredient in progress.recipe)
+                if (progress.missing.Contains(ingredient))
+                    job.ingredients.Add(ingredient);
+            foreach (FoodType ingredient in job.ingredients)
+                progress.Reserve(ingredient);
+            return job.ingredients.Count > 0;
+        }
+
+        // EN: Finds the AutoComplete target dish (see TryReserveAutoComplete) without reserving anything.
+        // VI: Tìm món đích của AutoComplete (xem TryReserveAutoComplete) mà không giữ chỗ gì.
+        private bool FindAutoCompleteDish(out Lane best, out int bestDish)
+        {
+            best = null;
+            bestDish = -1;
+            int bestMissing = 0;
+            foreach (Lane lane in lanes)
+            {
+                if (lane == null || !lane.ordering || lane.servingFood == null)
+                    continue;
+                for (int d = 0; d < lane.dishes.Count; d++)
+                {
+                    DishProgress progress = lane.dishes[d];
+                    int missing = progress.missing.Count;
+                    if (progress.assembled || progress.incoming > 0 || missing == 0 || !lane.servingFood.CanServe(d))
+                        continue;
+                    bool better = missing > bestMissing ||
+                                  (missing == bestMissing && best != null && lane != best && lane.arrivalStamp < best.arrivalStamp);
+                    if (!better)
+                        continue;
+                    best = lane;
+                    bestDish = d;
+                    bestMissing = missing;
+                }
+            }
+            return best != null;
+        }
 
         // EN: True once every customer of the level has been served.
         // VI: True khi mọi khách của level đã được phục vụ.
@@ -327,6 +288,12 @@ namespace FoodPop
             IngameSoundManager.Instance?.PlayCustomerHappy();
             if (Config.customers.leaveDelay > 0f)
                 yield return new WaitForSeconds(Config.customers.leaveDelay);
+            if (lane.orderView != null)
+            {
+                float hide = lane.orderView.PlayHide();
+                if (hide > 0f)
+                    yield return new WaitForSeconds(hide);
+            }
             if (lane.customer != null)
                 yield return lane.customer.SlideOut(lane.slideDirection * Config.customers.slideDistance, Config.customers.slideDuration);
             ResetServing(lane);
@@ -355,6 +322,8 @@ namespace FoodPop
                 lane.customer.SnapHome();
                 lane.customer.SetVisible(true);
             }
+            if (lane.orderView != null)
+                lane.orderView.PlayShow();
             LayoutWaitingQueue(lane, 0f);
             yield return null;
             lane.arrivalStamp = ++arrivalCounter;

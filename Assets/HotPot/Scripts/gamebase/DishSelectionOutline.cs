@@ -33,6 +33,35 @@ namespace FoodPop
         private Coroutine rejectRoutine;
         private Vector3 outlineRestScale;
         private bool outlineRestCaptured;
+        private bool originalOutlineCaptured;
+        private Sprite originalOutlineSprite;
+        private Material originalOutlineMaterial;
+        private Vector3 originalOutlineScale;
+
+        // EN: Uses the dedicated rectangular ring when available, falls back to a silhouette, and restores circular outlines for single dishes.
+        // VI: Dùng vòng viền chữ nhật riêng khi có, dự phòng bằng bóng hình và khôi phục viền tròn cho đĩa đơn.
+        public void ConfigurePlateOutline(Sprite plateSprite, Material silhouetteMaterial, Sprite selectionSprite = null)
+        {
+            if (outline == null)
+                return;
+            if (!originalOutlineCaptured)
+            {
+                originalOutlineSprite = outline.sprite;
+                originalOutlineMaterial = outline.sharedMaterial;
+                originalOutlineScale = outline.transform.localScale;
+                originalOutlineCaptured = true;
+            }
+            StopReject();
+            bool rectangular = plateSprite != null && (selectionSprite != null || silhouetteMaterial != null);
+            outline.sprite = rectangular ? selectionSprite != null ? selectionSprite : plateSprite : originalOutlineSprite;
+            outline.sharedMaterial = rectangular && selectionSprite == null ? silhouetteMaterial : originalOutlineMaterial;
+            outlineRestScale = rectangular ? new Vector3(
+                plateSprite.bounds.size.x / outline.sprite.bounds.size.x * 1.045f,
+                plateSprite.bounds.size.y / outline.sprite.bounds.size.y * 1.045f, 1f) : originalOutlineScale;
+            outlineRestCaptured = true;
+            outline.transform.localScale = outlineRestScale;
+            RestoreOutline();
+        }
 
         // EN: Restores the current outline when a pooled dish becomes active.
         // VI: Khôi phục viền hiện tại khi đĩa từ pool được bật.
@@ -56,8 +85,8 @@ namespace FoodPop
             SetSelectable(false);
         }
 
-        // EN: Flashes the outline red with a little pulse a few times (the conveyor has no free slot for this dish), then restores the normal outline.
-        // VI: Cho viền nháy đỏ kèm nhịp phồng nhẹ vài lần (băng chuyền không còn slot trống cho đĩa này), rồi trả lại viền bình thường.
+        // EN: Flashes a rejected dish red, including blocked linked members, then restores its current selection state.
+        // VI: Nháy đỏ đĩa bị từ chối, gồm thành viên nối đang bị chặn, rồi khôi phục trạng thái viền hiện tại.
         public void PlayRejected()
         {
             if (outline == null || !isActiveAndEnabled)
@@ -116,19 +145,21 @@ namespace FoodPop
             outline.enabled = selectable && isActiveAndEnabled && plate != null && plate.enabled;
         }
 
-        // EN: Highlights column heads (outline drawn just below the plate) and dims waiting plates, food and lids.
-        // VI: Hiện viền đầu cột (viền vẽ ngay dưới lớp đĩa) và làm tối đĩa, đồ ăn cùng nắp đang chờ.
+        // EN: Updates resting selection and brightness without overriding an active rejection flash; sorting still follows the plate.
+        // VI: Cập nhật trạng thái chọn nghỉ và độ sáng mà không ghi đè nháy đỏ đang chạy; thứ tự vẽ vẫn theo đĩa.
         public void SetSelectable(bool value)
         {
             selectable = value;
             ApplyBrightness(value);
             if (outline == null || plate == null)
                 return;
-            outline.enabled = value && isActiveAndEnabled && plate.enabled;
-            outline.color = Color.white;
             outline.sortingLayerID = plate.sortingLayerID;
             outline.sortingOrder = plate.sortingOrder - 1;
             outline.gameObject.layer = plate.gameObject.layer;
+            if (rejectRoutine != null)
+                return;
+            outline.enabled = value && isActiveAndEnabled && plate.enabled;
+            outline.color = Color.white;
         }
 
         // EN: Hides the selection outline until the next SetSelectable call (used while a booster animates the board).

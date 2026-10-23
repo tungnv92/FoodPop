@@ -19,7 +19,7 @@ namespace FoodPop
         [SerializeField]
         private Vector2 slotCenter = new Vector2(0f, 0.08f);
 
-        [Tooltip("Khoảng cách ngang (world) giữa tâm các ô món cạnh nhau.")]
+        [Tooltip("Khoảng cách ngang giữa tâm các ô món cạnh nhau (tọa độ local của khay).")]
         [SerializeField]
         private float spacingX = 0.5f;
 
@@ -180,21 +180,15 @@ namespace FoodPop
             }
         }
 
-        // EN: Centres the active slots in rows of up to two inside the tray, placing neighbouring slot centres spacingX apart in world space, and updates sorting without changing their appearance.
-        // VI: Căn giữa các ô đang dùng theo hàng tối đa hai ô trong khay, tâm các ô cạnh nhau cách nhau spacingX theo world, và cập nhật thứ tự vẽ mà không đổi hình thức ô.
+        // EN: Lays the active slots out in one horizontal row centred on slotCenter (odd counts put the middle slot at slotCenter.x, e.g. slot 2 of 3), neighbouring centres spacingX apart in tray-local space, and updates sorting without changing their appearance.
+        // VI: Xếp các ô đang dùng thành một hàng ngang căn giữa quanh slotCenter (số ô lẻ thì ô giữa nằm đúng slotCenter.x, vd. ô 2 khi có 3 ô), tâm các ô cạnh nhau cách nhau spacingX theo tọa độ local của khay, và cập nhật thứ tự vẽ mà không đổi hình thức ô.
         private void LayoutSlots()
         {
-            if (activeCount == 0)
-            {
-                return;
-            }
-            int columns = Mathf.Min(2, activeCount);
+            float half = (activeCount - 1) * 0.5f;
             for (int i = 0; i < activeCount; i++)
             {
                 DishSlotView view = slotViews[i];
-                int row = i / columns;
-                int slotsInRow = Mathf.Min(columns, activeCount - row * columns);
-                float offset = ((float)(i % columns) - (float)(slotsInRow - 1) * 0.5f) * spacingX;
+                float offset = (i - half) * spacingX;
                 view.transform.localPosition = new Vector3(slotCenter.x + offset, slotCenter.y, 0f);
                 UpdateSlotSorting(view);
             }

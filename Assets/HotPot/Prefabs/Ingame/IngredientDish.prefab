@@ -366,6 +366,10 @@ MonoBehaviour:
   plateColor: {r: 1, g: 1, b: 1, a: 1}
   ingredientColor: {r: 1, g: 1, b: 1, a: 1}
   selectable: 0
+  rejectColor: {r: 1, g: 0.15, b: 0.12, a: 1}
+  rejectFlashCount: 2
+  rejectFlashDuration: 0.16
+  rejectPulseScale: 1.02
 --- !u!1 &2778749948158121776
 GameObject:
   m_ObjectHideFlags: 0
@@ -868,11 +872,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4081031926026271510, guid: ef7335d1f685487478cd799544fa191a, type: 3}
       propertyPath: m_fontSize
-      value: 30
+      value: 27
       objectReference: {fileID: 0}
     - target: {fileID: 4081031926026271510, guid: ef7335d1f685487478cd799544fa191a, type: 3}
       propertyPath: m_fontSizeBase
-      value: 30
+      value: 27
       objectReference: {fileID: 0}
     - target: {fileID: 4081031926026271510, guid: ef7335d1f685487478cd799544fa191a, type: 3}
       propertyPath: m_TextStyleHashCode
@@ -880,11 +884,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4287705490397676182, guid: ef7335d1f685487478cd799544fa191a, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.468
+      value: 0.443
       objectReference: {fileID: 0}
     - target: {fileID: 4287705490397676182, guid: ef7335d1f685487478cd799544fa191a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.36000013
+      value: 0.296
       objectReference: {fileID: 0}
     - target: {fileID: 4287705490397676182, guid: ef7335d1f685487478cd799544fa191a, type: 3}
       propertyPath: m_LocalPosition.z
@@ -944,11 +948,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8692534718301297205, guid: ef7335d1f685487478cd799544fa191a, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 40
+      value: 35
       objectReference: {fileID: 0}
     - target: {fileID: 8692534718301297205, guid: ef7335d1f685487478cd799544fa191a, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 40
+      value: 35
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

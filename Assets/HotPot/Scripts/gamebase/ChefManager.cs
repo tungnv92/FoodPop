@@ -55,6 +55,7 @@ namespace FoodPop
         private Coroutine preparationRoutine;
         private Food preparingFood;
         private ConveyorSlot preparingSlot;
+        private int preparingArrivalId;
         private readonly Dictionary<ConveyorSlot, float> slotPriorities = new Dictionary<ConveyorSlot, float>();
         private SpriteRenderer cuttingFood;
         private SpriteRenderer cuttingShadow;
@@ -81,6 +82,7 @@ namespace FoodPop
         // EN: Indicates whether the chef currently has an unfinished preparation job.
         // VI: Cho biết đầu bếp đang có công việc sơ chế chưa hoàn thành.
         public bool IsBusy => preparationRoutine != null;
+        public bool BoosterPaused { get; set; }
 
         // EN: Clears stale static state when entering Play Mode, including with domain reload disabled.
         // VI: Xóa trạng thái tĩnh cũ khi vào Play Mode, kể cả khi tắt tải lại miền mã.
@@ -114,11 +116,11 @@ namespace FoodPop
                 CancelPreparation();
         }
 
-        // EN: While idle, starts preparing the raw food that is furthest through the preparation station.
-        // VI: Khi rảnh, bắt đầu sơ chế món thô đã đi xa nhất trong trạm sơ chế.
+        // EN: While idle and not booster-paused, starts preparing the raw food furthest through the station.
+        // VI: Khi rảnh và không bị booster tạm dừng, bắt đầu sơ chế món thô đã đi xa nhất trong trạm.
         private void Update()
         {
-            if (!autoPrepareInStation || IsBusy || conveyorMovement == null)
+            if (BoosterPaused || !autoPrepareInStation || IsBusy || conveyorMovement == null)
                 return;
             ConveyorSlot slot = FindSlotToPrepare();
             if (slot != null)
@@ -162,6 +164,68 @@ namespace FoodPop
             OnDestroyRuntimeObjects();
             if (instance == this)
                 instance = null;
+        }
+
+        // EN: The chef figure's transform (the AutoComplete star appears above it).
+        // VI: Transform của nhân vật đầu bếp (ngôi sao AutoComplete hiện phía trên).
+        public Transform ChefTransform => chefAnimator != null ? chefAnimator.transform : transform;
+
+        // EN: Takes one portion of the given food off the belt for a booster: first a slot resting on the belt, then the slot the chef is chopping (the chop is cancelled), last a slot whose portion is still flying in. Returns where it was and the sprite shown, and empties the slot.
+        // VI: Lấy một phần nguyên liệu đã cho khỏi băng cho booster: ưu tiên slot đang nằm yên trên băng, rồi tới slot đầu bếp đang chặt (hủy việc chặt), cuối cùng là slot có phần nguyên liệu còn đang bay tới. Trả về vị trí và sprite đang hiện, rồi làm rỗng slot.
+        public bool TryTakeFood(FoodType type, out Vector3 position, out Sprite sprite)
+        {
+            position = default;
+            sprite = null;
+            ConveyorSlot slot = FindFoodSlot(type, s => !s.IsFoodArriving) ?? FindFoodSlot(type, s => s == preparingSlot) ?? FindFoodSlot(type, s => true);
+            if (slot == null)
+                return false;
+            if (slot == preparingSlot)
+                CancelPreparation();
+            position = slot.LandingPosition;
+            sprite = slot.IngredientRenderer != null ? slot.IngredientRenderer.sprite : null;
+            slot.ClearFood();
+            return true;
+        }
+
+        // EN: Empties one belt slot for a booster and returns what it held: stops the chef first when this is the slot being chopped. Returns false when the slot is empty.
+        // VI: Làm rỗng một slot trên băng cho booster và trả về món nó đang giữ: dừng đầu bếp trước nếu đây là slot đang được chặt. Trả về false khi slot rỗng.
+        public bool TryTakeSlot(ConveyorSlot slot, out FoodType type, out Sprite sprite)
+        {
+            type = FoodType.None;
+            sprite = null;
+            if (slot == null || slot.isEmpty || slot.food == null)
+                return false;
+            if (slot == preparingSlot)
+                CancelPreparation();
+            type = slot.food.foodType;
+            sprite = slot.IngredientRenderer != null ? slot.IngredientRenderer.sprite : null;
+            slot.ClearFood();
+            return type != FoodType.None;
+        }
+
+        // EN: True when at least one active belt slot holds food.
+        // VI: True khi có ít nhất một slot đang hoạt động trên băng chứa món.
+        public bool HasFoodOnBelt()
+        {
+            IReadOnlyList<ConveyorSlot> slots = Slots;
+            for (int i = 0; i < slots.Count; i++)
+                if (slots[i] != null && slots[i].isActiveAndEnabled && !slots[i].isEmpty && slots[i].food != null)
+                    return true;
+            return false;
+        }
+
+        // EN: First active slot holding the given food that also passes the filter, or null.
+        // VI: Slot đang hoạt động đầu tiên chứa nguyên liệu đã cho và thỏa bộ lọc, hoặc null.
+        private ConveyorSlot FindFoodSlot(FoodType type, System.Func<ConveyorSlot, bool> filter)
+        {
+            IReadOnlyList<ConveyorSlot> slots = Slots;
+            for (int i = 0; i < slots.Count; i++)
+            {
+                ConveyorSlot slot = slots[i];
+                if (slot != null && slot.isActiveAndEnabled && !slot.isEmpty && slot.food != null && slot.food.foodType == type && filter(slot))
+                    return slot;
+            }
+            return null;
         }
 
         // EN: Number of active empty conveyor slots right now (same rule TryGetNearestEmptySlots uses); lets boosters check whether a dish fits before picking it.
@@ -242,8 +306,8 @@ namespace FoodPop
             return true;
         }
 
-        // EN: Full preparation sequence: the raw food hops from its plate to the cutting point in front of the chef, the chef chops it (group-specific knife sounds, debris and smoke), it turns into the prepared food with a poof, then drops back onto its plate. Cancels quietly if the plate loses the food meanwhile.
-        // VI: Toàn bộ quá trình sơ chế: món thô nhảy từ đĩa lên điểm cắt trước mặt đầu bếp, đầu bếp cắt (tiếng dao theo nhóm, vụn và khói), món biến thành món sơ chế kèm hiệu ứng phụt khói, rồi rơi lại vào đĩa. Tự hủy nếu đĩa mất món trong lúc đó.
+        // EN: Prepares and returns food under a unique arrival identity, cancelling if its slot is cleared or reused.
+        // VI: Sơ chế và trả food bằng mã đáp riêng, hủy nếu slot bị xóa hoặc dùng lại.
         private IEnumerator PrepareFood()
         {
             ConveyorSlot slot = preparingSlot;
@@ -252,6 +316,7 @@ namespace FoodPop
             Vector3 plateScale = slot.LandingScale;
             Vector3 cutScale = plateScale * Config.preparation.cuttingScale;
             slot.BeginFoodArrival();
+            preparingArrivalId = slot.ArrivalId;
 
             yield return Hop(flyer.transform, () => slot.LandingPosition, GetCuttingPosition, plateScale, cutScale, Config.preparation.liftDuration);
             if (!IsStillPreparing(slot))
@@ -278,12 +343,12 @@ namespace FoodPop
             FinishPreparation();
         }
 
-        // EN: True while the slot still holds the food this job started with (it was not cleared or reused).
-        // VI: Trả về true khi slot vẫn giữ đúng món của lượt sơ chế này (chưa bị làm rỗng hay dùng lại).
+        // EN: Matches both food and arrival identity because a reused slot can share the same pooled Food instance.
+        // VI: Khớp cả food lẫn mã đáp vì slot dùng lại có thể dùng chung instance Food trong pool.
         private bool IsStillPreparing(ConveyorSlot slot)
         {
             return slot != null && slot == preparingSlot && slot.isActiveAndEnabled && !slot.isEmpty &&
-                   preparingFood != null && slot.food == preparingFood && slot.IsFoodArriving;
+                   preparingFood != null && slot.food == preparingFood && slot.OwnsFoodArrival(preparingArrivalId);
         }
 
         // EN: Moves a transform along an arc between two (possibly moving) positions while blending its scale, over the given duration.
@@ -325,8 +390,8 @@ namespace FoodPop
             flyer.transform.localScale = restScale;
         }
 
-        // EN: Ends the job: hides the cutting food, its shadow and smoke, restores the board, shows the food on its plate again with the landing bounce (if the plate still holds it) and returns the chef to idle.
-        // VI: Kết thúc lượt: ẩn món đang cắt, bóng đổ và khói, trả thớt về như cũ, hiện lại món trên đĩa kèm hiệu ứng nảy (nếu đĩa vẫn giữ món) và đưa đầu bếp về nghỉ.
+        // EN: Ends preparation visuals and completes only this job's arrival so newer portions remain untouched.
+        // VI: Kết thúc hình sơ chế và chỉ hoàn tất mã đáp của lượt này để không tác động phần food mới.
         private void FinishPreparation()
         {
             if (cuttingFood != null)
@@ -336,8 +401,8 @@ namespace FoodPop
                 cuttingBoard.localScale = boardBaseScale;
             SetSmoke(false, null);
             SetChopping(false);
-            if (preparingSlot != null && preparingSlot.IsFoodArriving)
-                preparingSlot.CompleteFoodArrival();
+            if (preparingSlot != null)
+                preparingSlot.CompleteFoodArrival(preparingArrivalId);
             preparingSlot = null;
             preparingFood = null;
             preparationRoutine = null;

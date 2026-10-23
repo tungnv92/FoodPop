@@ -92,6 +92,20 @@ namespace FoodPop
                 EditorUtility.SetDirty(shuffle);
                 return shuffle;
             }
+            if (sprite.Contains("CleanBrush"))
+            {
+                CleanBrushBooster cleanBrush = GetOrAdd<CleanBrushBooster>(icon);
+                AssignCleanBrushEffects(cleanBrush);
+                EditorUtility.SetDirty(cleanBrush);
+                return cleanBrush;
+            }
+            if (sprite.Contains("AutoComplete"))
+            {
+                AutoCompleteBooster autoComplete = GetOrAdd<AutoCompleteBooster>(icon);
+                AssignAutoCompleteEffects(autoComplete);
+                EditorUtility.SetDirty(autoComplete);
+                return autoComplete;
+            }
             if (sprite.Contains("PickupHand"))
             {
                 PickupHandBooster pickup = GetOrAdd<PickupHandBooster>(icon);
@@ -103,19 +117,17 @@ namespace FoodPop
             return null;
         }
 
-        // EN: Returns the booster component of type T on the icon (adding it when missing), adds the ButtonPressFx click effect and assigns the icon renderer and the effect.
-        // VI: Trả về component booster kiểu T trên icon (thêm nếu chưa có), thêm hiệu ứng bấm ButtonPressFx và gán renderer icon cùng hiệu ứng.
+        // EN: Finds or creates the booster, assigns its icon and removes any legacy press effect from that button.
+        // VI: Tìm hoặc tạo booster, gán icon và xóa hiệu ứng nhấn cũ khỏi nút đó.
         private static T GetOrAdd<T>(SpriteRenderer icon) where T : Booster
         {
             T booster = icon.GetComponent<T>();
             if (booster == null)
                 booster = Undo.AddComponent<T>(icon.gameObject);
             ButtonPressFx press = icon.GetComponent<ButtonPressFx>();
-            if (press == null)
-                press = Undo.AddComponent<ButtonPressFx>(icon.gameObject);
-            press.Configure(icon.transform, icon);
-            EditorUtility.SetDirty(press);
-            booster.SetIcon(icon, press);
+            if (press != null)
+                Undo.DestroyObjectImmediate(press);
+            booster.SetIcon(icon);
             return booster;
         }
 
@@ -235,6 +247,55 @@ namespace FoodPop
             cancel.sortingLayerID = icon.sortingLayerID;
             cancel.sortingOrder = CancelSortingOrder;
             return cancel;
+        }
+
+        // EN: Assigns the CleanBrush broom and bubble sprites and its particle prefabs that are still empty, building the prefabs first when they do not exist yet.
+        // VI: Gán sprite chổi, bong bóng và các prefab particle của CleanBrush còn trống, dựng prefab trước nếu chưa có.
+        private static void AssignCleanBrushEffects(CleanBrushBooster booster)
+        {
+            if (AssetDatabase.LoadAssetAtPath<ParticleEffect>(CleanBrushEffectBuilder.TrailPrefabPath) == null)
+                CleanBrushEffectBuilder.Build();
+            if (booster.broomSprite == null)
+                booster.broomSprite = LoadSprite("Assets/HotPot/Art/Sprites/Effects/CleanBroom.png");
+            if (booster.bubbleSprite == null)
+                booster.bubbleSprite = LoadSprite("Assets/HotPot/Art/Sprites/Effects/FxBubble.png");
+            if (booster.foamTrail == null)
+                booster.foamTrail = AssetDatabase.LoadAssetAtPath<ParticleEffect>(CleanBrushEffectBuilder.TrailPrefabPath);
+            if (booster.foamPuff == null)
+                booster.foamPuff = AssetDatabase.LoadAssetAtPath<ParticleEffect>(CleanBrushEffectBuilder.PuffPrefabPath);
+            if (booster.bubblePop == null)
+                booster.bubblePop = AssetDatabase.LoadAssetAtPath<ParticleEffect>(CleanBrushEffectBuilder.PopPrefabPath);
+        }
+
+        // EN: Loads a sprite at a path, switching its importer to Sprite when needed; warns when it is missing.
+        // VI: Nạp sprite tại đường dẫn, chuyển importer sang Sprite nếu cần; cảnh báo khi không có.
+        private static Sprite LoadSprite(string path)
+        {
+            if (AssetImporter.GetAtPath(path) is TextureImporter importer && importer.textureType != TextureImporterType.Sprite)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.SaveAndReimport();
+            }
+            Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (sprite == null)
+                Debug.LogWarning($"[BoosterSetup] Không tìm thấy sprite tại {path}.");
+            return sprite;
+        }
+
+        // EN: Assigns the AutoComplete particle prefabs that are still empty, building them first when they do not exist yet.
+        // VI: Gán các prefab particle của AutoComplete còn trống, dựng chúng trước nếu chưa có.
+        private static void AssignAutoCompleteEffects(AutoCompleteBooster booster)
+        {
+            if (AssetDatabase.LoadAssetAtPath<ParticleEffect>(AutoCompleteEffectBuilder.StarPrefabPath) == null)
+                AutoCompleteEffectBuilder.Build();
+            if (booster.starEffect == null)
+                booster.starEffect = AssetDatabase.LoadAssetAtPath<ParticleEffect>(AutoCompleteEffectBuilder.StarPrefabPath);
+            if (booster.burstEffect == null)
+                booster.burstEffect = AssetDatabase.LoadAssetAtPath<ParticleEffect>(AutoCompleteEffectBuilder.BurstPrefabPath);
+            if (booster.sparkleEffect == null)
+                booster.sparkleEffect = AssetDatabase.LoadAssetAtPath<ParticleEffect>(AutoCompleteEffectBuilder.SparklePrefabPath);
         }
 
         // EN: Loads the cancel button sprite, switching its importer to Sprite when needed.

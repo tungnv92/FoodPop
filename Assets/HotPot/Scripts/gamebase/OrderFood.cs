@@ -24,6 +24,42 @@ namespace FoodPop
         [Tooltip("Giá trị khối băng: mỗi lần chọn được một đĩa bất kỳ, mọi đĩa đang đóng băng giảm 1; về 0 thì tan băng.")]
         public int blockValue = 1;
 
+        [Tooltip("Kiểu đĩa trên board: đĩa đơn, đĩa đôi dọc (chiếm thêm ô ngay bên dưới) hoặc đĩa đôi ngang (chiếm thêm ô ngay bên phải). Ô bị chiếm để trống.")]
+        public DishShape dishShape = DishShape.Single;
+        [Tooltip("Nguyên liệu phần thứ hai của đĩa đôi; không dùng cho đĩa đơn.")]
+        public FoodType secondFoodType;
+        [Min(1)]
+        [Tooltip("Số lượng phần thứ hai của đĩa đôi; không dùng cho đĩa đơn.")]
+        public int secondCount = 1;
+
+        // EN: True when this cell holds a double dish that also covers a neighbouring cell.
+        // VI: True khi ô này chứa đĩa đôi, chiếm thêm một ô bên cạnh.
+        public bool IsDouble => dishShape != DishShape.Single;
+
+        // EN: Total portions of the given food in this cell, counting the second part of a double dish.
+        // VI: Tổng số phần của nguyên liệu đã cho trong ô này, tính cả phần thứ hai của đĩa đôi.
+        public int CountOf(FoodType type)
+        {
+            int total = foodType == type ? requiredCount : 0;
+            if (IsDouble && secondFoodType == type)
+                total += secondCount;
+            return total;
+        }
+
+        // EN: Resets the cell to an empty, visible, unfrozen single dish with default counts.
+        // VI: Đặt lại ô thành đĩa đơn trống, không ẩn, không đóng băng, số lượng mặc định.
+        public void Clear()
+        {
+            foodType = FoodType.None;
+            requiredCount = 1;
+            isHidden = false;
+            isFrozen = false;
+            blockValue = 1;
+            dishShape = DishShape.Single;
+            secondFoodType = FoodType.None;
+            secondCount = 1;
+        }
+
         // EN: Creates an editable entry with default quantity and visible food.
         // VI: Tạo dòng có thể chỉnh với số lượng mặc định và nguyên liệu không bị che.
         public OrderFood() { }

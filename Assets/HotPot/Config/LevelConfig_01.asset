@@ -18,7 +18,7 @@ MonoBehaviour:
   rightQueue:
   - finalFoods: 230000002c0000000d000000
   - finalFoods: 2b00000016000000
-  boardRows: 7
+  boardRows: 6
   boardColumns: 3
   ingredientBoard:
   - foods:
@@ -27,105 +27,148 @@ MonoBehaviour:
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 1
       requiredCount: 2
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 1
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 1
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
-    - foodType: 1
-      requiredCount: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 2
+      requiredCount: 2
       isHidden: 0
       isFrozen: 0
       blockValue: 1
-    - foodType: 1
-      requiredCount: 1
-      isHidden: 0
-      isFrozen: 0
-      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 2
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
   - foods:
-    - foodType: 2
-      requiredCount: 1
-      isHidden: 0
-      isFrozen: 0
-      blockValue: 1
-    - foodType: 2
-      requiredCount: 1
-      isHidden: 0
-      isFrozen: 0
-      blockValue: 1
     - foodType: 3
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 1
+      requiredCount: 2
+      isHidden: 1
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 3
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 4
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 6
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 6
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
   - foods:
     - foodType: 7
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 7
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 9
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 9
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
-    - foodType: 9
-      requiredCount: 1
-      isHidden: 0
-      isFrozen: 0
-      blockValue: 1
-    - foodType: 9
-      requiredCount: 1
-      isHidden: 0
-      isFrozen: 0
-      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 13
       requiredCount: 2
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
     - foodType: 13
       requiredCount: 1
       isHidden: 0
       isFrozen: 0
       blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+  dishLinks:
+  - dishes:
+    - {x: 0, y: 0}
+    - {x: 1, y: 1}

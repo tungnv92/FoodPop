@@ -8,14 +8,16 @@ namespace FoodPop
     [CustomEditor(typeof(LevelConfig))]
     public class LevelConfigInspector : Editor
     {
-        // EN: Draws the open button above the default fields.
-        // VI: Vẽ nút mở công cụ phía trên các field mặc định.
+        // EN: Opens the draft editor and previews asset fields read-only to prevent accidental direct asset edits.
+        // VI: Mở công cụ chỉnh bản nháp và xem field asset ở chế độ chỉ đọc để tránh vô tình sửa trực tiếp asset.
         public override void OnInspectorGUI()
         {
             if (GUILayout.Button("Mở Level Editor", GUILayout.Height(28f)))
                 LevelConfigEditorWindow.Open((LevelConfig)target);
             EditorGUILayout.Space();
-            DrawDefaultInspector();
+            EditorGUILayout.HelpBox("Chỉnh dữ liệu trong Level Editor và bấm Lưu để ghi vào asset. Các field bên dưới chỉ để xem.", MessageType.Info);
+            using (new EditorGUI.DisabledScope(true))
+                DrawDefaultInspector();
         }
     }
 }

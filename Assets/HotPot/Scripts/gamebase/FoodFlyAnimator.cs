@@ -21,14 +21,15 @@ namespace FoodPop
             public ConveyorSlot slot;
             public SpriteRenderer flyer;
             public float pitch;
+            public int arrivalId;
         }
 
         private readonly List<Flight> activeFlights = new List<Flight>();
         private readonly Stack<SpriteRenderer> flyerPool = new Stack<SpriteRenderer>();
         private Transform flyerRoot;
 
-        // EN: Launches one flying portion per target slot from the picked dish, hiding each slot's food until its portion lands.
-        // VI: Phóng một phần bay cho mỗi slot đích từ đĩa vừa chọn, ẩn món trên slot cho tới khi phần đó chạm xuống.
+        // EN: Launches each portion with its slot's arrival identity so later slot reuse cannot steal its landing.
+        // VI: Phóng từng phần cùng mã đáp của slot để việc dùng lại slot không chiếm lần đáp của nó.
         public void Launch(SpriteRenderer source, Vector3 startPosition, Sprite icon, IReadOnlyList<ConveyorSlot> slots)
         {
             if (slots == null || slots.Count == 0 || icon == null || !isActiveAndEnabled)
@@ -47,14 +48,14 @@ namespace FoodPop
                     continue;
                 slot.BeginFoodArrival();
                 SpriteRenderer flyer = RentFlyer(icon, sortingLayer, sortingOrder + i);
-                Flight flight = new Flight { slot = slot, flyer = flyer, pitch = sound != null ? sound.NextPortionPitch() : 1f };
+                Flight flight = new Flight { slot = slot, flyer = flyer, arrivalId = slot.ArrivalId, pitch = sound != null ? sound.NextPortionPitch() : 1f };
                 activeFlights.Add(flight);
                 StartCoroutine(FlyToSlot(flight, startPosition, startScale, startRotation, Config.boardFlight.portionDelay * i));
             }
         }
 
-        // EN: Moves one portion along a parabolic arc toward its slot's current (moving) position, then lands it; cancels quietly if the slot is cleared mid-flight.
-        // VI: Di chuyển một phần theo vòng cung parabol tới vị trí hiện tại (đang chạy) của slot rồi đặt xuống; tự hủy nếu slot bị làm rỗng giữa chừng.
+        // EN: Flies to the moving slot only while the original arrival identity remains valid.
+        // VI: Bay tới slot đang chạy chỉ khi mã đáp ban đầu còn hiệu lực.
         private IEnumerator FlyToSlot(Flight flight, Vector3 start, Vector3 startScale, Quaternion startRotation, float delay)
         {
             Transform flyerTransform = flight.flyer.transform;
@@ -67,7 +68,7 @@ namespace FoodPop
             float time = 0f;
             while (time < Config.boardFlight.flyDuration)
             {
-                if (flight.slot == null || !flight.slot.IsFoodArriving)
+                if (flight.slot == null || !flight.slot.OwnsFoodArrival(flight.arrivalId))
                 {
                     EndFlight(flight, false);
                     yield break;
@@ -94,13 +95,13 @@ namespace FoodPop
             flyer.localScale = Vector3.LerpUnclamped(startScale, slot.LandingScale, progress) * pop;
         }
 
-        // EN: Finishes a flight: returns the flyer to the pool and, when it landed on a slot still waiting for it, reveals the food and reports the landing to IngameSoundManager.
-        // VI: Kết thúc một lượt bay: trả món bay về pool và, nếu chạm đúng slot vẫn đang chờ, hiện món trên slot và báo IngameSoundManager phát tiếng chạm.
+        // EN: Returns the flyer and completes only its own arrival, never a replacement portion's landing.
+        // VI: Trả sprite bay và chỉ hoàn tất mã đáp của nó, không hoàn tất lần đáp của phần thay thế.
         private void EndFlight(Flight flight, bool landed)
         {
             activeFlights.Remove(flight);
             ReturnFlyer(flight.flyer);
-            if (!landed || flight.slot == null || !flight.slot.CompleteFoodArrival())
+            if (!landed || flight.slot == null || !flight.slot.CompleteFoodArrival(flight.arrivalId))
                 return;
             IngameSoundManager.Instance?.PlayFoodLand(flight.pitch);
         }
@@ -143,8 +144,8 @@ namespace FoodPop
             return flyerRoot;
         }
 
-        // EN: When disabled mid-flight, lands every pending portion immediately so no slot stays hidden.
-        // VI: Khi bị tắt giữa lúc bay, đặt ngay mọi phần đang bay xuống để không slot nào bị ẩn mãi.
+        // EN: Lands only owned pending arrivals on disable, leaving newer slot reservations untouched.
+        // VI: Chỉ đáp các lượt còn sở hữu khi tắt, giữ nguyên phần giữ chỗ mới hơn của slot.
         private void OnDisable()
         {
             StopAllCoroutines();
@@ -154,7 +155,7 @@ namespace FoodPop
                 activeFlights.RemoveAt(i);
                 ReturnFlyer(flight.flyer);
                 if (flight.slot != null)
-                    flight.slot.CompleteFoodArrival();
+                    flight.slot.CompleteFoodArrival(flight.arrivalId);
             }
         }
 

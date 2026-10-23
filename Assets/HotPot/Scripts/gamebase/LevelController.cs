@@ -20,8 +20,8 @@ namespace FoodPop
             LoadLevel(levelConfig);
         }
 
-        // EN: Selects the level configuration, fills the ingredient board and loads the customer queues.
-        // VI: Chọn cấu hình level, điền bảng nguyên liệu và nạp hàng khách.
+        // EN: Cancels collection and resets holding storage before loading the board links and customer queues.
+        // VI: Hủy lượt thu và đặt lại kho giữ món trước khi nạp liên kết board cùng hàng khách.
         public void LoadLevel(LevelConfig config)
         {
             if (config == null)
@@ -30,8 +30,12 @@ namespace FoodPop
                 return;
             }
             levelConfig = config;
+            if (BoosterController.Instance != null)
+                BoosterController.Instance.CancelCleanCollection();
+            FoodHoldingStorage storage = FindFirstObjectByType<FoodHoldingStorage>();
+            if (storage != null) storage.ResetForLevel();
             if (boardManager != null)
-                boardManager.LoadIngredientBoard(config.ingredientBoard);
+                boardManager.LoadIngredientBoard(config.ingredientBoard, config.dishLinks);
             else
                 Debug.LogWarning("[LevelController] Chưa gán FoodBoardManager.", this);
             if (customerManager != null)
