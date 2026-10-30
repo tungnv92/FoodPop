@@ -1,0 +1,116 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7716874039c708144adb2f9d4f166024, type: 3}
+  m_Name: MissionControlConfig
+  m_EditorClassIdentifier: 
+  isFeatureEnabled: 1
+  unlockLevelIndex: 36
+  startDay: 5
+  endDay: 1
+  stageInfos:
+  - id: 0
+    rewardInfos:
+    - type: 1
+      value: 30
+    - type: 2
+      value: 1
+    questInfos:
+    - questType: 0
+      amount: 5
+    - questType: 1
+      amount: 1000
+    - questType: 2
+      amount: 10
+    - questType: 3
+      amount: 3
+  - id: 1
+    rewardInfos:
+    - type: 1
+      value: 30
+    - type: 3
+      value: 1
+    - type: 0
+      value: 100
+    questInfos:
+    - questType: 0
+      amount: 8
+    - questType: 1
+      amount: 2000
+    - questType: 2
+      amount: 20
+    - questType: 3
+      amount: 6
+  - id: 2
+    rewardInfos:
+    - type: 1
+      value: 60
+    - type: 4
+      value: 1
+    - type: 0
+      value: 200
+    questInfos:
+    - questType: 0
+      amount: 12
+    - questType: 1
+      amount: 4000
+    - questType: 2
+      amount: 40
+    - questType: 3
+      amount: 10
+  - id: 3
+    rewardInfos:
+    - type: 1
+      value: 60
+    - type: 5
+      value: 1
+    - type: 0
+      value: 300
+    questInfos:
+    - questType: 0
+      amount: 15
+    - questType: 1
+      amount: 6000
+    - questType: 2
+      amount: 80
+    - questType: 3
+      amount: 15
+  questIcons:
+  - questType: 0
+    icon: {fileID: 21300000, guid: e071d1848be5aec4eaf106962d808a19, type: 3}
+  - questType: 1
+    icon: {fileID: 21300000, guid: 5623de151132fe84ca8905ef17b634a5, type: 3}
+  - questType: 2
+    icon: {fileID: 21300000, guid: eb57c90bf14e7314f8b6d7c3e6b6da5d, type: 3}
+  - questType: 3
+    icon: {fileID: 21300000, guid: 9cdfae6906adae148ae9138607b9a065, type: 3}
+  gemIcons:
+  - stageId: 0
+    icon: {fileID: 21300000, guid: 6718579d9ecbf7948b1cbf126cf74b10, type: 3}
+  - stageId: 1
+    icon: {fileID: 21300000, guid: b6344f8f5067b4549a0b0c151fb5f07b, type: 3}
+  - stageId: 2
+    icon: {fileID: 21300000, guid: a13624ab02adc6f4bb90d5d001879ec4, type: 3}
+  - stageId: 3
+    icon: {fileID: 21300000, guid: 2f58dcdfc99275a4793601198575f9b6, type: 3}
+  grandChestRewardInfos:
+  - type: 1
+    value: 120
+  - type: 2
+    value: 1
+  - type: 4
+    value: 1
+  - type: 3
+    value: 1
+  - type: 5
+    value: 1
+  - type: 0
+    value: 1000

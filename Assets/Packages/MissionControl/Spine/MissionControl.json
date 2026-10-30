@@ -1,0 +1,454 @@
+{
+"skeleton": {
+	"hash": "WH5mt+DxXaA",
+	"spine": "4.2.38",
+	"x": -467.06,
+	"y": -472,
+	"width": 936.04,
+	"height": 835.06,
+	"images": "./images/",
+	"audio": "./audio"
+},
+"bones": [
+	{ "name": "root" },
+	{ "name": "MissionControl", "parent": "root" },
+	{ "name": "BG", "parent": "MissionControl", "color": "56ff4aff", "icon": "square" },
+	{ "name": "BG2", "parent": "BG", "y": -305.45, "color": "e245ffff", "icon": "square" },
+	{ "name": "bg_1", "parent": "BG", "x": 3, "y": -131, "color": "abe323ff", "icon": "diamond" },
+	{ "name": "Ye_chest", "parent": "BG2", "rotation": 90, "x": -329, "y": -48.46, "icon": "triangle" },
+	{ "name": "bone", "parent": "Ye_chest", "length": 45, "color": "53ff39ff" },
+	{ "name": "bone5", "parent": "bone", "x": 125.43, "y": 0.97, "color": "53ff39ff" },
+	{ "name": "Ye_chest2", "parent": "BG2", "rotation": 90, "x": -108.64, "y": -48.46, "icon": "triangle" },
+	{ "name": "bone2", "parent": "Ye_chest2", "length": 45, "color": "53ff39ff" },
+	{ "name": "bone6", "parent": "bone2", "x": 125.43, "y": 0.97, "color": "53ff39ff" },
+	{ "name": "Ye_chest3", "parent": "BG2", "rotation": 90, "x": 110.37, "y": -48.46, "icon": "triangle" },
+	{ "name": "bone3", "parent": "Ye_chest3", "length": 45, "y": -1.37, "color": "53ff39ff" },
+	{ "name": "bone7", "parent": "bone3", "x": 125.43, "y": 0.97, "color": "53ff39ff" },
+	{ "name": "Ye_chest4", "parent": "BG2", "rotation": 90, "x": 322.07, "y": -47.63, "icon": "triangle" },
+	{ "name": "bone4", "parent": "Ye_chest4", "length": 45, "color": "53ff39ff" },
+	{ "name": "bone8", "parent": "bone4", "x": 125.43, "y": 0.97, "color": "53ff39ff" },
+	{ "name": "FxShader", "parent": "BG2", "y": 354.39, "color": "4fff40ff", "icon": "star" }
+],
+"slots": [
+	{ "name": "Mask", "bone": "MissionControl", "attachment": "Mask" },
+	{ "name": "bg_1", "bone": "bg_1", "attachment": "bg_1" },
+	{ "name": "base", "bone": "BG2", "attachment": "Center/base" },
+	{ "name": "glass lid", "bone": "BG2", "attachment": "glass lid" },
+	{ "name": "donut", "bone": "BG2", "attachment": "donut" },
+	{ "name": "VIP_close", "bone": "BG2", "attachment": "Center/VIP_close" },
+	{ "name": "glass fr", "bone": "BG2", "attachment": "glass fr" },
+	{ "name": "fl", "bone": "BG2", "attachment": "fl" },
+	{ "name": "yellow lid", "bone": "bone", "attachment": "Ye_chest/yellow lid" },
+	{ "name": "Ye_close", "bone": "bone", "attachment": "Ye_chest/Ye_open" },
+	{ "name": "gr_openlid", "bone": "bone2", "attachment": "green_chest/gr_openlid" },
+	{ "name": "Ye_close2", "bone": "bone2", "attachment": "green_chest/gr_open" },
+	{ "name": "blue lid", "bone": "bone3", "attachment": "violet_chest/blue lid" },
+	{ "name": "Ye_close3", "bone": "bone3", "attachment": "violet_chest/vi_open" },
+	{ "name": "red lid", "bone": "bone4", "attachment": "red_chest/red lid" },
+	{ "name": "Ye_close4", "bone": "bone4", "attachment": "red_chest/red_open" },
+	{ "name": "grand", "bone": "BG2", "attachment": "grand" }
+],
+"transform": [
+	{
+		"name": "bg_1",
+		"bones": [ "BG2" ],
+		"target": "bg_1",
+		"x": -3,
+		"y": -174.45,
+		"mixRotate": 2,
+		"mixX": 2,
+		"mixScaleX": 2,
+		"mixShearY": 2
+	}
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"base": {
+				"Center/base": { "x": -3.05, "y": 242.43, "width": 1040, "height": 980 }
+			},
+			"bg_1": {
+				"bg_1": { "x": -3, "y": 77.43, "width": 1051, "height": 839 }
+			},
+			"blue lid": {
+				"violet_chest/blue lid": { "x": 106.32, "y": 6.95, "rotation": -90, "width": 144, "height": 101 }
+			},
+			"donut": {
+				"donut": { "x": -1.53, "y": 207.73, "width": 338, "height": 89 }
+			},
+			"fl": {
+				"fl": { "x": -0.74, "y": 122.91, "width": 376, "height": 38 }
+			},
+			"glass fr": {
+				"glass fr": { "x": 2.34, "y": 323.35, "width": 427, "height": 343 }
+			},
+			"glass lid": {
+				"glass lid": { "x": 3.06, "y": 323.74, "width": 427, "height": 345 }
+			},
+			"grand": {
+				"grand": { "x": 2.44, "y": 533.24, "width": 271, "height": 51 }
+			},
+			"gr_openlid": {
+				"green_chest/gr_openlid": { "x": 103.46, "y": -9.77, "rotation": -90, "width": 142, "height": 101 }
+			},
+			"Mask": {
+				"Mask": {
+					"type": "clipping",
+					"end": "Mask",
+					"vertexCount": 30,
+					"vertices": [ -466.67, 280.86, -465.18, 292.4, -462.23, 302.75, -457.65, 313.06, -451.45, 324.02, -442.72, 334.55, -434.1, 342.76, -425.56, 349.16, -415.66, 354.52, -404.45, 359.12, -392.32, 362.09, 384.88, 363.06, 397.95, 361.09, 412.69, 356.79, 426.61, 349.56, 432.7, 345.36, 441.27, 338.39, 449.5, 328.98, 456.09, 319.5, 463.3, 304.1, 467.36, 289.45, 468.72, 279.85, 468.98, -464.5, 467.28, -467.44, 464.03, -470.36, 460.92, -471.95, -459.57, -472, -462.89, -469.77, -465.2, -467.35, -467.06, -464.23 ],
+					"color": "6866ffff"
+				}
+			},
+			"red lid": {
+				"red_chest/red lid": { "x": 101.29, "y": 12.76, "rotation": -90, "width": 141, "height": 99 }
+			},
+			"VIP_close": {
+				"Center/VIP_close": { "x": 3.9, "y": 335.08, "scaleX": 0.6061, "scaleY": 0.6061, "width": 435, "height": 367 }
+			},
+			"yellow lid": {
+				"Ye_chest/yellow lid": { "x": 82.78, "y": -21.91, "rotation": -90, "width": 146, "height": 101 }
+			},
+			"Ye_close": {
+				"Ye_chest/Ye_close": { "x": 61.03, "y": -24.19, "rotation": -90, "width": 135, "height": 161 },
+				"Ye_chest/Ye_open": { "x": 41.85, "y": -24.5, "rotation": -90, "width": 139, "height": 95 }
+			},
+			"Ye_close2": {
+				"green_chest/gr_closse": { "x": 61.03, "y": -6.91, "rotation": -90, "width": 136, "height": 141 },
+				"green_chest/gr_open": { "x": 38.94, "y": -6.52, "rotation": -90, "width": 137, "height": 94 }
+			},
+			"Ye_close3": {
+				"violet_chest/vi_close": { "x": 61.03, "y": 4.39, "rotation": -90, "width": 140, "height": 141 },
+				"violet_chest/vi_open": { "x": 40.76, "y": 5.42, "rotation": -90, "width": 141, "height": 95 }
+			},
+			"Ye_close4": {
+				"red_chest/red_close": { "x": 60.2, "y": 10.83, "rotation": -90, "width": 133, "height": 140 },
+				"red_chest/red_open": { "x": 37.7, "y": 12.86, "rotation": -90, "width": 138, "height": 92 }
+			}
+		}
+	}
+],
+"animations": {
+	"CloseIdle": {
+		"slots": {
+			"base": {
+				"attachment": [
+					{ "name": "Center/base" }
+				]
+			},
+			"bg_1": {
+				"attachment": [
+					{ "name": "bg_1" }
+				]
+			},
+			"blue lid": {
+				"attachment": [
+					{}
+				]
+			},
+			"donut": {
+				"attachment": [
+					{ "name": "donut" }
+				]
+			},
+			"fl": {
+				"attachment": [
+					{}
+				]
+			},
+			"glass fr": {
+				"attachment": [
+					{ "name": "glass fr" }
+				]
+			},
+			"glass lid": {
+				"attachment": [
+					{ "name": "glass lid" }
+				]
+			},
+			"grand": {
+				"attachment": [
+					{ "name": "grand" }
+				]
+			},
+			"gr_openlid": {
+				"attachment": [
+					{}
+				]
+			},
+			"Mask": {
+				"attachment": [
+					{ "name": "Mask" }
+				]
+			},
+			"red lid": {
+				"attachment": [
+					{}
+				]
+			},
+			"VIP_close": {
+				"attachment": [
+					{ "name": "Center/VIP_close" }
+				]
+			},
+			"yellow lid": {
+				"attachment": [
+					{}
+				]
+			},
+			"Ye_close": {
+				"attachment": [
+					{ "name": "Ye_chest/Ye_close" }
+				]
+			},
+			"Ye_close2": {
+				"attachment": [
+					{ "name": "green_chest/gr_closse" }
+				]
+			},
+			"Ye_close3": {
+				"attachment": [
+					{ "name": "violet_chest/vi_close" }
+				]
+			},
+			"Ye_close4": {
+				"attachment": [
+					{ "name": "red_chest/red_close" }
+				]
+			}
+		}
+	},
+	"Open": {
+		"slots": {
+			"base": {
+				"attachment": [
+					{ "name": "Center/base" }
+				]
+			},
+			"bg_1": {
+				"attachment": [
+					{ "name": "bg_1" }
+				]
+			},
+			"blue lid": {
+				"attachment": [
+					{ "name": "violet_chest/blue lid" }
+				]
+			},
+			"donut": {
+				"attachment": [
+					{ "name": "donut" }
+				]
+			},
+			"fl": {
+				"attachment": [
+					{ "name": "fl" }
+				]
+			},
+			"glass fr": {
+				"attachment": [
+					{ "name": "glass fr" }
+				]
+			},
+			"glass lid": {
+				"attachment": [
+					{ "name": "glass lid" }
+				]
+			},
+			"grand": {
+				"attachment": [
+					{ "name": "grand" }
+				]
+			},
+			"gr_openlid": {
+				"attachment": [
+					{ "name": "green_chest/gr_openlid" }
+				]
+			},
+			"Mask": {
+				"attachment": [
+					{ "name": "Mask" }
+				]
+			},
+			"red lid": {
+				"attachment": [
+					{ "name": "red_chest/red lid" }
+				]
+			},
+			"VIP_close": {
+				"attachment": [
+					{ "name": "Center/VIP_close" }
+				]
+			},
+			"yellow lid": {
+				"attachment": [
+					{ "name": "Ye_chest/yellow lid" }
+				]
+			},
+			"Ye_close": {
+				"attachment": [
+					{ "name": "Ye_chest/Ye_open" }
+				]
+			},
+			"Ye_close2": {
+				"attachment": [
+					{ "name": "green_chest/gr_open" }
+				]
+			},
+			"Ye_close3": {
+				"attachment": [
+					{ "name": "violet_chest/vi_open" }
+				]
+			},
+			"Ye_close4": {
+				"attachment": [
+					{ "name": "red_chest/red_open" }
+				]
+			}
+		},
+		"bones": {
+			"bg_1": {
+				"translate": [
+					{
+						"curve": [ 0.056, 0, 0.111, 0, 0.056, -8.49, 0.111, -18.96 ]
+					},
+					{
+						"time": 0.1667,
+						"y": -25.48,
+						"curve": [ 0.244, 0, 0.322, 0, 0.244, -34.61, 0.322, -41.43 ]
+					},
+					{
+						"time": 0.4,
+						"y": -46.94,
+						"curve": [ 0.467, 0, 0.533, 0, 0.467, -51.66, 0.533, -56.18 ]
+					},
+					{
+						"time": 0.6,
+						"y": -56.18,
+						"curve": [ 0.7, 0, 0.8, 0, 0.7, -56.18, 0.8, -46.38 ]
+					},
+					{ "time": 0.9, "y": -41.48 }
+				],
+				"scale": [
+					{
+						"curve": [ 0.133, 1.071, 0.267, 1.199, 0.133, 1.071, 0.267, 1.199 ]
+					},
+					{
+						"time": 0.4,
+						"x": 1.213,
+						"y": 1.213,
+						"curve": [ 0.467, 1.22, 0.533, 1.22, 0.467, 1.22, 0.533, 1.22 ]
+					},
+					{
+						"time": 0.6,
+						"x": 1.22,
+						"y": 1.22,
+						"curve": [ 0.7, 1.22, 0.8, 1.215, 0.7, 1.22, 0.8, 1.215 ]
+					},
+					{ "time": 0.9, "x": 1.213, "y": 1.213 }
+				]
+			}
+		}
+	},
+	"OpenIdle": {
+		"slots": {
+			"base": {
+				"attachment": [
+					{ "name": "Center/base" }
+				]
+			},
+			"bg_1": {
+				"attachment": [
+					{ "name": "bg_1" }
+				]
+			},
+			"blue lid": {
+				"attachment": [
+					{ "name": "violet_chest/blue lid" }
+				]
+			},
+			"donut": {
+				"attachment": [
+					{ "name": "donut" }
+				]
+			},
+			"fl": {
+				"attachment": [
+					{ "name": "fl" }
+				]
+			},
+			"glass fr": {
+				"attachment": [
+					{ "name": "glass fr" }
+				]
+			},
+			"glass lid": {
+				"attachment": [
+					{ "name": "glass lid" }
+				]
+			},
+			"grand": {
+				"attachment": [
+					{ "name": "grand" }
+				]
+			},
+			"gr_openlid": {
+				"attachment": [
+					{ "name": "green_chest/gr_openlid" }
+				]
+			},
+			"Mask": {
+				"attachment": [
+					{ "name": "Mask" }
+				]
+			},
+			"red lid": {
+				"attachment": [
+					{ "name": "red_chest/red lid" }
+				]
+			},
+			"VIP_close": {
+				"attachment": [
+					{}
+				]
+			},
+			"yellow lid": {
+				"attachment": [
+					{ "name": "Ye_chest/yellow lid" }
+				]
+			},
+			"Ye_close": {
+				"attachment": [
+					{ "name": "Ye_chest/Ye_open" }
+				]
+			},
+			"Ye_close2": {
+				"attachment": [
+					{ "name": "green_chest/gr_open" }
+				]
+			},
+			"Ye_close3": {
+				"attachment": [
+					{ "name": "violet_chest/vi_open" }
+				]
+			},
+			"Ye_close4": {
+				"attachment": [
+					{ "name": "red_chest/red_open" }
+				]
+			}
+		},
+		"bones": {
+			"bg_1": {
+				"translate": [
+					{ "y": -41.48 }
+				],
+				"scale": [
+					{ "x": 1.213, "y": 1.213 }
+				]
+			}
+		}
+	}
+}
+}

@@ -20,9 +20,11 @@ namespace TMPro.Examples
             m_TextComponent = gameObject.GetComponent<TMP_Text>();
         }
 
-
-        void Start()
+        private void OnEnable()
         {
+            CurveScale /= 10;
+            m_TextComponent.havePropertiesChanged = true;
+            StopAllCoroutines();
             StartCoroutine(WarpText());
         }
 
@@ -53,14 +55,16 @@ namespace TMPro.Examples
             Matrix4x4 matrix;
 
             m_TextComponent.havePropertiesChanged = true; // Need to force the TextMeshPro Object to be updated.
-            CurveScale *= 10;
             float old_CurveScale = CurveScale;
+            CurveScale *= 10;
             AnimationCurve old_curve = CopyAnimationCurve(VertexCurve);
 
+            yield return new WaitForSeconds(0.05f);
             while (true)
             {
                 if (!m_TextComponent.havePropertiesChanged && old_CurveScale == CurveScale && old_curve.keys[1].value == VertexCurve.keys[1].value)
                 {
+                    //Debug.LogError("Continue");
                     yield return null;
                     continue;
                 }
@@ -74,7 +78,13 @@ namespace TMPro.Examples
                 int characterCount = textInfo.characterCount;
 
 
-                if (characterCount == 0) continue;
+                if (characterCount == 0)
+                {
+                    Debug.LogError("Char count  = 0");
+                    continue;
+                }
+
+                //Debug.LogError("Warp");
 
                 //vertices = textInfo.meshInfo[0].vertices;
                 //int lastVertexIndex = textInfo.characterInfo[characterCount - 1].vertexIndex;

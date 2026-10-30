@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 038f6a11ec3e07045b977eb7722c4bd5, type: 3}
+  m_Name: LavaQuestConfig
+  m_EditorClassIdentifier: 
+  isFeatureEnabled: 1
+  LevelActiveFeature: 26
+  goldAmount: 10000
+  MAX_MILESTONE_AMOUNT: 7
+  initialPlayers: 100
+  rejoinCooldownMinutes: 30
+  minFinalParticipants: 9
+  maxFinalParticipants: 14
