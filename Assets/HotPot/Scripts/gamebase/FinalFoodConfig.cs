@@ -4,12 +4,12 @@ using UnityEngine;
 
 namespace FoodPop
 {
-    // EN: Table of final dishes customers can order: each entry lists the 2-6 distinct ingredients that make the dish and its sprite.
-    // VI: Bảng các món hoàn chỉnh (final food) khách có thể order: mỗi dòng liệt kê 2-6 nguyên liệu khác nhau tạo nên món và ảnh của món.
+    // EN: Table of final dishes customers can order: each entry lists the 1-6 distinct ingredients that make the dish and its sprite.
+    // VI: Bảng các món hoàn chỉnh (final food) khách có thể order: mỗi dòng liệt kê 1-6 nguyên liệu khác nhau tạo nên món và ảnh của món.
     [CreateAssetMenu(fileName = "FinalFoodConfig", menuName = "Hot Pot/Final Food Config")]
     public class FinalFoodConfig : ScriptableObject
     {
-        public const int MinIngredients = 2;
+        public const int MinIngredients = 1;
         public const int MaxIngredients = 6;
 
         // EN: One final dish: its ID, display name, sprite and the ingredients needed (one of each).
@@ -23,7 +23,7 @@ namespace FoodPop
             public string displayName;
             [Tooltip("Ảnh món hoàn chỉnh hiện trên thẻ order.")]
             public Sprite sprite;
-            [Tooltip("Các nguyên liệu tạo nên món (2 đến 6 loại, mỗi loại một).")]
+            [Tooltip("Các nguyên liệu tạo nên món hoặc đồ uống (1 đến 6 loại, mỗi loại một); nước và cốc có sẵn.")]
             public List<FoodType> ingredients = new List<FoodType>();
 
             // EN: Number of ingredients in the recipe.
@@ -48,6 +48,23 @@ namespace FoodPop
             return null;
         }
 
+        // EN: Finds optional dish artwork by exact ingredient quantities, independent of selection order.
+        // VI: Tìm ảnh món tùy chọn theo đúng số lượng nguyên liệu, không phụ thuộc thứ tự chọn.
+        public FinalFoodRecipe FindMatchingRecipe(IReadOnlyList<FoodType> ingredients)
+        {
+            if (ingredients == null || ingredients.Count == 0) return null;
+            foreach (FinalFoodRecipe recipe in recipes)
+            {
+                if (recipe?.ingredients == null || recipe.ingredients.Count != ingredients.Count) continue;
+                var remaining = new List<FoodType>(recipe.ingredients);
+                bool matches = true;
+                foreach (FoodType type in ingredients)
+                    if (!remaining.Remove(type)) { matches = false; break; }
+                if (matches) return recipe;
+            }
+            return null;
+        }
+
         // EN: Returns the ingredients of a final dish (empty when unknown).
         // VI: Trả về danh sách nguyên liệu của món hoàn chỉnh (rỗng nếu không có).
         public IReadOnlyList<FoodType> GetIngredients(FinalFoodType type)
@@ -64,8 +81,8 @@ namespace FoodPop
             return recipe != null ? recipe.sprite : null;
         }
 
-        // EN: Collects every recipe that uses exactly the given number of ingredients (2-6).
-        // VI: Lấy mọi công thức có đúng số nguyên liệu cho trước (2-6).
+        // EN: Collects every recipe that uses exactly the given number of ingredients (1-6).
+        // VI: Lấy mọi công thức có đúng số nguyên liệu cho trước (1-6).
         public List<FinalFoodRecipe> GetRecipesWithIngredientCount(int count)
         {
             List<FinalFoodRecipe> result = new List<FinalFoodRecipe>();
@@ -104,8 +121,13 @@ namespace FoodPop
 
         private static readonly DefaultRecipe[] Defaults =
         {
+            new DefaultRecipe(FinalFoodType.TeriyakiChickenSkewer, "Xiên gà teriyaki", "teriyaki-chicken-skewer", 2, FoodType.ChickenBites, FoodType.TeriyakiSauce),
+            new DefaultRecipe(FinalFoodType.BoiledEdamame, "Edamame luộc", "boiled-edamame", 1, FoodType.Edamame),
+            new DefaultRecipe(FinalFoodType.SaltedEdamame, "Edamame luộc rắc muối", "salted-edamame", 2, FoodType.Edamame, FoodType.Salt),
+            new DefaultRecipe(FinalFoodType.GreenTea, "Trà xanh nóng", "green-tea", 1, FoodType.TeaLeaves),
+            new DefaultRecipe(FinalFoodType.IcedGreenTea, "Trà xanh đá", "iced-green-tea", 2, FoodType.TeaLeaves, FoodType.Ice),
             new DefaultRecipe(FinalFoodType.SakeNigiri2, "Nigiri cá hồi (2 món)", "sake", 2, FoodType.SushiRice, FoodType.Salmon),
-            new DefaultRecipe(FinalFoodType.SakeNigiri3, "Nigiri cá hồi (3 món)", "sake", 3, FoodType.SushiRice, FoodType.Salmon, FoodType.SalmonRoe),
+            new DefaultRecipe(FinalFoodType.SakeNigiri3, "Nigiri cá hồi (3 món)", "sake", 3, FoodType.SushiRice, FoodType.Salmon, FoodType.Wasabi),
             new DefaultRecipe(FinalFoodType.SakeNigiri4, "Nigiri cá hồi (4 món)", "sake", 4, FoodType.SushiRice, FoodType.Salmon, FoodType.SalmonRoe, FoodType.Seaweed),
             new DefaultRecipe(FinalFoodType.SakeNigiri5, "Nigiri cá hồi (5 món)", "sake", 5, FoodType.SushiRice, FoodType.Salmon, FoodType.SalmonRoe, FoodType.Seaweed, FoodType.Cucumber),
             new DefaultRecipe(FinalFoodType.SakeNigiri6, "Nigiri cá hồi (6 món)", "sake", 6, FoodType.SushiRice, FoodType.Salmon, FoodType.SalmonRoe, FoodType.Seaweed, FoodType.Cucumber, FoodType.Wasabi),
@@ -115,32 +137,28 @@ namespace FoodPop
             new DefaultRecipe(FinalFoodType.MaguroNigiri5, "Nigiri cá ngừ (5 món)", "maguro", 5, FoodType.SushiRice, FoodType.Tuna, FoodType.Wasabi, FoodType.Seaweed, FoodType.Cucumber),
             new DefaultRecipe(FinalFoodType.MaguroNigiri6, "Nigiri cá ngừ (6 món)", "maguro", 6, FoodType.SushiRice, FoodType.Tuna, FoodType.Wasabi, FoodType.Seaweed, FoodType.Cucumber, FoodType.SoySauce),
             new DefaultRecipe(FinalFoodType.EbiNigiri2, "Nigiri tôm (2 món)", "ebi", 2, FoodType.SushiRice, FoodType.Shrimp),
-            new DefaultRecipe(FinalFoodType.EbiNigiri3, "Nigiri tôm (3 món)", "ebi", 3, FoodType.SushiRice, FoodType.Shrimp, FoodType.Cucumber),
+            new DefaultRecipe(FinalFoodType.EbiNigiri3, "Nigiri tôm (3 món)", "ebi", 3, FoodType.SushiRice, FoodType.Shrimp, FoodType.Wasabi),
             new DefaultRecipe(FinalFoodType.EbiNigiri4, "Nigiri tôm (4 món)", "ebi", 4, FoodType.SushiRice, FoodType.Shrimp, FoodType.Cucumber, FoodType.Seaweed),
             new DefaultRecipe(FinalFoodType.EbiNigiri5, "Nigiri tôm (5 món)", "ebi", 5, FoodType.SushiRice, FoodType.Shrimp, FoodType.Cucumber, FoodType.Seaweed, FoodType.SalmonRoe),
             new DefaultRecipe(FinalFoodType.EbiNigiri6, "Nigiri tôm (6 món)", "ebi", 6, FoodType.SushiRice, FoodType.Shrimp, FoodType.Cucumber, FoodType.Seaweed, FoodType.SalmonRoe, FoodType.SoySauce),
-            new DefaultRecipe(FinalFoodType.TamagoNigiri2, "Nigiri trứng cuộn (2 món)", "tamago", 2, FoodType.SushiRice, FoodType.Tamagoyaki),
-            new DefaultRecipe(FinalFoodType.TamagoNigiri3, "Nigiri trứng cuộn (3 món)", "tamago", 3, FoodType.SushiRice, FoodType.Tamagoyaki, FoodType.Seaweed),
             new DefaultRecipe(FinalFoodType.TamagoNigiri4, "Nigiri trứng cuộn (4 món)", "tamago", 4, FoodType.SushiRice, FoodType.Tamagoyaki, FoodType.Seaweed, FoodType.Cucumber),
             new DefaultRecipe(FinalFoodType.TamagoNigiri5, "Nigiri trứng cuộn (5 món)", "tamago", 5, FoodType.SushiRice, FoodType.Tamagoyaki, FoodType.Seaweed, FoodType.Cucumber, FoodType.CrabStick),
             new DefaultRecipe(FinalFoodType.TamagoNigiri6, "Nigiri trứng cuộn (6 món)", "tamago", 6, FoodType.SushiRice, FoodType.Tamagoyaki, FoodType.Seaweed, FoodType.Cucumber, FoodType.CrabStick, FoodType.PickledGinger),
             new DefaultRecipe(FinalFoodType.UnagiNigiri2, "Nigiri lươn (2 món)", "unagi", 2, FoodType.SushiRice, FoodType.Unagi),
-            new DefaultRecipe(FinalFoodType.UnagiNigiri3, "Nigiri lươn (3 món)", "unagi", 3, FoodType.SushiRice, FoodType.Unagi, FoodType.Cucumber),
+            new DefaultRecipe(FinalFoodType.UnagiNigiri3, "Nigiri lươn (3 món)", "unagi", 3, FoodType.SushiRice, FoodType.Unagi, FoodType.Wasabi),
             new DefaultRecipe(FinalFoodType.UnagiNigiri4, "Nigiri lươn (4 món)", "unagi", 4, FoodType.SushiRice, FoodType.Unagi, FoodType.Cucumber, FoodType.Seaweed),
             new DefaultRecipe(FinalFoodType.UnagiNigiri5, "Nigiri lươn (5 món)", "unagi", 5, FoodType.SushiRice, FoodType.Unagi, FoodType.Cucumber, FoodType.Seaweed, FoodType.Tamagoyaki),
             new DefaultRecipe(FinalFoodType.UnagiNigiri6, "Nigiri lươn (6 món)", "unagi", 6, FoodType.SushiRice, FoodType.Unagi, FoodType.Cucumber, FoodType.Seaweed, FoodType.Tamagoyaki, FoodType.SoySauce),
             new DefaultRecipe(FinalFoodType.TakoNigiri2, "Nigiri bạch tuộc (2 món)", "tako", 2, FoodType.SushiRice, FoodType.Octopus),
-            new DefaultRecipe(FinalFoodType.TakoNigiri3, "Nigiri bạch tuộc (3 món)", "tako", 3, FoodType.SushiRice, FoodType.Octopus, FoodType.Seaweed),
+            new DefaultRecipe(FinalFoodType.TakoNigiri3, "Nigiri bạch tuộc (3 món)", "tako", 3, FoodType.SushiRice, FoodType.Octopus, FoodType.Wasabi),
             new DefaultRecipe(FinalFoodType.TakoNigiri4, "Nigiri bạch tuộc (4 món)", "tako", 4, FoodType.SushiRice, FoodType.Octopus, FoodType.Seaweed, FoodType.Cucumber),
             new DefaultRecipe(FinalFoodType.TakoNigiri5, "Nigiri bạch tuộc (5 món)", "tako", 5, FoodType.SushiRice, FoodType.Octopus, FoodType.Seaweed, FoodType.Cucumber, FoodType.SalmonRoe),
             new DefaultRecipe(FinalFoodType.TakoNigiri6, "Nigiri bạch tuộc (6 món)", "tako", 6, FoodType.SushiRice, FoodType.Octopus, FoodType.Seaweed, FoodType.Cucumber, FoodType.SalmonRoe, FoodType.Wasabi),
             new DefaultRecipe(FinalFoodType.HotateNigiri2, "Nigiri sò điệp (2 món)", "hotate", 2, FoodType.SushiRice, FoodType.Scallop),
-            new DefaultRecipe(FinalFoodType.HotateNigiri3, "Nigiri sò điệp (3 món)", "hotate", 3, FoodType.SushiRice, FoodType.Scallop, FoodType.SalmonRoe),
+            new DefaultRecipe(FinalFoodType.HotateNigiri3, "Nigiri sò điệp (3 món)", "hotate", 3, FoodType.SushiRice, FoodType.Scallop, FoodType.Wasabi),
             new DefaultRecipe(FinalFoodType.HotateNigiri4, "Nigiri sò điệp (4 món)", "hotate", 4, FoodType.SushiRice, FoodType.Scallop, FoodType.SalmonRoe, FoodType.Seaweed),
             new DefaultRecipe(FinalFoodType.HotateNigiri5, "Nigiri sò điệp (5 món)", "hotate", 5, FoodType.SushiRice, FoodType.Scallop, FoodType.SalmonRoe, FoodType.Seaweed, FoodType.Cucumber),
             new DefaultRecipe(FinalFoodType.HotateNigiri6, "Nigiri sò điệp (6 món)", "hotate", 6, FoodType.SushiRice, FoodType.Scallop, FoodType.SalmonRoe, FoodType.Seaweed, FoodType.Cucumber, FoodType.Wasabi),
-            new DefaultRecipe(FinalFoodType.KanikamaNigiri2, "Nigiri thanh cua (2 món)", "kanikama", 2, FoodType.SushiRice, FoodType.CrabStick),
-            new DefaultRecipe(FinalFoodType.KanikamaNigiri3, "Nigiri thanh cua (3 món)", "kanikama", 3, FoodType.SushiRice, FoodType.CrabStick, FoodType.Seaweed),
             new DefaultRecipe(FinalFoodType.KanikamaNigiri4, "Nigiri thanh cua (4 món)", "kanikama", 4, FoodType.SushiRice, FoodType.CrabStick, FoodType.Seaweed, FoodType.Cucumber),
             new DefaultRecipe(FinalFoodType.KanikamaNigiri5, "Nigiri thanh cua (5 món)", "kanikama", 5, FoodType.SushiRice, FoodType.CrabStick, FoodType.Seaweed, FoodType.Cucumber, FoodType.Tamagoyaki),
             new DefaultRecipe(FinalFoodType.KanikamaNigiri6, "Nigiri thanh cua (6 món)", "kanikama", 6, FoodType.SushiRice, FoodType.CrabStick, FoodType.Seaweed, FoodType.Cucumber, FoodType.Tamagoyaki, FoodType.SoySauce),
@@ -169,11 +187,17 @@ namespace FoodPop
             UnityEditor.EditorUtility.SetDirty(this);
         }
 
-        // EN: Loads the sprite of a final dish from Final/<tier>/<slug>-nigiri.png, accepting textures imported with several sprites.
-        // VI: Nạp ảnh món hoàn chỉnh từ Final/<số món>/<slug>-nigiri.png, chấp nhận cả texture được import thành nhiều sprite.
+        // EN: Loads drinks, sides and yakitori from feature folders or sushi by tier, supporting multi-sprite textures.
+        // VI: Nạp ảnh đồ uống, món phụ và xiên gà theo thư mục chức năng hoặc sushi theo cấp, hỗ trợ texture nhiều sprite.
         private static Sprite LoadFinalSprite(int tier, string slug)
         {
-            string path = $"{FinalSpriteFolder}/{tier}/{slug}-nigiri.png";
+            string path = slug == "teriyaki-chicken-skewer"
+                ? $"Assets/HotPot/Art/Sprites/Foods/Yakitori/Final/{slug}.png"
+                : slug == "green-tea" || slug == "iced-green-tea"
+                ? $"Assets/HotPot/Art/Sprites/Foods/Drinks/Final/{slug}.png"
+                : slug == "boiled-edamame" || slug == "salted-edamame"
+                    ? $"Assets/HotPot/Art/Sprites/Foods/Edamame/Final/{slug}.png"
+                    : $"{FinalSpriteFolder}/{tier}/{slug}-nigiri.png";
             Sprite sprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
             if (sprite != null)
                 return sprite;
@@ -186,8 +210,8 @@ namespace FoodPop
             return null;
         }
 
-        // EN: Warns about recipes with a missing type, an ingredient count outside 2-6, empty or repeated ingredients, or a duplicated final dish.
-        // VI: Cảnh báo công thức thiếu loại món, số nguyên liệu ngoài khoảng 2-6, nguyên liệu trống hoặc trùng, hoặc món hoàn chỉnh bị lặp.
+        // EN: Warns about recipes with a missing type, an ingredient count outside 1-6, empty or repeated ingredients, or a duplicated final dish.
+        // VI: Cảnh báo công thức thiếu loại món, số nguyên liệu ngoài khoảng 1-6, nguyên liệu trống hoặc trùng, hoặc món hoàn chỉnh bị lặp.
         private void OnValidate()
         {
             HashSet<FinalFoodType> seen = new HashSet<FinalFoodType>();

@@ -29,6 +29,16 @@ namespace FoodPop
         private bool pickupCameraMoved;
         private float pickupCameraRestY;
         private Coroutine cameraMove;
+        private bool pickupInputWasLocked;
+        private bool pickupOwnsInput;
+        private readonly List<PickupPose> pickupPoses = new List<PickupPose>();
+        private sealed class PickupPose
+        {
+            public Food dish;
+            public Vector3 position, scale;
+            public int[] orders;
+            public int boost;
+        }
         private ConveyorChefMovement collectionBelt;
         private ChefManager collectionChef;
         private CustomerManager collectionCustomers;
@@ -46,6 +56,45 @@ namespace FoodPop
         // EN: True while a booster is running its effect.
         // VI: True khi một booster đang chạy hiệu ứng.
         public bool IsRunning => running;
+
+        // EN: Checks whether revive can reuse Clean's configured effects and storage without starting a booster.
+        // VI: Kiểm tra hồi sinh có thể dùng lại hiệu ứng và kho của Clean mà chưa bắt đầu booster.
+        public bool CanCleanForRevive()
+        {
+            return isActiveAndEnabled && !running && !cleanPending && board != null &&
+                holdingStorage != null && holdingStorage.IsReady && !holdingStorage.IsReturning &&
+                FindCleanSettings() != null && ChefManager.Instance != null &&
+                ChefManager.Instance.HasFoodOnBelt() && FindFirstObjectByType<ConveyorChefMovement>() != null;
+        }
+
+        // EN: Uses the existing Clean component even when its button is hidden, preserving its effects and tuning.
+        // VI: Dùng component Clean hiện có kể cả khi nút bị ẩn, giữ nguyên hiệu ứng và thông số.
+        private CleanBrushBooster FindCleanSettings()
+        {
+            foreach (Booster booster in boosters)
+                if (booster is CleanBrushBooster clean) return clean;
+            return GetComponentInChildren<CleanBrushBooster>(true);
+        }
+
+        // EN: Starts the normal locked Clean collection for revive without consuming or tapping a booster button.
+        // VI: Bắt đầu lượt thu Clean khóa thao tác để hồi sinh mà không tiêu hao hoặc bấm nút booster.
+        public bool TryCleanForRevive(System.Action<bool> completed)
+        {
+            if (Time.timeScale <= 0f || !CanCleanForRevive()) return false;
+            CleanBrushBooster settings = FindCleanSettings();
+            cleanPending = true;
+            StartCoroutine(RunReviveClean(settings, completed));
+            return true;
+        }
+
+        // EN: Reports completion only after Clean has released its pause and input locks and freed conveyor space.
+        // VI: Báo hoàn tất sau khi Clean nhả tạm dừng, khóa thao tác và giải phóng chỗ trên băng chuyền.
+        private IEnumerator RunReviveClean(CleanBrushBooster settings, System.Action<bool> completed)
+        {
+            yield return RunLocked(CleanBrush(settings));
+            ChefManager chef = ChefManager.Instance;
+            completed?.Invoke(chef != null && chef.CountEmptySlots() > 0);
+        }
 
         // EN: Clears the static instance when entering Play Mode with domain reload disabled.
         // VI: Xóa instance tĩnh khi vào Play Mode lúc tắt tải lại miền mã.
@@ -77,11 +126,12 @@ namespace FoodPop
                 instance = null;
         }
 
-        // EN: Releases collection-owned pause and input locks when the controller is disabled.
-        // VI: Giải phóng cờ tạm dừng và khóa input do lượt thu giữ khi controller bị tắt.
+        // EN: Releases Clean and Pickup-owned animation and input state when disabled.
+        // VI: Giải phóng hoạt cảnh cùng trạng thái input của Clean và Pickup khi bị tắt.
         private void OnDisable()
         {
             CancelCleanCollection();
+            CancelPickupForReplay();
         }
 
         // EN: Cancels pending collection flights on replay or disable and restores stored portions and pause ownership.
@@ -107,10 +157,11 @@ namespace FoodPop
             SetBoosterRootVisible(true);
         }
 
-        // EN: While PickupHand is selecting, drives the selection; otherwise activates the booster whose icon was tapped this frame.
-        // VI: Khi PickupHand đang chọn đĩa thì điều khiển việc chọn; ngược lại kích hoạt booster có icon vừa được chạm trong frame này.
+        // EN: Handles booster selection and taps only while gameplay time is running.
+        // VI: Xử lý chọn và chạm booster chỉ khi thời gian gameplay đang chạy.
         private void Update()
         {
+            if (Time.timeScale <= 0f) return;
             if (pickupSelecting != null)
             {
                 UpdatePickupSelection();
@@ -128,10 +179,11 @@ namespace FoodPop
             }
         }
 
-        // EN: Runs a booster when its conditions hold; otherwise shakes its icon and logs why. Returns true when it started.
-        // VI: Chạy booster khi đủ điều kiện; nếu không thì lắc icon và ghi log lý do. Trả về true khi đã bắt đầu chạy.
+        // EN: Runs eligible boosters and shows short messages for Pickup rejection or an empty Clean belt.
+        // VI: Chạy booster đủ điều kiện và hiện thông báo ngắn khi Pickup bị từ chối hoặc Clean gặp băng trống.
         public bool TryActivate(Booster booster)
         {
+            if (Time.timeScale <= 0f) return false;
             string reason = booster == null ? "không có booster"
                 : running ? "đang có booster khác chạy"
                 : CanUse(booster);
@@ -140,6 +192,10 @@ namespace FoodPop
                 if (booster != null)
                 {
                     booster.PlayDenied();
+                    if (booster is CleanBrushBooster && reason == "băng chuyền đang trống")
+                        UIManager.Instance?.ShowShortMessage("Băng chuyền đang trống");
+                    else if (booster is PickupHandBooster)
+                        UIManager.Instance?.ShowShortMessage(reason);
                     Debug.Log($"[BoosterController] Không dùng được {booster.Type}: {reason}.", booster);
                 }
                 return false;
@@ -194,12 +250,12 @@ namespace FoodPop
             }
         }
 
-        // EN: Locks board input during a booster and restores the previous lock and buttons when the routine ends or is cancelled.
-        // VI: Khóa thao tác board trong lượt booster và khôi phục khóa trước đó cùng các nút khi routine xong hoặc bị hủy.
-        private IEnumerator RunLocked(IEnumerator routine)
+        // EN: Locks input during execution, optionally restoring the lock from before Pickup selection rather than its temporary lock.
+        // VI: Khóa input khi chạy, có thể khôi phục khóa trước chế độ chọn Pickup thay vì khóa tạm của chế độ chọn.
+        private IEnumerator RunLocked(IEnumerator routine, bool? restoreInputLock = null)
         {
             SetBusy(true);
-            bool wasLocked = board.InputLocked;
+            bool wasLocked = restoreInputLock ?? board.InputLocked;
             collectionInputWasLocked = wasLocked;
             board.InputLocked = true;
             try
@@ -210,6 +266,7 @@ namespace FoodPop
             {
                 cleanPending = false;
                 if (board != null) board.InputLocked = wasLocked;
+                if (restoreInputLock.HasValue) pickupOwnsInput = false;
                 SetBusy(false);
                 SetBoosterRootVisible(true);
             }
@@ -241,11 +298,11 @@ namespace FoodPop
 
         // ---------------------------------------------------------------- PickupHand
 
-        // EN: Returns null when at least one dish within the first maxRows rows can be taken right now (not frozen and the conveyor has enough free slots for all of its portions), otherwise the reason.
-        // VI: Trả về null khi có ít nhất một đĩa trong maxRows hàng đầu lấy được ngay lúc này (không đóng băng và băng chuyền đủ slot trống cho mọi phần của đĩa), ngược lại trả về lý do.
+        // EN: Checks visible groups and reports ice or capacity using the same rules as selection.
+        // VI: Kiểm tra nhóm trong vùng chọn và báo băng hoặc sức chứa theo cùng quy tắc lựa chọn.
         private string CanPickup(int maxRows)
         {
-            bool anyUnfrozen = false;
+            string blocked = null, capacity = null;
             int freeSlots = CountFreeSlots();
             for (int c = 0; c < board.ColumnCount; c++)
             {
@@ -253,14 +310,15 @@ namespace FoodPop
                 for (int r = 0; r < column.Count && r < maxRows; r++)
                 {
                     Food dish = column[r];
-                    if (dish == null || dish.IsFrozen)
+                    if (dish == null)
                         continue;
-                    anyUnfrozen = true;
-                    if (FitsConveyor(dish, freeSlots))
-                        return null;
+                    string reason = board.GetPickupGroupRejection(dish, freeSlots);
+                    if (reason == null) return null;
+                    if (board.GetPickupGroupRejection(dish, int.MaxValue) == null) capacity = reason;
+                    else blocked = reason;
                 }
             }
-            return anyUnfrozen ? "băng chuyền không đủ slot trống cho đĩa nào" : "board trống hoặc mọi đĩa đều đóng băng";
+            return capacity ?? blocked ?? "Không có nguyên liệu để lấy";
         }
 
         // EN: Number of empty conveyor slots now (0 when there is no chef manager).
@@ -278,11 +336,13 @@ namespace FoodPop
             return board.CanPickupGroup(dish, freeSlots);
         }
 
-        // EN: Enters selection mode: locks the board, hides the booster buttons, shows the prompt with its cancel button and highlights every dish that can be taken.
-        // VI: Vào chế độ chọn: khóa board, ẩn các nút booster, hiện thông báo kèm nút hủy và làm sáng mọi đĩa lấy được.
+        // EN: Saves the previous input lock before entering selection and highlighting available groups.
+        // VI: Lưu khóa input trước khi vào chế độ chọn và làm sáng các nhóm lấy được.
         private void BeginPickupSelection(PickupHandBooster settings)
         {
             SetBusy(true);
+            pickupInputWasLocked = board.InputLocked;
+            pickupOwnsInput = true;
             board.InputLocked = true;
             pickupSelecting = settings;
             SetBoosterRootVisible(false);
@@ -292,8 +352,8 @@ namespace FoodPop
             RefreshPickupTargets(true);
         }
 
-        // EN: Each selection frame: keeps the highlights in sync with the free conveyor slots, then handles a tap on the cancel button or on a dish (a dish that cannot be taken flashes red).
-        // VI: Mỗi frame khi đang chọn: cập nhật đĩa sáng theo số slot trống trên băng, rồi xử lý chạm vào nút hủy hoặc vào đĩa (đĩa không lấy được thì nháy đỏ).
+        // EN: Updates available highlights and routes pointer input to cancellation or whole-group selection.
+        // VI: Cập nhật nhóm lấy được và chuyển thao tác chạm sang hủy hoặc chọn cả nhóm.
         private void UpdatePickupSelection()
         {
             RefreshPickupTargets(false);
@@ -306,18 +366,38 @@ namespace FoodPop
             }
             if (!board.TryGetDishAt(worldPoint, out int column, out int row))
                 return;
+            TryPickupDishAt(column, row);
+        }
+
+        // EN: Validates every linked member and starts Pickup using the input lock saved before selection.
+        // VI: Kiểm tra mọi thành viên nối và chạy Pickup với khóa input đã lưu trước chế độ chọn.
+        public bool TryPickupDishAt(int column, int row)
+        {
+            if (pickupSelecting == null || column < 0 || column >= board.ColumnCount) return false;
+            if (row < 0 || row >= board.GetColumnDishes(column).Count) return false;
             Food dish = board.GetColumnDishes(column)[row];
-            if (!pickupTargets.Contains(dish))
+            string reason = row >= pickupVisibleRows ? "Nguyên liệu nằm ngoài vùng chọn" :
+                board.GetPickupGroupRejection(dish, CountFreeSlots());
+            if (reason != null)
             {
-                if (dish.Selection != null)
-                    dish.Selection.PlayRejected();
-                Debug.Log($"[BoosterController] Không lấy được đĩa này: {(dish.IsFrozen ? "đĩa đang đóng băng" : "băng chuyền không đủ slot trống")}.", dish);
-                return;
+                ShowPickupDenied(dish, reason);
+                return false;
             }
             PickupHandBooster settings = pickupSelecting;
             pickupSelecting = null;
             settings.ShowPrompt(false);
-            StartCoroutine(RunLocked(Pickup(settings, column, row)));
+            StartCoroutine(RunLocked(Pickup(settings, column, row), pickupInputWasLocked));
+            return true;
+        }
+
+        // EN: Shows the precise rejection reason and flashes all members of the rejected group.
+        // VI: Hiện đúng lý do từ chối và nháy mọi thành viên trong nhóm bị từ chối.
+        private void ShowPickupDenied(Food dish, string reason)
+        {
+            foreach (Food member in board.GetPickMembers(dish))
+                if (member != null) member.Selection?.PlayRejected();
+            UIManager.Instance?.ShowShortMessage(reason);
+            Debug.Log($"[BoosterController] Pickup: {reason}.", this);
         }
 
         // EN: Recomputes which dishes can be taken (only rows brought into view by the camera); when the set changed (or force is true) lights those up with the white outline and turns every other dish back to plain (no outline, dimmed).
@@ -346,8 +426,8 @@ namespace FoodPop
                         dish.Selection.SetSelectable(pickupTargets.Contains(dish));
         }
 
-        // EN: Cancel button: hides the prompt, slides the camera back, restores the normal board look, unlocks the board and shows the booster buttons again. No use is spent.
-        // VI: Nút hủy: ẩn thông báo, trượt camera về chỗ cũ, trả board về giao diện bình thường, mở khóa board và hiện lại các nút booster. Không tính lượt.
+        // EN: Cancels selection and restores the input state saved before Pickup started.
+        // VI: Hủy lựa chọn và khôi phục trạng thái input đã lưu trước khi bắt đầu Pickup.
         private void CancelPickupSelection()
         {
             pickupSelecting.ShowPrompt(false);
@@ -355,40 +435,90 @@ namespace FoodPop
             pickupTargets.Clear();
             RestorePickupCamera();
             board.RefreshSelection();
-            board.InputLocked = false;
+            board.InputLocked = pickupInputWasLocked;
+            pickupOwnsInput = false;
             SetBusy(false);
             SetBoosterRootVisible(true);
         }
 
-        // EN: Lifts the chosen dish, reveals every linked lid and picks the entire group; restores the chosen dish if capacity changes.
-        // VI: Nhấc đĩa chọn, mở mọi nắp nối và lấy cả nhóm; đặt lại đĩa chọn nếu sức chứa thay đổi.
+        // EN: Lifts the entire linked group together and restores all poses when picking fails or is interrupted.
+        // VI: Nhấc đồng thời cả nhóm nối và khôi phục mọi tư thế khi lấy thất bại hoặc bị ngắt.
         private IEnumerator Pickup(PickupHandBooster settings, int column, int row)
         {
             Food dish = board.GetColumnDishes(column)[row];
             HighlightOnly(dish);
-            int[] sortingOrders = BoostSorting(dish, settings.sortingBoost);
+            foreach (Food member in board.GetPickMembers(dish))
+                if (member != null)
+                    pickupPoses.Add(new PickupPose { dish = member, position = member.transform.position,
+                        scale = member.transform.localScale, orders = BoostSorting(member, settings.sortingBoost),
+                        boost = settings.sortingBoost });
 
             Coroutine reveal = StartCoroutine(board.RevealPickGroup(dish, settings.revealDuration));
-            Vector3 dishRest = dish.transform.position;
-            Vector3 dishScale = dish.transform.localScale;
-            yield return LiftDish(dish, settings, dishRest, dishScale);
-            if (reveal != null)
-                yield return reveal;
-
-            if (!board.TryPickDishAt(column, row))
+            try
             {
-                dish.transform.position = dishRest;
-                dish.transform.localScale = dishScale;
-                RestoreSorting(dish, sortingOrders, settings.sortingBoost);
-                Debug.Log("[BoosterController] PickupHand: băng chuyền đã hết chỗ trong lúc nhấc đĩa, đặt đĩa lại.", dish);
+                yield return LiftPickupGroup(settings);
+                if (reveal != null) yield return reveal;
+                if (board.TryPickDishAt(column, row)) pickupPoses.Clear();
+                else
+                {
+                    RestorePickupPoses();
+                    ShowPickupDenied(dish, board.GetPickupGroupRejection(dish, CountFreeSlots()) ?? "Không thể lấy nguyên liệu lúc này");
+                }
+                while (board.IsAnimating) yield return null;
+                Coroutine cameraBack = RestorePickupCamera();
+                if (cameraBack != null) yield return cameraBack;
             }
+            finally
+            {
+                if (reveal != null) StopCoroutine(reveal);
+                RestorePickupPoses();
+                if (board != null) board.RefreshSelection();
+            }
+        }
 
-            while (board.IsAnimating)
-                yield return null;
-            Coroutine cameraBack = RestorePickupCamera();
-            if (cameraBack != null)
-                yield return cameraBack;
-            board.RefreshSelection();
+        // EN: Restores the transforms and sorting saved for dishes that have not been picked.
+        // VI: Trả transform và thứ tự vẽ đã lưu cho các đĩa chưa được lấy.
+        private void RestorePickupPoses()
+        {
+            foreach (PickupPose pose in pickupPoses)
+                if (pose.dish != null)
+                {
+                    pose.dish.transform.position = pose.position;
+                    pose.dish.transform.localScale = pose.scale;
+                    RestoreSorting(pose.dish, pose.orders, pose.boost);
+                }
+            pickupPoses.Clear();
+        }
+
+        // EN: Cancels Pickup before replay or disable and restores poses, camera and the original input lock.
+        // VI: Hủy Pickup trước khi chơi lại hoặc vô hiệu hóa, trả tư thế, camera và khóa input ban đầu.
+        public void CancelPickupForReplay()
+        {
+            if (!pickupOwnsInput && pickupSelecting == null) return;
+            StopAllCoroutines();
+            if (pickupSelecting != null) pickupSelecting.ShowPrompt(false);
+            pickupSelecting = null;
+            RestorePickupPoses();
+            Camera cam = inputCamera != null ? inputCamera : Camera.main;
+            if (pickupCameraMoved && cam != null)
+            {
+                Vector3 position = cam.transform.position;
+                position.y = pickupCameraRestY;
+                cam.transform.position = position;
+            }
+            cameraMove = null;
+            pickupCameraMoved = false;
+            pickupVisibleRows = int.MaxValue;
+            pickupTargets.Clear();
+            if (board != null)
+            {
+                board.MaxVisibleRows = int.MaxValue;
+                board.InputLocked = pickupInputWasLocked;
+                board.RefreshSelection();
+            }
+            pickupOwnsInput = false;
+            SetBusy(false);
+            SetBoosterRootVisible(true);
         }
 
         // EN: Hides every row past maxVisibleRows, then slides the camera down just enough to show min(maxVisibleRows, rows the board has) rows above the prompt; never moves it up. Remembers the old Y so it can slide back. Dishes below the screen turn on by themselves (the board hides/shows them by the camera's bottom edge).
@@ -562,19 +692,25 @@ namespace FoodPop
                 dish.CountCanvas.sortingOrder -= boost;
         }
 
-        // EN: Lifts the dish by liftHeight while it grows slightly.
-        // VI: Nhấc đĩa lên liftHeight trong lúc đĩa phồng nhẹ.
-        private static IEnumerator LiftDish(Food dish, PickupHandBooster settings, Vector3 dishRest, Vector3 dishScale)
+        // EN: Applies shared lift progress to all members while preserving their relative positions.
+        // VI: Dùng chung tiến độ nhấc cho mọi thành viên và giữ nguyên vị trí tương đối.
+        private IEnumerator LiftPickupGroup(PickupHandBooster settings)
         {
-            for (float time = 0f; time < settings.liftDuration; time += Time.deltaTime)
+            float time = 0f;
+            while (true)
             {
-                float ease = 1f - Mathf.Pow(1f - Mathf.Clamp01(time / settings.liftDuration), 2f);
-                dish.transform.position = dishRest + Vector3.up * settings.liftHeight * ease;
-                dish.transform.localScale = dishScale * Mathf.Lerp(1f, settings.liftScale, ease);
+                float progress = settings.liftDuration <= 0f ? 1f : Mathf.Clamp01(time / settings.liftDuration);
+                float ease = 1f - Mathf.Pow(1f - progress, 2f);
+                foreach (PickupPose pose in pickupPoses)
+                    if (pose.dish != null)
+                    {
+                        pose.dish.transform.position = pose.position + Vector3.up * settings.liftHeight * ease;
+                        pose.dish.transform.localScale = pose.scale * Mathf.Lerp(1f, settings.liftScale, ease);
+                    }
+                if (progress >= 1f) yield break;
                 yield return null;
+                time += Time.deltaTime;
             }
-            dish.transform.position = dishRest + Vector3.up * settings.liftHeight;
-            dish.transform.localScale = dishScale * settings.liftScale;
         }
 
         // ---------------------------------------------------------------- AutoComplete
@@ -895,8 +1031,8 @@ namespace FoodPop
             }
         }
 
-        // EN: Remembers existing pause flags before suspending belt movement, preparation and new serving flights.
-        // VI: Ghi nhớ cờ tạm dừng cũ trước khi dừng băng, sơ chế và chuyến phục vụ mới.
+        // EN: Suspends belt movement, chef work and serving without discarding the chef's detached food.
+        // VI: Dừng băng, công việc đầu bếp và phục vụ mà không làm mất phần món riêng tại đầu bếp.
         private void PauseForCollection(ConveyorChefMovement belt, ChefManager chef, CustomerManager customers)
         {
             collectionBelt = belt;
@@ -909,7 +1045,6 @@ namespace FoodPop
             belt.BoosterPaused = true;
             chef.BoosterPaused = true;
             if (customers != null) customers.BoosterPaused = true;
-            chef.CancelPreparation();
         }
 
         // EN: Restores only the pause flags owned by collection, safely tolerating destroyed scene objects.

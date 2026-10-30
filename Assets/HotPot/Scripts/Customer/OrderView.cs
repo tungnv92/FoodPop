@@ -71,6 +71,7 @@ namespace FoodPop
         // VI: Bộ chạy tween cho hoạt cảnh ẩn/hiện món.
         private OrderTweens Tweens => tweens ?? (tweens = new OrderTweens(this));
         private int activeCount;
+        private bool ingredientOrdersMode;
 
         // EN: The dish slots of the card, in display order.
         // VI: Các ô món của thẻ, theo thứ tự hiển thị.
@@ -201,10 +202,11 @@ namespace FoodPop
                 ShowIngredients(dish);
         }
 
-        // EN: Shows the requested slots through the layout component for this dish count (collapsing any open ingredient view), or the legacy grid when none exists.
-        // VI: Hiện các ô được yêu cầu qua component bố cục ứng với số món (thu mọi lưới nguyên liệu đang mở), hoặc lưới cũ khi chưa có.
+        // EN: Resets presentation mode and arranges the active group slots through their layout component.
+        // VI: Đặt lại chế độ hiển thị và xếp các ô nhóm đang dùng qua component bố cục.
         public void Layout(int count)
         {
+            ingredientOrdersMode = false;
             count = Mathf.Clamp(count, 0, items.Length);
             CollapseAll();
             StopDishAnimations();
@@ -242,15 +244,31 @@ namespace FoodPop
                 Debug.LogWarning($"[OrderView] {name} chưa có component bố cục (OrderLayout…); chạy Tools → HotPot → Setup Order Views.", this);
         }
 
+        // EN: Keeps all ingredient groups visible in their own columns instead of requiring taps on named dishes.
+        // VI: Giữ mọi nhóm nguyên liệu hiện trong cột riêng thay vì phải chạm vào món có tên.
+        public void ShowIngredientOrders()
+        {
+            ingredientOrdersMode = true;
+            if (activeLayout == null) return;
+            OrderLayout single = FindLayout(1);
+            for (int i = 0; i < activeCount && i < recipes.Count; i++)
+            {
+                if (items[i] == null) continue;
+                expanded[i] = true;
+                displayLayouts[i] = single != null ? single : activeLayout;
+                ShowIngredients(i);
+            }
+        }
+
         // EN: True when the dish currently shows its ingredients instead of its picture.
         // VI: True khi món đang hiện nguyên liệu thay cho ảnh món.
         public bool IsExpanded(int dish) => dish >= 0 && dish < expanded.Length && expanded[dish];
 
-        // EN: Opens or closes the ingredient view of one dish (several dishes may be open at once).
-        // VI: Mở hoặc đóng lưới nguyên liệu của một món (có thể mở nhiều món cùng lúc).
+        // EN: Toggles optional dish details only outside the always-visible ingredient-order mode.
+        // VI: Bật/tắt chi tiết món khi không ở chế độ order nguyên liệu luôn hiện.
         public void SetExpanded(int dish, bool value)
         {
-            if (activeLayout == null || dish < 0 || dish >= activeCount || items[dish] == null || dish >= recipes.Count)
+            if (ingredientOrdersMode || activeLayout == null || dish < 0 || dish >= activeCount || items[dish] == null || dish >= recipes.Count)
                 return;
             StopAutoCollapse(dish);
             bool focus = activeLayout.IsCollapseLayout(recipes[dish].Count);
@@ -453,11 +471,11 @@ namespace FoodPop
             collapseRoutines[dish] = null;
         }
 
-        // EN: Reads taps on the card and toggles the tapped dish.
-        // VI: Đọc chạm lên thẻ và bật/tắt lưới nguyên liệu của món được chạm.
+        // EN: Handles dish-detail taps only when the card is not displaying permanent ingredient orders.
+        // VI: Xử lý chạm xem món khi thẻ không đang hiện order nguyên liệu thường trực.
         private void Update()
         {
-            if (!tapToShowIngredients || activeLayout == null || cardHidden)
+            if (ingredientOrdersMode || !tapToShowIngredients || activeLayout == null || cardHidden)
                 return;
             Pointer pointer = Pointer.current;
             Camera cam = inputCamera != null ? inputCamera : Camera.main;
@@ -508,13 +526,13 @@ namespace FoodPop
             }
         }
 
-        // EN: Builds the raw icon list for a dish and hands it with its progress to the active layout.
-        // VI: Lấy danh sách icon raw của món và giao cùng tiến độ cho bố cục đang dùng.
+        // EN: Displays prepared icons for ingredient orders or raw icons for optional legacy dish details, retaining arrival progress.
+        // VI: Hiện icon sơ chế cho order nguyên liệu hoặc icon thô cho chi tiết món cũ, giữ tiến độ đã nhận.
         private void ShowIngredients(int dish)
         {
             iconBuffer.Clear();
             foreach (FoodType type in recipes[dish])
-                iconBuffer.Add(foodIconConfig != null ? foodIconConfig.GetIcon(type, FoodState.Raw) : null);
+                iconBuffer.Add(foodIconConfig != null ? foodIconConfig.GetIcon(type, ingredientOrdersMode ? FoodState.Prepared : FoodState.Raw) : null);
             DisplayLayout(dish).ShowIngredients(items[dish], iconBuffer, arrived[dish]);
         }
 

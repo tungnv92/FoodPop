@@ -11,7 +11,7 @@ namespace FoodPop
     [RequireComponent(typeof(SplineContainer))]
     public class ConveyorChefMovement : MonoBehaviour
     {
-        public const int DefaultSlotCount = 12;
+        public const int DefaultSlotCount = 10;
 
         // Belt centre line of ConveyorStandalone.png (perspective art) in sprite-local units (centre pivot, 100 PPU), clockwise from top middle.
         // Đường tâm mặt băng của ConveyorStandalone.png theo đơn vị local của sprite (pivot giữa, 100 PPU), chiều kim đồng hồ từ giữa cạnh trên.

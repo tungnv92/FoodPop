@@ -4,13 +4,13 @@ using UnityEngine.Splines;
 
 namespace FoodPop
 {
-    // EN: Inspector for ConveyorChefMovement with one-click setup of the belt spline and the 12 conveyor slots.
-    // VI: Inspector cho ConveyorChefMovement, dựng spline băng chuyền và 12 slot chỉ với một nút bấm.
+    // EN: Inspector for configuring the belt spline and matching its slots to Slot Count.
+    // VI: Inspector cấu hình spline băng chuyền và đồng bộ số slot theo Slot Count.
     [CustomEditor(typeof(ConveyorChefMovement))]
     public class ConveyorChefMovementEditor : Editor
     {
-        // EN: Draws the default fields followed by the setup buttons.
-        // VI: Vẽ các field mặc định rồi đến các nút thiết lập.
+        // EN: Draws the default fields and a single button for the complete conveyor setup.
+        // VI: Vẽ các field mặc định và một nút duy nhất để thiết lập toàn bộ băng chuyền.
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
@@ -18,27 +18,20 @@ namespace FoodPop
             ConveyorChefMovement movement = (ConveyorChefMovement)target;
             if (GUILayout.Button("Setup: Build Spline + Create Slots + Snap"))
                 SetupAll(movement);
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                if (GUILayout.Button("Build Spline From Conveyor"))
-                    BuildSpline(movement);
-                if (GUILayout.Button("Create / Collect Slots"))
-                    CreateSlots(movement);
-                if (GUILayout.Button("Sort Slots Above Belt"))
-                    SortSlots(movement);
-                if (GUILayout.Button("Snap Slots To Path"))
-                    SnapSlots(movement);
-            }
         }
 
-        // EN: Runs the full setup: spline, slots, then snapping them onto the path.
-        // VI: Chạy toàn bộ thiết lập: spline, slot, rồi đặt slot lên đường đi.
+        // EN: Rebuilds the spline, matches Slot Count, and spaces the slots along the path as one undoable setup.
+        // VI: Dựng lại spline, đồng bộ Slot Count và chia đều slot trên đường đi trong một bước có thể hoàn tác.
         public static void SetupAll(ConveyorChefMovement movement)
         {
+            Undo.IncrementCurrentGroup();
+            int undoGroup = Undo.GetCurrentGroup();
+            Undo.SetCurrentGroupName("Setup Conveyor Chef");
             BuildSpline(movement);
             CreateSlots(movement);
             SortSlots(movement);
             SnapSlots(movement);
+            Undo.CollapseUndoOperations(undoGroup);
         }
 
         // EN: Applies the slot sorting orders and layers in edit mode with undo support.
@@ -69,12 +62,29 @@ namespace FoodPop
             EditorUtility.SetDirty(movement);
         }
 
-        // EN: Collects child slots and instantiates missing ones as prefab instances with undo support.
-        // VI: Gom slot con và tạo thêm slot thiếu dưới dạng prefab instance, có hỗ trợ undo.
+        // EN: Creates missing prefab slots and removes surplus slots from the end to match Slot Count, with undo support.
+        // VI: Tạo slot prefab còn thiếu và xóa slot dư từ cuối danh sách cho đúng Slot Count, có hỗ trợ hoàn tác.
         private static void CreateSlots(ConveyorChefMovement movement)
         {
             Undo.RecordObject(movement, "Create Conveyor Slots");
             movement.EnsureSlots(InstantiateSlotPrefab);
+            SerializedObject serialized = new SerializedObject(movement);
+            SerializedProperty slots = serialized.FindProperty("slots");
+            int count = Mathf.Max(1, serialized.FindProperty("slotCount").intValue);
+            var surplus = new System.Collections.Generic.List<GameObject>();
+            for (int i = count; i < slots.arraySize; i++)
+            {
+                ConveyorSlot slot = slots.GetArrayElementAtIndex(i).objectReferenceValue as ConveyorSlot;
+                if (slot != null)
+                    surplus.Add(slot.gameObject);
+            }
+            if (slots.arraySize > count)
+            {
+                slots.arraySize = count;
+                serialized.ApplyModifiedProperties();
+                foreach (GameObject slot in surplus)
+                    Undo.DestroyObjectImmediate(slot);
+            }
             EditorUtility.SetDirty(movement);
         }
 

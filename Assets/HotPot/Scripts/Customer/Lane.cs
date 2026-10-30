@@ -24,6 +24,8 @@ namespace FoodPop
 
         [NonSerialized] public List<CustomerOrder> queue;
         [NonSerialized] public int queueIndex;
+        [NonSerialized] public int customerNumber;
+        [NonSerialized] public SpriteRenderer walker;
         [NonSerialized] public bool ordering;
         [NonSerialized] public long arrivalStamp;
         [NonSerialized] public readonly List<DishProgress> dishes = new List<DishProgress>();

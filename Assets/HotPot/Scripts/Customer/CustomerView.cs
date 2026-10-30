@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using TMPro;
 
 namespace FoodPop
 {
@@ -14,6 +15,23 @@ namespace FoodPop
         [SerializeField] private Transform orderCard;
         [Tooltip("Vị trí world của tâm ảnh khách, dùng để bắn hiệu ứng tim.")]
         [SerializeField] private Transform heartAnchor;
+
+        [Tooltip("Loại khách đang được phục vụ, nhận từ cấu hình level khi vào quầy.")]
+        [SerializeField] private CustomerType currentType;
+        [Tooltip("Nhãn loại khách tùy chọn; để trống nếu chỉ cần lưu phân loại.")]
+        [SerializeField] private TMP_Text customerTypeLabel;
+
+        // EN: Exposes the active customer's classification without changing serving behavior.
+        // VI: Cho biết phân loại khách hiện tại, không thay đổi hành vi phục vụ.
+        public CustomerType Type => currentType;
+
+        // EN: Applies the configured type and updates an optional label, defaulting invalid old values to Normal.
+        // VI: Gán loại khách và cập nhật nhãn tùy chọn, dùng Normal nếu dữ liệu cũ không hợp lệ.
+        public void SetCustomerType(CustomerType type)
+        {
+            currentType = System.Enum.IsDefined(typeof(CustomerType), type) ? type : CustomerType.Normal;
+            if (customerTypeLabel != null) customerTypeLabel.text = currentType.ToString();
+        }
 
         private Vector3 customerHome;
         private Vector3 cardHome;

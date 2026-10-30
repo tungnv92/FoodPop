@@ -20,8 +20,8 @@ namespace FoodPop
         EbiNigiri4 = 34,
         EbiNigiri5 = 35,
         EbiNigiri6 = 36,
-        TamagoNigiri2 = 42,
-        TamagoNigiri3 = 43,
+        // EN: IDs 42 and 43 are retired; never reuse them.
+        // VI: ID 42 và 43 đã ngừng dùng; không tái sử dụng.
         TamagoNigiri4 = 44,
         TamagoNigiri5 = 45,
         TamagoNigiri6 = 46,
@@ -40,10 +40,15 @@ namespace FoodPop
         HotateNigiri4 = 74,
         HotateNigiri5 = 75,
         HotateNigiri6 = 76,
-        KanikamaNigiri2 = 82,
-        KanikamaNigiri3 = 83,
+        // EN: IDs 82 and 83 are retired; never reuse them.
+        // VI: ID 82 và 83 đã ngừng dùng; không tái sử dụng.
         KanikamaNigiri4 = 84,
         KanikamaNigiri5 = 85,
-        KanikamaNigiri6 = 86
+        KanikamaNigiri6 = 86,
+        GreenTea = 91,
+        IcedGreenTea = 92,
+        BoiledEdamame = 101,
+        SaltedEdamame = 102,
+        TeriyakiChickenSkewer = 112
     }
 }

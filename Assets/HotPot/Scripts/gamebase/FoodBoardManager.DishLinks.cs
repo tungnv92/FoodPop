@@ -24,15 +24,34 @@ namespace FoodPop
             return dish != null && (dish == other || (dishLinks.TryGetValue(dish, out DishLinkGroup group) && group.Contains(other)));
         }
 
-        // EN: Tests all member ice and total conveyor capacity for PickupHand, which may bypass depth and reveal lids.
-        // VI: Kiểm tra băng mọi thành viên và tổng chỗ băng chuyền cho PickupHand, được bỏ qua độ sâu và mở nắp.
+        // EN: Uses the same whole-group rejection rules as PickupHand feedback and selection.
+        // VI: Dùng chung quy tắc từ chối cả nhóm với phản hồi và lựa chọn PickupHand.
         public bool CanPickupGroup(Food dish, int freeSlots)
         {
+            return GetPickupGroupRejection(dish, freeSlots) == null;
+        }
+
+        // EN: Returns a user-facing reason based on every linked member, checking ice before combined capacity.
+        // VI: Trả lý do cho người chơi dựa trên mọi thành viên nối, kiểm tra băng trước tổng sức chứa.
+        public string GetPickupGroupRejection(Food dish, int freeSlots)
+        {
             if (dish == null)
-                return false;
-            if (dishLinks.TryGetValue(dish, out DishLinkGroup group))
-                return group.CanTake(true) && group.GetTotalAmount() <= freeSlots;
-            return !dish.IsFrozen && dish.TotalAmount > 0 && dish.TotalAmount <= freeSlots;
+                return "Không còn nguyên liệu tại vị trí này";
+            List<Food> members = GetPickMembers(dish);
+            bool linked = members.Count > 1;
+            foreach (Food member in members)
+                if (member != null && member.IsFrozen)
+                    return linked ? "Nhóm liên kết còn nguyên liệu đóng băng" : "Nguyên liệu đang đóng băng";
+            int total = 0;
+            foreach (Food member in members)
+            {
+                if (member == null || member.TotalAmount <= 0)
+                    return "Không còn nguyên liệu để lấy";
+                total += member.TotalAmount;
+            }
+            if (total > freeSlots)
+                return linked ? "Không đủ chỗ cho cả nhóm liên kết" : "Băng chuyền không đủ chỗ trống";
+            return null;
         }
 
         // EN: Reveals every hidden member before a PickupHand group pick, preserving a shared cancellation owner in the booster.
@@ -47,7 +66,7 @@ namespace FoodPop
 
         // EN: Copies the current members so removal or callbacks cannot invalidate an in-progress pick.
         // VI: Sao chép thành viên hiện tại để việc gỡ hoặc callback không làm hỏng lượt lấy đang chạy.
-        private List<Food> GetPickMembers(Food dish)
+        public List<Food> GetPickMembers(Food dish)
         {
             return dish != null && dishLinks.TryGetValue(dish, out DishLinkGroup group) ?
                 new List<Food>(group.Members) : new List<Food> { dish };
@@ -64,10 +83,11 @@ namespace FoodPop
             return !dish.IsFrozen && !dish.isHidden && dish.TotalAmount > 0 && (ignoreDepth || IsDishAtHead(dish));
         }
 
-        // EN: Performs one atomic group pick, then settles once and damages remaining ice once for the whole action.
-        // VI: Lấy nhóm trong một giao dịch, sau đó dồn một lần và trừ băng còn lại một lần cho cả thao tác.
+        // EN: Rejects picks while paused; otherwise picks the group atomically, settles and damages ice once.
+        // VI: Chặn chọn khi tạm dừng; ngược lại lấy nhóm trong một giao dịch, dồn và trừ băng một lần.
         private bool PickGroup(Food dish, bool ignoreDepth)
         {
+            if (Time.timeScale <= 0f) return false;
             List<Food> members = GetPickMembers(dish);
             if (!CanPickGroup(dish, ignoreDepth))
             {
