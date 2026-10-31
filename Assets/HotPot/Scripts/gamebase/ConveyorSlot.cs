@@ -28,6 +28,90 @@ namespace FoodPop
         private Vector3 plateRestScale;
         private float collectionLift;
         private Coroutine plateDrop;
+        private LineRenderer preparationTrack;
+        private LineRenderer preparationArc;
+        private Material preparationMaterial;
+
+        // EN: Shows a circular progress ring attached to this plate, filling clockwise from the top.
+        // VI: Hiện vòng tiến độ bám theo đĩa này, đầy dần theo chiều kim đồng hồ từ phía trên.
+        public void SetPreparationProgress(float progress)
+        {
+            if (preparationArc == null)
+                CreatePreparationRing();
+            preparationTrack.gameObject.SetActive(true);
+            preparationArc.gameObject.SetActive(true);
+            DrawPreparationArc(preparationTrack, 1f);
+            DrawPreparationArc(preparationArc, Mathf.Clamp01(progress));
+        }
+
+        // EN: Hides the preparation indicator without allocating or destroying its reusable renderers.
+        // VI: Ẩn chỉ báo sơ chế mà không tạo hay hủy các renderer dùng lại.
+        public void HidePreparationProgress()
+        {
+            if (preparationTrack != null) preparationTrack.gameObject.SetActive(false);
+            if (preparationArc != null) preparationArc.gameObject.SetActive(false);
+        }
+
+        // EN: Creates a dark circular track and a green foreground arc using a runtime sprite material.
+        // VI: Tạo đường vòng tối và cung tiến độ xanh bằng material sprite lúc chạy.
+        private void CreatePreparationRing()
+        {
+            preparationMaterial = new Material(Shader.Find("Sprites/Default"));
+            preparationTrack = CreatePreparationLine("Preparation Track", new Color(0.12f, 0.2f, 0.18f, 0.7f), 10);
+            preparationArc = CreatePreparationLine("Preparation Progress", new Color(0.25f, 1f, 0.65f, 1f), 11);
+        }
+
+        // EN: Builds a local-space ring renderer above the plate artwork on its existing sorting layer.
+        // VI: Tạo renderer vòng theo tọa độ local phía trên hình đĩa trên cùng sorting layer.
+        private LineRenderer CreatePreparationLine(string objectName, Color color, int sortingOffset)
+        {
+            var child = new GameObject(objectName);
+            child.layer = gameObject.layer;
+            child.transform.SetParent(transform, false);
+            LineRenderer line = child.AddComponent<LineRenderer>();
+            line.useWorldSpace = false;
+            line.sharedMaterial = preparationMaterial;
+            line.startColor = line.endColor = color;
+            line.numCapVertices = 4;
+            line.startWidth = line.endWidth = 0.045f;
+            SpriteRenderer source = ingredientRenderer != null ? ingredientRenderer : GetComponentInChildren<SpriteRenderer>();
+            if (source != null)
+            {
+                line.sortingLayerID = source.sortingLayerID;
+                line.sortingOrder = source.sortingOrder + sortingOffset;
+            }
+            return line;
+        }
+
+        // EN: Fits a clockwise circular arc just outside the plate sprite, following the plate's local centre.
+        // VI: Đặt cung tròn chiều kim đồng hồ ngay ngoài sprite đĩa, bám tâm local của đĩa.
+        private void DrawPreparationArc(LineRenderer line, float progress)
+        {
+            Transform plate = transform.Find("Plate");
+            SpriteRenderer plateSprite = plate != null ? plate.GetComponent<SpriteRenderer>() : null;
+            Vector3 centre = plate != null ? plate.localPosition : Vector3.zero;
+            float radius = 0.5f;
+            if (plateSprite != null && plateSprite.sprite != null)
+                radius = Mathf.Max(plateSprite.sprite.bounds.extents.x * Mathf.Abs(plate.localScale.x), plateSprite.sprite.bounds.extents.y * Mathf.Abs(plate.localScale.y)) + 0.06f;
+            int segments = Mathf.Max(1, Mathf.CeilToInt(progress * 64));
+            line.positionCount = segments + 1;
+            for (int i = 0; i <= segments; i++)
+            {
+                float angle = Mathf.PI * 0.5f - Mathf.PI * 2f * progress * i / segments;
+                line.SetPosition(i, centre + new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, -0.02f));
+            }
+        }
+
+        // EN: Releases the runtime ring material when this slot is destroyed.
+        // VI: Giải phóng material vòng sinh lúc chạy khi slot này bị hủy.
+        private void OnDestroy()
+        {
+            if (preparationMaterial != null)
+            {
+                if (Application.isPlaying) Destroy(preparationMaterial);
+                else DestroyImmediate(preparationMaterial);
+            }
+        }
 
         public bool IsPlateReturning => plateDrop != null;
 
@@ -243,10 +327,11 @@ namespace FoodPop
                 ingredientRenderer.enabled = visible;
         }
 
-        // EN: Restores food squash and plate lift when disabled so reuse never keeps unfinished landing effects.
-        // VI: Khôi phục nhịp nảy food và độ nâng đĩa khi tắt để không giữ hiệu ứng đáp dở khi dùng lại.
+        // EN: Hides preparation progress and restores landing effects when the slot is disabled.
+        // VI: Ẩn tiến độ sơ chế và khôi phục hiệu ứng đáp khi slot bị tắt.
         private void OnDisable()
         {
+            HidePreparationProgress();
             StopSquash();
             ResetCollectionPlate();
         }
@@ -267,10 +352,11 @@ namespace FoodPop
             return true;
         }
 
-        // EN: Clears food and invalidates its arrival identity so old flight callbacks cannot affect slot reuse.
-        // VI: Xóa food và làm mất hiệu lực mã đáp để callback chuyến bay cũ không tác động slot dùng lại.
+        // EN: Clears food and progress, invalidating arrival identity so old flights cannot affect slot reuse.
+        // VI: Xóa món và tiến độ, vô hiệu mã lượt đáp để chuyến bay cũ không tác động slot dùng lại.
         public Food ClearFood()
         {
+            HidePreparationProgress();
             unchecked { ArrivalId++; }
             Food removed = food;
             food = null;

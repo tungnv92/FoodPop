@@ -43,6 +43,9 @@ namespace FoodPop
 
         private long arrivalCounter;
         private bool allServedLogged;
+        private List<CustomerOrder> customerQueue = new List<CustomerOrder>();
+        private int nextCustomer;
+        private Lane waitingLane;
 
         // EN: Clears the static singleton when entering Play Mode, including when domain reload is disabled.
         // VI: Xóa singleton tĩnh khi vào Play Mode, kể cả khi tắt tải lại miền mã.
@@ -90,36 +93,46 @@ namespace FoodPop
                     TryServeFromSlot(slots[i]);
         }
 
-        // EN: Cancels each lane's serving order, reloads customer queues and brings in the first customer with fresh order progress.
-        // VI: Hủy order phục vụ của từng làn, nạp lại hàng khách và đưa khách đầu tiên vào với tiến độ order mới.
+        // EN: Resets assignments and reserves the first two shared customers.
+        // VI: Đặt lại lượt phân khách và lấy hai khách đầu hàng chung.
         public void LoadCustomers(LevelConfig config)
         {
-            if (config == null)
-                return;
+            if (config == null) return;
             StopAllCoroutines();
             praiseText?.HideAll();
-
+            customerQueue = config.GetCustomerQueue();
+            nextCustomer = 0;
+            arrivalCounter = 0;
+            waitingLane = null;
             allServedLogged = false;
-            for (int side = 0; side < lanes.Length; side++)
+            foreach (Lane lane in lanes)
             {
-                Lane lane = lanes[side];
-                if (lane == null)
-                    continue;
-                if (lane.servingFood == null)
-                    Debug.LogWarning($"[CustomerManager] Làn {(side == 0 ? "trái" : "phải")} chưa gán ServingFood; không thể nhận nguyên liệu.", this);
-                lane.queue = config.GetQueue(side);
+                if (lane == null) continue;
+                lane.queue = new List<CustomerOrder>();
                 lane.queueIndex = 0;
                 lane.ordering = false;
                 ResetServing(lane);
                 lane.dishes.Clear();
                 CaptureQueueSpots(lane);
-                LayoutWaitingQueue(lane, 0f);
-                if (lane.queue != null && lane.queue.Count > 0)
-                    StartCoroutine(BringNextCustomer(lane));
-                else if (lane.customer != null)
-                    lane.customer.SetVisible(false);
+                if (waitingLane == null) waitingLane = lane;
+                foreach (SpriteRenderer figure in lane.figures) figure.gameObject.SetActive(false);
+                if (lane.walker != null) lane.walker.gameObject.SetActive(false);
+                if (lane.customer != null) lane.customer.SetVisible(false);
             }
+            foreach (Lane lane in lanes)
+                if (lane != null && AssignNextCustomer(lane)) StartCoroutine(BringNextCustomer(lane));
+            if (waitingLane != null) LayoutWaitingQueue(waitingLane, 0f);
             CheckAllServed();
+        }
+
+        // EN: Reserves one shared customer synchronously before arrival animations yield.
+        // VI: Giữ một khách trong hàng chung trước khi hoạt cảnh nhường lượt thực thi.
+        private bool AssignNextCustomer(Lane lane)
+        {
+            if (nextCustomer >= customerQueue.Count || lane.queueIndex < lane.queue.Count) return false;
+            lane.customerNumber = nextCustomer;
+            lane.queue.Add(customerQueue[nextCustomer++]);
+            return true;
         }
 
         // EN: Selects the earliest eligible customer, reserves its recipe ingredient and delegates the flight to that lane's serving component.
@@ -204,6 +217,22 @@ namespace FoodPop
         // VI: True khi mọi khách của level đã được phục vụ.
         public bool AllServed => allServedLogged;
 
+        // EN: Defers deadlock checks while assigned customers move, receive ingredients or finish assembling dishes.
+        // VI: Hoãn kiểm tra bế tắc khi khách đã phân chỗ đang di chuyển, nhận nguyên liệu hoặc ghép món.
+        public bool HasPendingService()
+        {
+            foreach (Lane lane in lanes)
+            {
+                if (lane == null) continue;
+                if (!lane.ordering && lane.queue != null && lane.queueIndex < lane.queue.Count)
+                    return true;
+                foreach (DishProgress dish in lane.dishes)
+                    if (dish.incoming > 0 || (!dish.assembled && dish.missing.Count == 0))
+                        return true;
+            }
+            return false;
+        }
+
         // EN: Fills result with the ingredients still needed, in serving priority: customers by arrival (earliest first), their dishes in card order, each dish's base first and then its other missing ingredients in recipe order. Ingredients already on the conveyor (or landing on it) are taken out, earliest need first.
         // VI: Điền vào result các nguyên liệu còn cần, theo thứ tự ưu tiên phục vụ: khách theo thứ tự đến (sớm nhất trước), món theo thứ tự trên thẻ, mỗi món đế trước rồi tới các nguyên liệu còn thiếu theo công thức. Nguyên liệu đã có (hoặc đang đáp xuống) trên băng chuyền được trừ đi, trừ vào nhu cầu sớm nhất trước.
         public void GetNeededIngredients(List<FoodType> result)
@@ -279,8 +308,8 @@ namespace FoodPop
                 lane.servingFood.ResetOrder();
         }
 
-        // EN: Rewards and slides out the customer, clears the dishes from the tray, then loads the next order or empties the tray when the lane is finished.
-        // VI: Thưởng và cho khách trượt ra, dọn món khỏi khay, rồi nạp order tiếp theo hoặc làm trống khay khi làn hết khách.
+        // EN: Completes departure then reserves the next shared customer for this vacant seat.
+        // VI: Hoàn tất khách rời đi rồi lấy khách kế tiếp trong hàng chung cho chỗ trống.
         private IEnumerator FinishCustomer(Lane lane)
         {
             lane.ordering = false;
@@ -298,7 +327,7 @@ namespace FoodPop
                 yield return lane.customer.SlideOut(lane.slideDirection * Config.customers.slideDistance, Config.customers.slideDuration);
             ResetServing(lane);
             lane.queueIndex++;
-            if (lane.queueIndex < lane.queue.Count)
+            if (AssignNextCustomer(lane))
             {
                 yield return StepQueueForward(lane);
                 yield return BringNextCustomer(lane);
@@ -311,20 +340,22 @@ namespace FoodPop
             }
         }
 
-        // EN: Shows the lane's next customer with all of their dishes on the card; a customer without any valid dish is finished straight away.
-        // VI: Hiện khách tiếp theo của làn cùng mọi món khách order trên thẻ; khách không có món hợp lệ nào được kết thúc ngay.
+        // EN: Shows the reserved shared customer with its classification; invalid ingredient orders are skipped after arrival.
+        // VI: Hiện khách đã lấy từ hàng chung cùng phân loại; bỏ qua order nguyên liệu không hợp lệ sau khi đến.
         private IEnumerator BringNextCustomer(Lane lane)
         {
-            SetupOrder(lane, lane.queue[lane.queueIndex]);
+            CustomerOrder customerOrder = lane.queue[lane.queueIndex];
+            SetupOrder(lane, customerOrder);
+            if (lane.customer != null) lane.customer.SetCustomerType(customerOrder?.customerType ?? CustomerType.Normal);
             if (lane.customer != null)
             {
-                lane.customer.SetPortrait(GetPortrait(lane, lane.queueIndex));
+                lane.customer.SetPortrait(GetPortrait(waitingLane, lane.customerNumber));
                 lane.customer.SnapHome();
                 lane.customer.SetVisible(true);
             }
             if (lane.orderView != null)
                 lane.orderView.PlayShow();
-            LayoutWaitingQueue(lane, 0f);
+            LayoutWaitingQueue(waitingLane, 0f);
             yield return null;
             lane.arrivalStamp = ++arrivalCounter;
             if (lane.dishes.Count > 0)
@@ -332,12 +363,12 @@ namespace FoodPop
                 lane.ordering = true;
                 yield break;
             }
-            Debug.LogWarning($"[CustomerManager] Khách {lane.queueIndex + 1} không có món hợp lệ nào; bỏ qua.", this);
+            Debug.LogWarning($"[CustomerManager] Khách {lane.customerNumber + 1} không có món hợp lệ nào; bỏ qua.", this);
             yield return FinishCustomer(lane);
         }
 
-        // EN: Builds the dishes of the order (supported recipes only, at most one per card slot), reserves one empty tray slot per dish with its stack, then fills and lays out the order card.
-        // VI: Dựng các món của order (chỉ món có công thức, tối đa mỗi ô thẻ một món), dành cho mỗi món một ô khay trống kèm chồng nguyên liệu, rồi điền và xếp thẻ order.
+        // EN: Builds ingredient groups independently of named recipes, matching optional artwork and showing ingredients on the card.
+        // VI: Dựng nhóm nguyên liệu không phụ thuộc món có tên, tra ảnh tùy chọn và hiện nguyên liệu trên thẻ.
         private void SetupOrder(Lane lane, CustomerOrder order)
         {
             ResetServing(lane);
@@ -348,20 +379,21 @@ namespace FoodPop
                 return;
             }
             IReadOnlyList<OrderItemView> items = lane.orderView.Items;
-            if (order?.finalFoods != null)
+            List<IngredientOrder> groups = order != null ? order.GetIngredientOrders(finalFoodConfig) : new List<IngredientOrder>();
+            foreach (IngredientOrder group in groups)
             {
-                foreach (FinalFoodType type in order.finalFoods)
+                if (!group.IsValid())
                 {
-                    IReadOnlyList<FoodType> ingredients = GetIngredients(type);
-                    if (ingredients.Count == 0)
-                        continue;
-                    if (lane.dishes.Count >= items.Count)
-                    {
-                        Debug.LogWarning($"[CustomerManager] Khách order {order.finalFoods.Count} món nhưng thẻ chỉ có {items.Count} ô; bỏ bớt các món cuối.", this);
-                        break;
-                    }
-                    lane.dishes.Add(new DishProgress(type, ingredients));
+                    Debug.LogWarning("[CustomerManager] Bỏ qua nhóm order có nguyên liệu trống hoặc không hợp lệ.", this);
+                    continue;
                 }
+                if (lane.dishes.Count >= Mathf.Min(items.Count, CustomerOrder.MaxDishes))
+                {
+                    Debug.LogWarning("[CustomerManager] Order vượt số nhóm được hỗ trợ trên thẻ; bỏ các nhóm cuối.", this);
+                    break;
+                }
+                FinalFoodConfig.FinalFoodRecipe match = finalFoodConfig != null ? finalFoodConfig.FindMatchingRecipe(group.ingredients) : null;
+                lane.dishes.Add(new DishProgress(match != null ? match.finalFood : FinalFoodType.None, group.ingredients));
             }
             BeginServing(lane);
             for (int i = 0; i < items.Count; i++)
@@ -379,6 +411,7 @@ namespace FoodPop
                 cardRecipes.Add(dish.recipe);
             lane.orderView.SetRecipes(cardRecipes);
             lane.orderView.Layout(lane.dishes.Count);
+            lane.orderView.ShowIngredientOrders();
         }
 
         // EN: Gives the lane's serving component its order view and recipes, and routes arrival callbacks to customer progress.
@@ -486,11 +519,11 @@ namespace FoodPop
             }
         }
 
-        // EN: Places every waiting customer of the lane on its spot: smaller, darker and drawn behind the ordering customer, with each person further back drawn behind the one in front. stepT (0..1) blends from the previous spot for the walk-forward animation.
-        // VI: Đặt mọi khách đang chờ của làn vào chỗ của mình: nhỏ hơn, tối hơn và vẽ sau khách đang order, người đứng sau vẽ sau người phía trước. stepT (0..1) nội suy từ chỗ cũ để tạo hoạt cảnh dồn lên.
+        // EN: Displays unassigned customers in the single shared waiting row.
+        // VI: Hiển thị khách chưa phân chỗ trong một hàng chờ chung.
         private void LayoutWaitingQueue(Lane lane, float stepT)
         {
-            int waiting = lane.queue != null ? Mathf.Max(0, lane.queue.Count - lane.queueIndex - 1) : 0;
+            int waiting = customerQueue.Count - nextCustomer;
             EnsureFigures(lane, waiting);
             SpriteRenderer active = lane.customer != null ? lane.customer.Portrait : null;
             for (int k = 0; k < lane.figures.Count; k++)
@@ -500,7 +533,7 @@ namespace FoodPop
                 figure.gameObject.SetActive(used);
                 if (!used)
                     continue;
-                Sprite portrait = GetPortrait(lane, lane.queueIndex + 1 + k);
+                Sprite portrait = GetPortrait(lane, nextCustomer + k);
                 if (portrait != null)
                     figure.sprite = portrait;
                 figure.color = Config.customers.waitingTint;
@@ -515,16 +548,25 @@ namespace FoodPop
             }
         }
 
-        // EN: Walks the queue forward one place: the first waiting customer moves to the counter while growing and brightening, the rest move up one spot.
-        // VI: Cho hàng chờ dồn lên một chỗ: khách đầu hàng đi tới quầy, to dần và sáng dần, những người còn lại tiến lên một chỗ.
+        // EN: Animates a dedicated portrait from the shared queue to this seat without sharing walkers.
+        // VI: Đưa hình khách riêng từ hàng chung tới chỗ này, không dùng chung hình đang di chuyển.
         private IEnumerator StepQueueForward(Lane lane)
         {
             SpriteRenderer active = lane.customer != null ? lane.customer.Portrait : null;
-            if (lane.figures.Count == 0 || active == null)
+            if (waitingLane == null || active == null)
                 yield break;
-            SpriteRenderer walker = lane.figures[0];
-            lane.figures.RemoveAt(0);
-            lane.figures.Add(walker);
+            if (lane.walker == null)
+            {
+                lane.walker = new GameObject("Arriving customer").AddComponent<SpriteRenderer>();
+                lane.walker.transform.SetParent(transform, true);
+            }
+            SpriteRenderer walker = lane.walker;
+            walker.sprite = GetPortrait(waitingLane, lane.customerNumber);
+            walker.sortingLayerID = active.sortingLayerID;
+            walker.transform.position = GetQueueSpot(waitingLane, 0);
+            SetWorldScale(walker.transform, active.transform.lossyScale * Config.customers.waitingScale);
+            walker.gameObject.SetActive(true);
+            LayoutWaitingQueue(waitingLane, 0f);
             lane.customer.SnapHome();
             lane.customer.SetVisible(false);
             Vector3 from = walker.transform.position;
@@ -540,22 +582,9 @@ namespace FoodPop
                 walker.transform.position = Vector3.LerpUnclamped(from, to, t) + Vector3.up * (0.15f * Mathf.Sin(t * Mathf.PI));
                 SetWorldScale(walker.transform, Vector3.LerpUnclamped(fromScale, toScale, t));
                 walker.color = Color.Lerp(Config.customers.waitingTint, Color.white, t);
-                LayoutQueueBehind(lane, t);
                 yield return null;
             }
             walker.gameObject.SetActive(false);
-        }
-
-        // EN: Moves the remaining waiting customers (all but the one walking to the counter) one spot forward at progress t.
-        // VI: Đưa các khách chờ còn lại (trừ người đang đi tới quầy) tiến lên một chỗ theo tiến độ t.
-        private void LayoutQueueBehind(Lane lane, float t)
-        {
-            int waiting = lane.queue != null ? Mathf.Max(0, lane.queue.Count - lane.queueIndex - 1) : 0;
-            for (int k = 0; k < waiting && k < lane.figures.Count - 1; k++)
-            {
-                SpriteRenderer figure = lane.figures[k];
-                figure.transform.position = Vector3.LerpUnclamped(GetQueueSpot(lane, k + 1), GetQueueSpot(lane, k), t);
-            }
         }
 
         // EN: Returns the portrait for the customer at a queue index (cycling through the lane's portraits), or null when none are set.
@@ -587,11 +616,11 @@ namespace FoodPop
             StartCoroutine(praiseText.Play(Config.praiseText, customer.HeartPosition, sortingLayer, sortingOrder));
         }
 
-        // EN: Logs once when no lane has a customer left to serve.
-        // VI: Ghi log một lần khi không còn làn nào có khách cần phục vụ.
+        // EN: Completes only after shared waiting and assigned or departing customers are exhausted.
+        // VI: Chỉ hoàn tất khi hết khách chờ chung và khách đã phân chỗ hoặc đang rời đi.
         private void CheckAllServed()
         {
-            if (allServedLogged)
+            if (allServedLogged || nextCustomer < customerQueue.Count)
                 return;
             foreach (Lane lane in lanes)
             {

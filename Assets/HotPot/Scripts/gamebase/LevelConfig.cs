@@ -8,7 +8,14 @@ namespace FoodPop
     [CreateAssetMenu(fileName = "LevelConfig", menuName = "Hot Pot/Level Config")]
     public partial class LevelConfig : ScriptableObject
     {
+        [Tooltip("Màn chơi kế tiếp khi thắng; để trống nếu đây là màn cuối.")]
+        public LevelConfig nextLevel;
+
         [Header("Customers")]
+        [Tooltip("Dùng danh sách chung kể cả khi trống.")]
+        public bool useUnifiedCustomerQueue;
+        [Tooltip("Khách theo thứ tự, chỗ trống nhận khách kế tiếp.")]
+        public List<CustomerOrder> customerQueue = new List<CustomerOrder>();
         [Tooltip("Khách ở hàng trái; phần tử 0 được phục vụ trước.")]
         public List<CustomerOrder> leftQueue = new List<CustomerOrder>();
 
@@ -29,9 +36,24 @@ namespace FoodPop
         [Tooltip("Nhóm 2–3 đĩa nối theo thứ tự A–B–C; mỗi đoạn dây thẳng, tọa độ ô gốc bắt đầu từ 0.")]
         public List<DishLinkConfig> dishLinks = new List<DishLinkConfig>();
 
-        // EN: Total number of customers to serve in this level (both queues).
-        // VI: Tổng số khách cần phục vụ trong level (cả hai hàng).
-        public int TotalCustomers => leftQueue.Count + rightQueue.Count;
+        // EN: Counts customers in the shared queue or legacy fallback.
+        // VI: Đếm khách trong hàng chung hoặc dữ liệu cũ.
+        public int TotalCustomers => GetCustomerQueue().Count;
+
+        // EN: Copies the shared queue, interleaving old left/right data when necessary.
+        // VI: Sao chép hàng chung, xen kẽ dữ liệu trái/phải cũ khi cần.
+        public List<CustomerOrder> GetCustomerQueue()
+        {
+            if (useUnifiedCustomerQueue || (customerQueue != null && customerQueue.Count > 0))
+                return customerQueue == null ? new List<CustomerOrder>() : new List<CustomerOrder>(customerQueue);
+            var result = new List<CustomerOrder>();
+            for (int i = 0; i < Mathf.Max(leftQueue?.Count ?? 0, rightQueue?.Count ?? 0); i++)
+            {
+                if (i < (leftQueue?.Count ?? 0)) result.Add(leftQueue[i]);
+                if (i < (rightQueue?.Count ?? 0)) result.Add(rightQueue[i]);
+            }
+            return result;
+        }
 
         // EN: Returns the queue for a counter side: 0 = left, 1 = right.
         // VI: Trả về hàng khách theo phía quầy: 0 = trái, 1 = phải.

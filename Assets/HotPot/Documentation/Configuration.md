@@ -1,5 +1,22 @@
 # HotPot configuration / Cấu hình HotPot
 
+## Current customer contract — 2026-10-29 / Cấu trúc khách hiện tại
+
+EN: Customer data below the historical dated sections is superseded by `CustomerOrder.ingredientOrders` with `useIngredientOrders`. Up to four groups contain one to six ingredients each; the first is the base and repeated entries preserve quantities. `finalFoods` resolves old levels and supplies optional final artwork, not a required recipe ID for a new order. `LevelConfig.customerQueue` feeds two seats in sequence; `useUnifiedCustomerQueue` preserves an intentional empty queue, otherwise legacy left/right queues are interleaved.
+
+VI: Dữ liệu khách trong các phần lịch sử có ngày bên dưới đã được thay bằng `CustomerOrder.ingredientOrders` cùng `useIngredientOrders`. Tối đa bốn nhóm, mỗi nhóm một đến sáu nguyên liệu; mục đầu là đế và mục lặp giữ số lượng. `finalFoods` chỉ để đọc level cũ và tra ảnh món tùy chọn, không bắt buộc cho order mới. `LevelConfig.customerQueue` cấp lần lượt cho hai chỗ; `useUnifiedCustomerQueue` giữ danh sách rỗng chủ ý, nếu chưa dùng hàng chung thì xen kẽ trái/phải cũ.
+
+| Field | Current behavior / Hành vi hiện tại |
+| --- | --- |
+| `customerType` | Normal = 0 (default / mặc định), Boss = 1, Shipper = 2. |
+| `timeServe` | Seconds, default 30, finite and positive for Boss/Shipper / Giây, mặc định 30, hữu hạn và dương cho Boss/Shipper. |
+| Editor | Show serving time only for Boss/Shipper; retain it when switching types / Chỉ hiện thời gian cho Boss/Shipper, giữ giá trị khi đổi loại. |
+| Persistence | Server revisions and Unity asset export/import preserve both fields / Lịch sử server và xuất/nhập asset Unity giữ cả hai trường. |
+| Gameplay | Same serving rules; countdown and expiry are not implemented / Cùng quy tắc phục vụ; chưa triển khai đếm ngược hay hết giờ. |
+
+See / Xem [CustomerManager](../../../claude/CustomerManager.md), [Level Editor](../../../claude/LevelEditor.md) and [Level Studio Web](LevelStudioWeb.md). Older dated descriptions below are historical, not the current order contract.
+
+
 ## Current ingredient set / Bộ nguyên liệu hiện tại
 
 The current FoodType enum and FoodIconConfig contain 15 ingredients. IDs 8 and 11 are retired and must not be reused. ID 13 is Seaweed; IDs 15–17 are SoySauce, PickledGinger and Wasabi. These four types share one sprite between processing states, stored under Art/Sprites/Foods/Sushi/Shared. / FoodType và FoodIconConfig hiện có 15 nguyên liệu. ID 8 và 11 đã ngừng dùng, không tái sử dụng. ID 13 là rong biển; ID 15–17 là nước tương, gừng ngâm và wasabi. Bốn loại này dùng chung sprite cho hai trạng thái tại Art/Sprites/Foods/Sushi/Shared.
@@ -39,7 +56,7 @@ Source atlas and scene preview: `output/HotPotDemo/Sushi` outside Assets. Pre-re
 
 - `FoodType` (Scripts/gamebase/FoodType.cs) identifies the 12 foods. Keep existing numeric values stable when adding types. `None` is not a collectible food.
 - `OrderFood` (Scripts/gamebase/OrderFood.cs) is one ordered food: `foodType` and `requiredCount` (at least one).
-- `CustomerOrder` (Scripts/gamebase/CustomerOrder.cs) is one customer's order: `foods` is a list of `OrderFood`, each type once. `GetRequiredCount(FoodType)` returns 0 for foods that are not requested.
+- `CustomerOrder` (Scripts/gamebase/CustomerOrder.cs) stores ingredient groups, customer type and serving-time metadata; see the current contract above.
 - `LevelConfig` (Scripts/gamebase/LevelConfig.cs, **Assets > Create > Hot Pot > Level Config**) holds the customers to serve at the two queues of the order counter: `leftQueue` and `rightQueue`, each a list of `CustomerOrder`; element 0 is served first. `TotalCustomers` and `GetQueue(0 = left, 1 = right)` help gameplay code.
 - `LevelConfig` also has an ingredient board of raw foods: `boardRows` x `boardColumns` (editable) and `ingredientBoard`, a list of `BoardColumn` (left to right), each holding `foods`, a list of `OrderFood` from top to bottom (a list of lists). Every column automatically keeps exactly `boardRows` foods. `GetBoardCell(column, row)` and `GetBoardCount(FoodType)` help gameplay code.
 - `Config/LevelConfig_01.asset` is a sample level with 3 customers per queue; the first order of each queue matches the demo counter (left 4 foods, right 6 foods); its 4 x 3 board matches the demo ingredient supply.
@@ -48,7 +65,7 @@ Level Editor: open **Tools > FoodPop > Level Editor** or press **Mở Level Edit
 
 - `FoodType` (Scripts/gamebase/FoodType.cs) định danh 12 loại đồ ăn; giữ nguyên giá trị số cũ khi thêm loại mới. `None` không phải đồ ăn thu thập.
 - `OrderFood` (Scripts/gamebase/OrderFood.cs) là một món trong order: `foodType` và `requiredCount` (tối thiểu một).
-- `CustomerOrder` (Scripts/gamebase/CustomerOrder.cs) là order của một khách: `foods` là danh sách `OrderFood`, mỗi loại một dòng. `GetRequiredCount(FoodType)` trả về 0 với món không yêu cầu.
+- `CustomerOrder` (Scripts/gamebase/CustomerOrder.cs) lưu nhóm nguyên liệu, loại khách và thông số thời gian; xem cấu trúc hiện tại ở trên.
 - `LevelConfig` (Scripts/gamebase/LevelConfig.cs, **Assets > Create > Hot Pot > Level Config**) chứa các khách cần phục vụ ở hai hàng trên quầy order: `leftQueue` và `rightQueue`, mỗi hàng là danh sách `CustomerOrder`; phần tử 0 được phục vụ trước. `TotalCustomers` và `GetQueue(0 = trái, 1 = phải)` hỗ trợ code gameplay.
 - `LevelConfig` còn có bảng nguyên liệu thô: `boardRows` x `boardColumns` (chỉnh được) và `ingredientBoard`, danh sách `BoardColumn` (trái sang phải), mỗi cột có `foods` là danh sách `OrderFood` từ trên xuống dưới (list lồng list). Mỗi cột tự giữ đúng `boardRows` nguyên liệu. `GetBoardCell(column, row)` và `GetBoardCount(FoodType)` hỗ trợ code gameplay.
 - `Config/LevelConfig_01.asset` là level mẫu với 3 khách mỗi hàng; order đầu tiên của mỗi hàng khớp với quầy trong demo (trái 4 món, phải 6 món); bảng 4 x 3 khớp với khay nguyên liệu trong demo.

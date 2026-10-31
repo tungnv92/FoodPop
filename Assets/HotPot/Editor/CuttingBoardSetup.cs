@@ -28,8 +28,8 @@ namespace FoodPop
         private const float HeightFromChefBottom = 0.17f;
         private const float AnchorLocalY = 0.2f;
 
-        // EN: Menu entry: creates the board and the table under it (or re-places existing ones) and assigns the board to ChefManager; the scene is marked dirty for saving.
-        // VI: Mục menu: tạo thớt và bàn đỡ bên dưới (hoặc đặt lại nếu đã có) và gán thớt vào ChefManager; scene được đánh dấu cần lưu.
+        // EN: Menu entry: resolves the Spine chef renderer, creates the board and the table under it (or re-places existing ones) and assigns the board to ChefManager; the scene is marked dirty for saving.
+        // VI: Mục menu: lấy renderer đầu bếp Spine, tạo thớt và bàn đỡ bên dưới (hoặc đặt lại nếu đã có) và gán thớt vào ChefManager; scene được đánh dấu cần lưu.
         [MenuItem("Tools/HotPot/Create Cutting Board")]
         public static void Create()
         {
@@ -40,11 +40,11 @@ namespace FoodPop
                 return;
             }
             SerializedObject serialized = new SerializedObject(chef);
-            Animator animator = serialized.FindProperty("chefAnimator").objectReferenceValue as Animator;
-            SpriteRenderer chefRenderer = animator != null ? animator.GetComponent<SpriteRenderer>() : null;
+            ChefAnims animation = serialized.FindProperty("ChefAnims").objectReferenceValue as ChefAnims;
+            Renderer chefRenderer = animation != null ? animation.GetComponent<Renderer>() : null;
             if (chefRenderer == null)
             {
-                Debug.LogWarning("[CuttingBoardSetup] Không tìm thấy SpriteRenderer của đầu bếp trên Chef Animator.");
+                Debug.LogWarning("[CuttingBoardSetup] Không tìm thấy Renderer trên ChefAnims của đầu bếp.");
                 return;
             }
             Sprite boardSprite = ImportSprite(BoardSpritePath);
@@ -89,7 +89,7 @@ namespace FoodPop
 
         // EN: Returns the board already assigned to ChefManager or a new one next to the chef; sizes it to the chef's width, puts it at waist height and draws it just above the chef.
         // VI: Trả về thớt đã gán trong ChefManager hoặc tạo thớt mới cạnh đầu bếp; chỉnh kích thước theo bề ngang đầu bếp, đặt ngang thắt lưng và vẽ ngay trên đầu bếp.
-        private static Transform GetOrCreateBoard(SerializedObject chefManager, SpriteRenderer chefRenderer, Sprite boardSprite)
+        private static Transform GetOrCreateBoard(SerializedObject chefManager, Renderer chefRenderer, Sprite boardSprite)
         {
             Transform board = chefManager.FindProperty("cuttingBoard").objectReferenceValue as Transform;
             if (board == null)
@@ -154,7 +154,7 @@ namespace FoodPop
 
         // EN: Orders the layers as floor < rear conveyor < customers/chef < table < board < front lip, keeping the rear rim behind people while only the foreground lip overlaps their lower edge; lowers the chef's order only when needed.
         // VI: Xếp lớp theo thứ tự sàn < băng chuyền phía sau < khách/đầu bếp < bàn < thớt < mép trước, để viền sau nằm sau nhân vật và chỉ mép trước che phần dưới; chỉ hạ thứ tự của đầu bếp khi cần.
-        private static void ApplySorting(SpriteRenderer chefRenderer, Transform board, SpriteRenderer belt)
+        private static void ApplySorting(Renderer chefRenderer, Transform board, SpriteRenderer belt)
         {
             SpriteRenderer boardRenderer = board.GetComponent<SpriteRenderer>();
             Transform tableTransform = board.parent != null ? board.parent.Find(TableName) : null;
@@ -179,7 +179,7 @@ namespace FoodPop
 
         // EN: Sets a renderer's sorting layer and order with Undo support.
         // VI: Đặt sorting layer và thứ tự vẽ của renderer, có hỗ trợ Undo.
-        private static void SetSorting(SpriteRenderer renderer, int sortingLayer, int order)
+        private static void SetSorting(Renderer renderer, int sortingLayer, int order)
         {
             Undo.RecordObject(renderer, "Sort Kitchen Layers");
             renderer.sortingLayerID = sortingLayer;

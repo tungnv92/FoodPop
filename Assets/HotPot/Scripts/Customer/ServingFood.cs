@@ -126,7 +126,7 @@ namespace FoodPop
         // VI: Tâm world của ô món trên khay này (món trên thẻ order khi không có chồng trên khay).
         public Vector3 GetDishSlotCenter(int dish)
         {
-            if (DishStack != null && DishStack.HasSlot(dish))
+            if (dishTypes[dish] != FinalFoodType.None && finalFoodConfig != null && finalFoodConfig.GetSprite(dishTypes[dish]) != null && DishStack != null && DishStack.HasSlot(dish))
                 return DishStack.GetSlotCenter(dish);
             return orderView != null && dish >= 0 && dish < orderView.Items.Count && orderView.Items[dish] != null
                 ? orderView.Items[dish].TargetPosition : transform.position;
@@ -191,15 +191,15 @@ namespace FoodPop
             StartCoroutine(AssembleDish(dish));
         }
 
-        // EN: Waits for the stack bounce to finish, then assembles the tray dish, flies it to its order image, marks the view complete and reports delivery to the customer owner.
-        // VI: Chờ chồng nguyên liệu nảy xong, rồi ghép món trên khay, cho bay tới ảnh order, đánh dấu hiển thị hoàn thành và báo đáp món cho bên quản lý khách.
+        // EN: Completes any delivered ingredient group; assembles and flies a named dish only when matching artwork exists.
+        // VI: Hoàn tất mọi nhóm đã nhận đủ nguyên liệu; chỉ ghép và bay món có tên khi có ảnh phù hợp.
         private IEnumerator AssembleDish(int dish)
         {
             while (DishStack != null && DishStack.IsSettling(dish))
                 yield return null;
             if (Config.dishAssembly.assembleDelay > 0f)
                 yield return new WaitForSeconds(Config.dishAssembly.assembleDelay);
-            if (DishStack != null && DishStack.HasSlot(dish))
+            if (dishTypes[dish] != FinalFoodType.None && finalFoodConfig != null && finalFoodConfig.GetSprite(dishTypes[dish]) != null && DishStack != null && DishStack.HasSlot(dish))
             {
                 yield return MergeStack(DishStack, dish, dishTypes[dish]);
                 yield return FlyDishToOrder(dish);

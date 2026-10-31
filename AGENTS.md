@@ -63,6 +63,17 @@ public void ExampleFunction()
 - Do not reorganize external libraries or folders outside `Assets/HotPot` unless explicitly requested.
 - Quy tắc bắt buộc: mọi file được tạo, sinh, import hoặc sao chép phải nằm đúng thư mục theo loại và chức năng, theo cấu trúc trên. Không để lẫn sprite, font, shader, material, animation và code. Khi di chuyển asset Unity phải giữ `.meta`/GUID, cập nhật đường dẫn và kiểm tra tham chiếu. File tạm và bản sao lưu ảnh nguồn phải ở ngoài `Assets`; không sắp xếp thư viện ngoài hoặc thư mục ngoài `Assets/HotPot` khi chưa được yêu cầu.
 
+## Mandatory automatic Markdown documentation updates
+
+- Whenever a change affects behavior, configuration, assets, workflows, or rules described in an existing `.md` file, automatically update the relevant Markdown documentation in the same task, without waiting for the user to request it.
+- Find and read the relevant documentation before updating it, including feature documents under `claude` and `Assets/HotPot/Documentation`. Update existing documents in place instead of creating duplicate descriptions.
+- Keep documentation consistent with the final implementation: revise outdated behavior, relevant usage instructions and references; record meaningful verification results and distinguish verified behavior from untested expectations. Do not claim tests that were not run.
+- Documentation updates are part of completing the change. Briefly mention the updated document in the completion response. If a feature has no existing document, follow the project's file organization rules when creating documentation that is needed.
+- VI: Mỗi khi thay đổi hành vi, cấu hình, asset, quy trình hoặc quy tắc đã được mô tả trong file `.md`, bắt buộc tự cập nhật tài liệu liên quan ngay trong cùng nhiệm vụ, không chờ người dùng yêu cầu.
+- VI: Tìm và đọc tài liệu liên quan trước khi cập nhật, gồm tài liệu tính năng trong `claude` và `Assets/HotPot/Documentation`; sửa trực tiếp tài liệu hiện có, tránh tạo bản mô tả trùng lặp.
+- VI: Tài liệu phải khớp triển khai cuối cùng: sửa nội dung lỗi thời, hướng dẫn sử dụng và tham chiếu liên quan; ghi kết quả kiểm tra có ý nghĩa, phân biệt phần đã kiểm chứng với phần chưa kiểm tra. Không ghi đã chạy kiểm tra nếu thực tế chưa chạy.
+- VI: Cập nhật tài liệu là một phần bắt buộc để hoàn tất thay đổi; nhắc ngắn gọn file đã cập nhật khi báo hoàn tất. Nếu tính năng chưa có tài liệu, tuân thủ quy tắc tổ chức file của dự án khi cần tạo tài liệu mới.
+
 
 
 

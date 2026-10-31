@@ -21,8 +21,8 @@ namespace FoodPop
             return overrideCategory != FoodCategory.Auto ? overrideCategory : GetDefault(type);
         }
 
-        // EN: Built-in grouping: fish, seafood and eel count as Meat; rice, egg, cucumber, seaweed and condiments count as Vegetable.
-        // VI: Nhóm mặc định: cá, hải sản và lươn là Meat (thịt); cơm, trứng, dưa leo, rong biển và gia vị là Vegetable (rau/đồ mềm).
+        // EN: Groups fish, seafood, eel, all chicken cuts as Meat; other ingredients use Vegetable.
+        // VI: Xếp cá, hải sản, lươn, các phần thịt gà vào nhóm thịt; nguyên liệu khác vào nhóm rau/đồ mềm.
         public static FoodCategory GetDefault(FoodType type)
         {
             switch (type)
@@ -35,6 +35,10 @@ namespace FoodPop
                 case FoodType.Unagi:
                 case FoodType.Octopus:
                 case FoodType.Scallop:
+                case FoodType.ChickenThigh:
+                case FoodType.ChickenBites:
+                case FoodType.ChickenWing:
+                case FoodType.ChickenBreast:
                     return FoodCategory.Meat;
                 default:
                     return FoodCategory.Vegetable;

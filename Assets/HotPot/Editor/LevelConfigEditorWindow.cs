@@ -33,7 +33,7 @@ namespace FoodPop
         private static readonly string[] VietnameseNames =
         {
             "Không có", "Cơm sushi", "Cá hồi", "Cá ngừ", "Tôm", "Thanh cua", "Trứng cuộn",
-            "Dưa leo", "Trứng cá hồi", "Lươn", "Bạch tuộc", "Rong biển", "Sò điệp", "Nước tương", "Gừng ngâm", "Wasabi"
+            "Dưa leo", "Trứng cá hồi", "Lươn", "Bạch tuộc", "Rong biển", "Sò điệp", "Nước tương", "Gừng ngâm", "Wasabi", "Lá trà", "Đá", "Edamame", "Muối", "Đùi gà", "Sốt teriyaki", "Bơ", "Gà viên", "Cánh gà", "Ức gà"
         };
 
         // Display names such as "Salmon (Cá hồi)": original enum name first, Vietnamese in brackets.
@@ -283,22 +283,22 @@ namespace FoodPop
             Repaint();
         }
 
-        // EN: Left column: the customer orders of both queues, in its own scroll view.
-        // VI: Cột bên trái: order của khách ở cả hai hàng, có thanh cuộn riêng.
+        // EN: Uses 40 percent of the available panel area for customers, with independent scrolling for wider cards.
+        // VI: Dành 40 phần trăm vùng panel cho khách hàng, có cuộn riêng để xem thẻ rộng hơn.
         private void DrawCustomerPanel()
         {
-            EditorGUILayout.BeginVertical(GUILayout.Width(position.width * 0.5f));
+            EditorGUILayout.BeginVertical(GUILayout.Width(Mathf.Max(0f, position.width - 12f) * 0.4f));
             customerScroll = EditorGUILayout.BeginScrollView(customerScroll);
             DrawQueues();
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
         }
 
-        // EN: Right column: the raw ingredient board and the ingredient check, in its own scroll view.
-        // VI: Cột bên phải: bảng nguyên liệu thô và phần kiểm tra nguyên liệu, có thanh cuộn riêng.
+        // EN: Uses the remaining 60 percent for the raw ingredient board and validation, with independent scrolling.
+        // VI: Dành 60 phần trăm còn lại cho bảng nguyên liệu thô và kiểm tra nguyên liệu, có cuộn riêng.
         private void DrawBoardPanel()
         {
-            EditorGUILayout.BeginVertical();
+            EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
             boardScroll = EditorGUILayout.BeginScrollView(boardScroll);
             DrawBoard();
             EditorGUILayout.Space(14f);
@@ -484,24 +484,30 @@ namespace FoodPop
 
         // ---------------------------------------------------------------- Customers
 
-        // EN: Draws the left and right customer queues side by side, like the order counter.
-        // VI: Vẽ hai hàng khách trái và phải cạnh nhau, giống quầy order.
+        // EN: Edits one shared queue and offers undoable migration of legacy customers.
+        // VI: Sửa một hàng chung và cho chuyển khách cũ với khả năng hoàn tác.
         private void DrawQueues()
         {
             DrawSectionTitle("Khách hàng ở quầy order");
-            EditorGUILayout.BeginHorizontal();
-            DrawQueue("leftQueue", "Hàng trái");
-            GUILayout.Space(8f);
-            DrawQueue("rightQueue", "Hàng phải");
-            EditorGUILayout.EndHorizontal();
+            if (!level.useUnifiedCustomerQueue && level.customerQueue.Count == 0)
+            {
+                EditorGUILayout.HelpBox("Game đọc khách cũ xen kẽ trái/phải thành hàng chung.", MessageType.Info);
+                if (!GUILayout.Button("Chuyển sang danh sách khách chung")) return;
+                Undo.RecordObject(level, "Unify customer queue");
+                level.customerQueue = level.GetCustomerQueue();
+                level.useUnifiedCustomerQueue = true;
+                EditorUtility.SetDirty(level);
+                serialized.Update();
+            }
+            DrawQueue("customerQueue", "Hàng khách chung · hai chỗ phục vụ");
         }
 
-        // EN: Draws one queue: its customers (each ordering one final dish) in serving order and a button to add a customer.
-        // VI: Vẽ một hàng khách: các khách (mỗi khách order một món hoàn chỉnh) theo thứ tự phục vụ và nút thêm khách.
+        // EN: Draws customer cards in serving order with a 390-pixel minimum table width, 50 percent wider than the previous 260 pixels.
+        // VI: Vẽ thẻ khách theo thứ tự phục vụ với bảng rộng tối thiểu 390 pixel, tăng 50 phần trăm so với 260 pixel trước đây.
         private void DrawQueue(string queuePath, string title)
         {
             SerializedProperty queue = serialized.FindProperty(queuePath);
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MinWidth(260f));
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MinWidth(390f));
             EditorGUILayout.LabelField($"{title} · {queue.arraySize} khách", EditorStyles.boldLabel);
             for (int i = 0; i < queue.arraySize; i++)
                 DrawCustomer(queue, queuePath, i);
@@ -510,33 +516,112 @@ namespace FoodPop
             EditorGUILayout.EndVertical();
         }
 
-        // EN: Draws one customer card: remove button, every ordered final dish (all shown on the in-game card at once), a warning above MaxDishes and a button to add a dish.
-        // VI: Vẽ thẻ của một khách: nút xoá, mọi món hoàn chỉnh khách order (hiện cùng lúc trên thẻ trong game), cảnh báo khi vượt MaxDishes và nút thêm món.
+        // EN: Edits ingredient groups and customer type, exposing a positive serving time only for Boss and Shipper.
+        // VI: Chỉnh nhóm nguyên liệu và loại khách, chỉ hiện thời gian phục vụ dương cho Boss và Shipper.
         private void DrawCustomer(SerializedProperty queue, string queuePath, int index)
         {
-            SerializedProperty dishes = queue.GetArrayElementAtIndex(index).FindPropertyRelative("finalFoods");
-            string dishesPath = dishes.propertyPath;
+            SerializedProperty customer = queue.GetArrayElementAtIndex(index);
+            EnsureIngredientGroups(customer);
+            SerializedProperty groups = customer.FindPropertyRelative("ingredientOrders");
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.BeginHorizontal();
-            string label = index == 0 ? $"Khách {index + 1} (phục vụ trước)" : $"Khách {index + 1}";
-            EditorGUILayout.LabelField($"{label} · {dishes.arraySize} món", EditorStyles.miniBoldLabel);
-            GUILayout.FlexibleSpace();
+            EditorGUILayout.LabelField($"Khách {index + 1} · {groups.arraySize} nhóm", EditorStyles.miniBoldLabel);
             if (GUILayout.Button("x", EditorStyles.miniButton, GUILayout.Width(24f)))
                 pendingAction = () => DeleteElement(queuePath, index);
             EditorGUILayout.EndHorizontal();
-
-            for (int d = 0; d < dishes.arraySize; d++)
-                DrawDishRow(dishes.GetArrayElementAtIndex(d), dishesPath, d);
-            if (dishes.arraySize == 0)
-                EditorGUILayout.LabelField("Khách chưa order món nào.", EditorStyles.miniLabel);
-            if (dishes.arraySize > CustomerOrder.MaxDishes)
-                EditorGUILayout.HelpBox($"Thẻ order chỉ hiện tối đa {CustomerOrder.MaxDishes} món; các món sau sẽ bị bỏ.", MessageType.Warning);
-            using (new EditorGUI.DisabledScope(dishes.arraySize >= CustomerOrder.MaxDishes))
+            EditorGUILayout.PropertyField(customer.FindPropertyRelative("customerType"), new GUIContent("Loại khách"));
+            CustomerType type = (CustomerType)customer.FindPropertyRelative("customerType").intValue;
+            if (type == CustomerType.Boss || type == CustomerType.Shipper)
             {
-                if (GUILayout.Button("+ Món", EditorStyles.miniButton))
-                    pendingAction = () => AddDish(dishesPath);
+                SerializedProperty timeServe = customer.FindPropertyRelative("timeServe");
+                EditorGUILayout.PropertyField(timeServe, new GUIContent("Thời gian phục vụ (s)"));
+                if (float.IsNaN(timeServe.floatValue) || float.IsInfinity(timeServe.floatValue) || timeServe.floatValue <= 0f) timeServe.floatValue = 30f;
             }
+            for (int i = 0; i < groups.arraySize; i++) DrawIngredientGroup(groups, i);
+            using (new EditorGUI.DisabledScope(groups.arraySize >= CustomerOrder.MaxDishes))
+                if (GUILayout.Button("+ Nhóm nguyên liệu", EditorStyles.miniButton))
+                {
+                    string path = groups.propertyPath;
+                    pendingAction = () => AddDish(path);
+                }
             EditorGUILayout.EndVertical();
+        }
+
+        // EN: Copies old recipe ingredients into explicit groups on the isolated draft, preserving existing explicit lists.
+        // VI: Sao chép công thức cũ thành nhóm rõ ràng trên bản nháp riêng, giữ danh sách nguyên liệu đã có.
+        private void EnsureIngredientGroups(SerializedProperty customer)
+        {
+            SerializedProperty enabled = customer.FindPropertyRelative("useIngredientOrders");
+            SerializedProperty groups = customer.FindPropertyRelative("ingredientOrders");
+            if (!enabled.boolValue && groups.arraySize == 0)
+            {
+                SerializedProperty legacy = customer.FindPropertyRelative("finalFoods");
+                FinalFoodConfig config = GetFinalFoodConfig();
+                groups.arraySize = legacy.arraySize;
+                for (int i = 0; i < legacy.arraySize; i++)
+                {
+                    SerializedProperty values = groups.GetArrayElementAtIndex(i).FindPropertyRelative("ingredients");
+                    IReadOnlyList<FoodType> recipe = config != null ? config.GetIngredients((FinalFoodType)legacy.GetArrayElementAtIndex(i).intValue) : null;
+                    values.arraySize = recipe?.Count ?? 0;
+                    for (int j = 0; j < values.arraySize; j++) values.GetArrayElementAtIndex(j).intValue = (int)recipe[j];
+                }
+            }
+            enabled.boolValue = true;
+        }
+
+        // EN: Shows selected ingredient icons and optional matching dish information, with a foldout picker.
+        // VI: Hiện icon nguyên liệu đã chọn và thông tin món khớp tùy chọn, kèm bộ chọn thu gọn.
+        private void DrawIngredientGroup(SerializedProperty groups, int index)
+        {
+            SerializedProperty group = groups.GetArrayElementAtIndex(index);
+            SerializedProperty values = group.FindPropertyRelative("ingredients");
+            string path = values.propertyPath;
+            var selectedFoods = new List<FoodType>();
+            for (int i = 0; i < values.arraySize; i++) selectedFoods.Add((FoodType)values.GetArrayElementAtIndex(i).intValue);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.BeginHorizontal();
+            group.isExpanded = EditorGUILayout.Foldout(group.isExpanded, $"Nhóm {index + 1} · {values.arraySize} nguyên liệu", true);
+            if (GUILayout.Button("x", GUILayout.Width(22f)))
+            {
+                string groupsPath = groups.propertyPath;
+                pendingAction = () => DeleteElement(groupsPath, index);
+            }
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            foreach (FoodType type in selectedFoods) DrawIcon(type, RowIconSize);
+            EditorGUILayout.EndHorizontal();
+            FinalFoodConfig.FinalFoodRecipe match = GetFinalFoodConfig()?.FindMatchingRecipe(selectedFoods);
+            EditorGUILayout.LabelField(match != null ? match.displayName : selectedFoods.Count == 0 ? "Chưa chọn nguyên liệu." : "Tổ hợp nguyên liệu tùy chọn", EditorStyles.miniLabel);
+            if (group.isExpanded)
+                for (int i = 1; i < FoodValues.Length; i++)
+                {
+                    FoodType type = FoodValues[i];
+                    bool selected = selectedFoods.Contains(type);
+                    using (new EditorGUI.DisabledScope(!selected && selectedFoods.Count >= FinalFoodConfig.MaxIngredients))
+                    {
+                        bool next = EditorGUILayout.ToggleLeft(FoodNames[i], selected);
+                        if (next != selected) pendingAction = () => SetIngredientSelection(path, type, next);
+                    }
+                }
+            EditorGUILayout.EndVertical();
+        }
+
+        // EN: Adds or removes one ingredient while preserving the order of all other selected entries.
+        // VI: Thêm hoặc bỏ một nguyên liệu, giữ thứ tự các mục đã chọn còn lại.
+        private void SetIngredientSelection(string path, FoodType type, bool selected)
+        {
+            SerializedProperty values = serialized.FindProperty(path);
+            for (int i = values.arraySize - 1; i >= 0; i--)
+                if (values.GetArrayElementAtIndex(i).intValue == (int)type)
+                {
+                    if (!selected) values.DeleteArrayElementAtIndex(i);
+                    return;
+                }
+            if (selected)
+            {
+                values.InsertArrayElementAtIndex(values.arraySize);
+                values.GetArrayElementAtIndex(values.arraySize - 1).intValue = (int)type;
+            }
         }
 
         // EN: Draws one ordered dish: its picture (click to pick from a picture grid), the name picker, its ingredient icons and a remove button.
@@ -578,24 +663,31 @@ namespace FoodPop
             EditorGUILayout.EndHorizontal();
         }
 
-        // EN: Appends a customer ordering one dish (the first final dish of the table).
-        // VI: Thêm một khách mới order một món (món hoàn chỉnh đầu tiên trong bảng).
+        // EN: Adds a Normal customer with a default 30-second special-customer time and an empty ingredient group.
+        // VI: Thêm khách Normal với thời gian khách đặc biệt mặc định 30 giây và nhóm nguyên liệu trống.
         private void AddCustomer(string queuePath)
         {
             SerializedProperty queue = serialized.FindProperty(queuePath);
             queue.InsertArrayElementAtIndex(queue.arraySize);
-            SerializedProperty dishes = queue.GetArrayElementAtIndex(queue.arraySize - 1).FindPropertyRelative("finalFoods");
-            dishes.ClearArray();
-            AddDish(dishes.propertyPath);
+            SerializedProperty customer = queue.GetArrayElementAtIndex(queue.arraySize - 1);
+            customer.FindPropertyRelative("useIngredientOrders").boolValue = true;
+            customer.FindPropertyRelative("customerType").intValue = (int)CustomerType.Normal;
+            customer.FindPropertyRelative("timeServe").floatValue = 30f;
+            customer.FindPropertyRelative("finalFoods").ClearArray();
+            SerializedProperty groups = customer.FindPropertyRelative("ingredientOrders");
+            groups.ClearArray();
+            AddDish(groups.propertyPath);
         }
 
-        // EN: Appends a dish to a customer's order, defaulting to the first final dish of the table.
-        // VI: Thêm một món vào order của khách, mặc định là món hoàn chỉnh đầu tiên trong bảng.
+        // EN: Appends an empty ingredient group to the current customer's explicit order.
+        // VI: Thêm nhóm nguyên liệu trống vào danh sách order trực tiếp của khách.
         private void AddDish(string dishesPath)
         {
-            SerializedProperty dishes = serialized.FindProperty(dishesPath);
-            dishes.InsertArrayElementAtIndex(dishes.arraySize);
-            dishes.GetArrayElementAtIndex(dishes.arraySize - 1).intValue = (int)FinalFoodValues[Mathf.Min(1, FinalFoodValues.Length - 1)];
+            SerializedProperty groups = serialized.FindProperty(dishesPath);
+            groups.InsertArrayElementAtIndex(groups.arraySize);
+            SerializedProperty group = groups.GetArrayElementAtIndex(groups.arraySize - 1);
+            group.FindPropertyRelative("ingredients").ClearArray();
+            group.isExpanded = true;
         }
 
         // EN: Removes an array element (a customer or one of their dishes).
@@ -1036,36 +1128,30 @@ namespace FoodPop
             EditorGUILayout.EndHorizontal();
         }
 
-        // EN: Sums the ingredients needed by every ordered final dish of both queues, by enum index (independent of numeric ID gaps).
-        // VI: Cộng nguyên liệu mà mọi món hoàn chỉnh được order ở hai hàng khách cần, theo chỉ số enum (độc lập khoảng trống ID số).
+        // EN: Sums recipe requirements from the shared queue or legacy fallback.
+        // VI: Cộng nguyên liệu order từ hàng chung hoặc dữ liệu cũ.
         private int[] CountOrderedFoods()
         {
             int[] totals = new int[FoodNames.Length];
             FinalFoodConfig config = GetFinalFoodConfig();
-            AddOrderTotals(level.leftQueue, config, totals);
-            AddOrderTotals(level.rightQueue, config, totals);
+            AddOrderTotals(level.GetCustomerQueue(), config, totals);
             return totals;
         }
 
-        // EN: Adds one of each recipe ingredient for every dish of every customer, ignoring unknown dishes and retired or invalid ingredient IDs.
-        // VI: Cộng mỗi nguyên liệu trong công thức một phần cho từng món của từng khách, bỏ qua món không có công thức và ID nguyên liệu đã loại hoặc không hợp lệ.
+        // EN: Counts explicit order ingredients, retaining quantities and supporting legacy recipe conversion.
+        // VI: Đếm nguyên liệu order trực tiếp, giữ số lượng và hỗ trợ tra công thức cũ.
         private static void AddOrderTotals(List<CustomerOrder> queue, FinalFoodConfig config, int[] totals)
         {
-            if (queue == null || config == null)
-                return;
+            if (queue == null) return;
             foreach (CustomerOrder order in queue)
             {
-                if (order?.finalFoods == null)
-                    continue;
-                foreach (FinalFoodType dish in order.finalFoods)
-                {
-                    foreach (FoodType ingredient in config.GetIngredients(dish))
+                if (order == null) continue;
+                foreach (IngredientOrder group in order.GetIngredientOrders(config))
+                    foreach (FoodType ingredient in group.ingredients)
                     {
                         int type = Array.IndexOf(FoodValues, ingredient);
-                        if (type > 0 && type < totals.Length)
-                            totals[type]++;
+                        if (type > 0 && type < totals.Length) totals[type]++;
                     }
-                }
             }
         }
 
@@ -1528,12 +1614,18 @@ namespace FoodPop
                 GUILayout.EndScrollView();
             }
 
-            // EN: Draws one dish line: its name, then a picture button for each tier that exists in the enum.
-            // VI: Vẽ một dòng món: tên dòng, rồi mỗi cấp có trong enum một nút ảnh.
+            // EN: Draws a dish line using its first defined recipe name, then a button for every available ingredient count.
+            // VI: Vẽ dòng món theo tên công thức đầu tiên đã định nghĩa, rồi thêm nút cho mỗi số nguyên liệu hiện có.
             private void DrawLine(int line)
             {
                 GUILayout.BeginHorizontal();
                 FinalFoodType first = (FinalFoodType)(line * 10 + MinTier);
+                for (int tier = MinTier; tier <= MaxTier; tier++)
+                    if (Enum.IsDefined(typeof(FinalFoodType), (FinalFoodType)(line * 10 + tier)))
+                    {
+                        first = (FinalFoodType)(line * 10 + tier);
+                        break;
+                    }
                 string label = Enum.IsDefined(typeof(FinalFoodType), first) ? Regex.Replace(first.ToString(), @"Nigiri\d$", string.Empty) : line.ToString();
                 GUILayout.Label(label, EditorStyles.boldLabel, GUILayout.Width(LabelWidth), GUILayout.Height(Cell));
                 for (int tier = MinTier; tier <= MaxTier; tier++)

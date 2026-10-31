@@ -1,6 +1,6 @@
 # Level Editor — handoff
 
-Cập nhật: 2026-10-22. Editor và runtime đã hỗ trợ đĩa đôi dọc/ngang; phần kiểm chứng và giới hạn còn lại ghi ở cuối tài liệu.
+Cập nhật: 2026-10-29. Editor và runtime đã hỗ trợ đĩa đôi dọc/ngang; phần kiểm chứng và giới hạn còn lại ghi ở cuối tài liệu.
 
 Files:
 - `Assets/HotPot/Editor/LevelConfigEditorWindow.cs` (`EditorWindow`, namespace `FoodPop`)
@@ -16,18 +16,20 @@ Mở: menu `Tools/FoodPop/Level Editor` (lấy LevelConfig đang chọn) hoặc 
 
 ## Data model
 - `LevelConfig` (ScriptableObject, menu `Hot Pot/Level Config`):
-  - `leftQueue`, `rightQueue`: `List<CustomerOrder>`; phần tử 0 phục vụ trước.
+  - `customerQueue`: `List<CustomerOrder>` chung, lấy lần lượt cho hai chỗ phục vụ. `useUnifiedCustomerQueue` bật thì danh sách rỗng vẫn là rỗng; nếu chưa bật và chưa có khách chung, đọc xen kẽ `leftQueue`/`rightQueue` cũ.
   - `boardRows` (số ô/cột), `boardColumns`; `ingredientBoard`: `List<BoardColumn>` (trái→phải), mỗi cột `foods` (trên→dưới). Đĩa đôi chiếm hai ô nên số ô không đồng nghĩa số đĩa.
   - `OnValidate` → `ResizeBoard()` giữ đúng `boardColumns` x `boardRows`, kích thước tối thiểu 1; khôi phục danh sách, cột và ô null (bảng luôn hình chữ nhật).
-  - `GetBoardCount(FoodType)` cộng số lượng nguyên liệu ở cả hai phần của đĩa đôi, bỏ qua dữ liệu riêng tại ô bị chiếm. `TotalCustomers` đếm khách của cả hai hàng.
+  - `GetBoardCount(FoodType)` cộng số lượng nguyên liệu ở cả hai phần của đĩa đôi, bỏ qua dữ liệu riêng tại ô bị chiếm. `TotalCustomers` đếm theo `GetCustomerQueue()`.
   - `GetCell`, `TryGetCoveredCell`, `TryGetCoveringDish`, `IsCoveredCell` tra ô gốc/ô bị chiếm; `CollectBoardProblems` kiểm tra cấu hình đĩa đôi.
-- `CustomerOrder.finalFoods`: `List<FinalFoodType>`, tối đa `MaxDishes = 4` món/khách; nguyên liệu mỗi món lấy từ `FinalFoodConfig`.
+- `CustomerOrder.ingredientOrders`: tối đa `MaxDishes = 4` nhóm/khách, mỗi nhóm `ingredients` chứa 1–6 FoodType khi chơi. `useIngredientOrders` ưu tiên danh sách này kể cả rỗng. `finalFoods` chỉ còn để đọc level cũ; tên/ảnh món khớp là tùy chọn.
+- `CustomerOrder.customerType`: `Normal = 0`, `Boss = 1`, `Shipper = 2`; mặc định Normal.
+- `CustomerOrder.timeServe`: `float`, mặc định `30f` giây. Chỉ hiện chỉnh cho Boss/Shipper, phải hữu hạn và lớn hơn 0; giá trị không hợp lệ trong ô chỉnh được trả về 30. Normal ẩn ô chỉnh. Chưa có cơ chế đếm ngược/hết giờ trong runtime.
 - `OrderFood` (1 ô board): `foodType`, `requiredCount` (≥1, số nguyên liệu trong đĩa), `isHidden` (nắp, mở khi lên đầu cột), `isFrozen` + `blockValue` (mỗi lần pick bất kỳ đĩa → mọi đĩa băng −1, về 0 thì tan).
 - Đĩa đôi thêm `dishShape` (`Single`, `Vertical`, `Horizontal`), `secondFoodType`, `secondCount` (≥1). Hai phần có thể cùng loại. Nắp/băng dùng chung; `CountOf` cộng cả hai phần, `Clear` đặt lại thành đĩa đơn trống.
 - `LevelController.LoadLevel` → `FoodBoardManager.LoadIngredientBoard(config.ingredientBoard)` + `CustomerManager.LoadCustomers(config)`.
 
 ## Bố cục cửa sổ
-`OnGUI`: `DrawToolbar` → (nếu có level) 2 cột: `DrawCustomerPanel` (trái, 50% width, scroll riêng) | divider | `DrawBoardPanel` (phải: board + validation, scroll riêng) → `RunPendingAction`.
+`OnGUI`: `DrawToolbar` → (nếu có level) 2 cột: `DrawCustomerPanel` (trái, 40% vùng hiển thị, scroll riêng) | divider | `DrawBoardPanel` (phải, 60% vùng hiển thị: board + validation, scroll riêng) → `RunPendingAction`.
 
 Thay đổi cấu trúc (thêm/xoá khách, món, resize, fill, clear) được hoãn qua `pendingAction` và chạy sau khi vẽ xong để layout group cân bằng. Chỉnh field đi qua `SerializedObject` của bản nháp → có Undo/Redo; thao tác trực tiếp dùng `Undo.RecordObject` + `SetDirty` trên bản nháp, không phải asset nguồn.
 
@@ -46,13 +48,13 @@ Thay đổi cấu trúc (thêm/xoá khách, món, resize, fill, clear) được 
 - `Tạo level mới` (SaveFilePanel, tên gợi ý theo số lượng level), `Tìm trong Project` (Ping asset nguồn), `Tải lại` (bỏ bản nháp và nạp nguồn), `Lưu` (`SaveDraft` → `AssetDatabase.SaveAssetIfDirty` cho đúng nguồn).
 
 ### Panel khách (trái)
-- Hai hàng "Hàng trái" / "Hàng phải" cạnh nhau. Mỗi khách là thẻ: tiêu đề (Khách 1 = phục vụ trước), nút x, danh sách món, `+ Món` (disable khi đủ 4; cảnh báo nếu > 4).
-- Mỗi món (`DrawDishRow`): ảnh món 48px (bấm → `FinalFoodPickerPopup` lưới ảnh), dropdown tên (`FinalFoodListPopup` có tìm kiếm), icon nguyên liệu công thức + số lượng.
-- `+ Thêm khách` thêm khách với 1 món mặc định (`FinalFoodValues[1]`).
 
-### Popup chọn món
-- `FinalFoodListPopup`: ô search (tìm theo tên enum, displayName, tên nguyên liệu tiếng Việt), nhóm theo dòng món (`(int)type / 10`), mỗi dòng ảnh + tên + enum + icon nguyên liệu; Enter chọn kết quả đầu, Esc đóng; tự cuộn tới món hiện tại.
-- `FinalFoodPickerPopup`: lưới hàng = dòng món, cột = số nguyên liệu (`FinalFoodConfig.MinIngredients..MaxIngredients`, 2–6); enum quy ước `line*10 + tier`; hover hiện tooltip tên + nguyên liệu.
+- Một **Hàng khách chung · hai chỗ phục vụ**; khách đầu vào trước, chỗ nào trống nhận khách kế tiếp. Dữ liệu hai hàng cũ có nút chuyển sang danh sách chung trên bản nháp.
+- Mỗi khách có bộ chọn **Loại khách** Normal/Boss/Shipper. Boss và Shipper hiện thêm **Thời gian phục vụ (s)**, mặc định 30; Normal ẩn trường này.
+- Mỗi nhóm (`DrawIngredientGroup`) hiện icon nguyên liệu, tên món khớp nếu có hoặc **Tổ hợp nguyên liệu tùy chọn**, cùng foldout chọn nguyên liệu trực tiếp. Không cần tạo FinalFoodType cho tổ hợp mới.
+- `+ Thêm khách` tạo Normal, `timeServe = 30`, một nhóm trống, không chọn sẵn cơm/cá hồi. `+ Nhóm nguyên liệu` thêm nhóm trống, khóa khi đủ 4 nhóm.
+- `EnsureIngredientGroups` chuyển công thức `finalFoods` cũ thành danh sách nguyên liệu trên bản nháp, không sửa asset nguồn. Giữ thứ tự chọn; phần tử đầu là đế. Dữ liệu lặp giữ số lượng khi đọc và tính tổng; bộ chọn checkbox thao tác theo loại nguyên liệu.
+- Các popup chọn món cũ vẫn còn trong mã để tương thích, không phải luồng chỉnh order hiện tại. Chỉ bấm **Lưu** mới ghi bản nháp về asset.
 
 ### Panel board (phải)
 - Ô `Số hàng` / `Số cột` → resize (Undo "Đổi kích thước bảng").
@@ -62,7 +64,7 @@ Thay đổi cấu trúc (thêm/xoá khách, món, resize, fill, clear) được 
 - `ChangeDishShape` có Undo; đĩa đôi cần ô bên dưới/bên phải trong bảng và chưa thuộc đĩa khác. Nếu ô sẽ bị chiếm đang có dữ liệu, hỏi xác nhận trước khi xóa dữ liệu ô đó.
 - `DrawBoardProblems` hiện cảnh báo tràn bảng, chồng vùng chiếm, ô bị chiếm còn dữ liệu riêng, thiếu nguyên liệu, số lượng không dương hoặc kiểu đĩa không hợp lệ; kèm hướng dẫn chọn/dồn đĩa ngang và Shuffle.
 - `Điền bảng theo tổng order` (`FillBoardFromOrders`):
-  1. Đếm nguyên liệu cần (`CountOrderedFoods`: mỗi món của mọi khách cộng 1 cho mỗi nguyên liệu trong công thức).
+  1. Đếm nguyên liệu cần (`CountOrderedFoods`: dùng `GetIngredientOrders` của từng khách trong hàng chung, cộng từng phần tử của nhóm; nguyên liệu lặp được tính đủ số lượng).
   2. `LevelBoardOrderFiller.TryFill` tính mỗi đĩa đôi là hai vị trí nguyên liệu, ô bị chiếm không tính thành đĩa riêng. Gom các nửa đĩa đôi trước, sau đó ô đơn theo thứ tự cột→hàng. Giữ kiểu đĩa và nắp/băng chung của đĩa đôi; thay lại cả nguyên liệu lẫn số lượng ở hai phần.
   3. Kiểm tra trước khi sửa: nếu số loại vượt số vị trí, tổng số phần nhỏ hơn số nửa đĩa đôi, hoặc vùng chiếm sai/chồng nhau → báo lỗi và giữ nguyên bảng. Mỗi nửa đĩa đôi bắt buộc có ít nhất một phần.
   4. `AllocatePortions`: mỗi loại một vị trí, vị trí dư chia cho loại có lượng/vị trí cao nhất (hòa → tổng lớn hơn → thứ tự enum); không loại nào nhiều vị trí hơn tổng lượng của nó. Chia đều lượng mỗi loại, phần dư vào vị trí đầu. Hai nửa có thể cùng loại.
@@ -135,7 +137,3 @@ Runtime (`FoodBoardManager`, `Food`, `BoosterController`):
 - Viền chọn đĩa đôi có sprite riêng `PlateSelectionOutlineHorizontal.png` / `PlateSelectionOutlineVertical.png` trong `Assets/HotPot/Art/Sprites/UI/Dishes`, nền và tâm trong suốt. `horizontalDoubleOutline` / `verticalDoubleOutline` đã gán trong scene và được truyền tới `DishSelectionOutline`; sprite dùng được cả viền trắng lẫn nháy đỏ. Ưu tiên vòng viền riêng, shader `PlateSilhouette` chỉ dự phòng. Có menu `Tools/FoodPop/Rebuild Double Dish Outlines` để tạo lại hình học viền.
 - `Food.ConfigureShape` điều phối các helper khôi phục kích thước gốc, áp vùng chiếm và tạo hình phần 2 có thể tái sử dụng. `LateUpdate` đồng bộ độ sáng, độ mờ và thứ tự vẽ của phần 2 sau thay đổi từ board/booster.
 - Kiểm chứng: build runtime/editor không lỗi; 30 kiểm tra hành vi trong preview scene độc lập, gồm cổng ngang, vùng chiếm dọc, tổng nguyên liệu, sức chứa, băng dùng chung, lấy từng phần và tái sử dụng pool. Chưa kiểm tra hoạt cảnh trong Play Mode.
-
-
-
-
