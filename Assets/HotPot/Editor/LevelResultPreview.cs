@@ -66,7 +66,7 @@ internal static class LevelResultPreview
         try
         {
             camera.targetTexture = target;
-            UIManager panel = root.AddComponent<UIManager>();
+            FoodPop.UIManager panel = root.AddComponent<FoodPop.UIManager>();
             LevelResultPrefabSetup.ConfigureManager(panel);
             CaptureState(panel, camera, target, true);
             CaptureState(panel, camera, target, false);
@@ -86,7 +86,7 @@ internal static class LevelResultPreview
 
     // EN: Captures one concrete canvas opened by UIManager at mobile resolution using the gameplay prefab.
     // VI: Chụp một canvas cụ thể được UIManager mở ở độ phân giải điện thoại bằng prefab gameplay.
-    private static void CaptureState(UIManager panel, Camera camera, RenderTexture target, bool won, bool revive = false)
+    private static void CaptureState(FoodPop.UIManager panel, Camera camera, RenderTexture target, bool won, bool revive = false)
     {
         if (revive) panel.ShowRevive(null, null, true, false);
         else if (won) panel.ShowWin(null, true, false);

@@ -58,7 +58,7 @@ internal static class LevelResultPrefabSetup
     {
         if (EditorApplication.isPlaying) throw new InvalidOperationException("Hãy thoát Play Mode trước khi gán UIManager.");
         var scene = SceneManager.GetActiveScene();
-        UIManager manager = FindOrAttachSceneManager(scene);
+        FoodPop.UIManager manager = FindOrAttachSceneManager(scene);
         ConfigureManager(manager, true);
         AssignLevelControllers(scene, manager);
         EditorSceneManager.MarkSceneDirty(scene);
@@ -68,10 +68,10 @@ internal static class LevelResultPrefabSetup
 
     // EN: Finds the sole scene manager or attaches one to the user's existing named object without creating a replacement.
     // VI: Tìm manager duy nhất của scene hoặc gắn vào object đã đặt tên của người dùng mà không tạo object thay thế.
-    private static UIManager FindOrAttachSceneManager(Scene scene)
+    private static FoodPop.UIManager FindOrAttachSceneManager(Scene scene)
     {
-        UIManager manager = null;
-        foreach (UIManager candidate in Object.FindObjectsByType<UIManager>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        FoodPop.UIManager manager = null;
+        foreach (FoodPop.UIManager candidate in Object.FindObjectsByType<FoodPop.UIManager>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             if (candidate.gameObject.scene == scene)
             {
                 if (manager != null) throw new InvalidOperationException("Scene có nhiều UIManager, cần chọn rõ manager.");
@@ -87,14 +87,14 @@ internal static class LevelResultPrefabSetup
                     existing = candidate.gameObject;
                 }
             if (existing == null) throw new InvalidOperationException("Không tìm thấy object UIManager đã tạo trong scene.");
-            manager = Undo.AddComponent<UIManager>(existing);
+            manager = Undo.AddComponent<FoodPop.UIManager>(existing);
         }
         return manager;
     }
 
     // EN: Assigns the scene's manager to its level controllers while preserving other loaded scenes.
     // VI: Gán manager của scene cho các controller màn trong cùng scene, giữ các scene khác đang mở.
-    private static void AssignLevelControllers(Scene scene, UIManager manager)
+    private static void AssignLevelControllers(Scene scene, FoodPop.UIManager manager)
     {
         foreach (LevelController level in Object.FindObjectsByType<LevelController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
@@ -108,7 +108,7 @@ internal static class LevelResultPrefabSetup
 
     // EN: Wires concrete child canvases for a scene manager or an isolated preview without runtime prefab lookup.
     // VI: Nối canvas con cụ thể cho manager scene hoặc bản xem thử riêng, không tìm prefab lúc chạy.
-    public static void ConfigureManager(UIManager manager, bool recordUndo = false)
+    public static void ConfigureManager(FoodPop.UIManager manager, bool recordUndo = false)
     {
         if (recordUndo) Undo.RecordObject(manager, "Configure scene popups");
         var serialized = new SerializedObject(manager);
@@ -122,7 +122,7 @@ internal static class LevelResultPrefabSetup
 
     // EN: Keeps an assigned scene canvas or creates one linked prefab child when no matching canvas exists.
     // VI: Giữ canvas scene đã gán hoặc tạo một bản prefab con còn liên kết khi chưa có canvas tương ứng.
-    private static void AssignScenePopup<T>(UIManager manager, SerializedObject serialized, string propertyName, string prefabName, string childName, bool recordUndo) where T : LevelPopupView
+    private static void AssignScenePopup<T>(FoodPop.UIManager manager, SerializedObject serialized, string propertyName, string prefabName, string childName, bool recordUndo) where T : LevelPopupView
     {
         SerializedProperty property = serialized.FindProperty(propertyName);
         T popup = property.objectReferenceValue as T;
