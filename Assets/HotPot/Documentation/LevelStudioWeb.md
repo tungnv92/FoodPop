@@ -46,3 +46,11 @@ Luồng sơ chế đồng bộ Conveyor Chef: đĩa nguồn vẫn có món và g
 - `node node_modules/typescript/bin/tsc --noEmit`: kiểm tra kiểu API/frontend framework.
 
 Các kiểm tra dữ liệu Unity đã xác nhận mặc định 30 giây và giữ `timeServe` sau serialization. Kiểm tra giao diện web đã xác nhận Boss/Shipper hiện thời gian, Normal ẩn và đổi loại không làm mất giá trị. Bản triển khai gần nhất sau thay đổi này là **20**. Chi tiết runtime xem `claude/CustomerManager.md`, UI Unity xem `claude/LevelEditor.md`.
+
+
+## Chẩn đoán preview local (02/11/2026)
+
+- `ERR_CONNECTION_REFUSED` tại `127.0.0.1:4199` nghĩa là chưa có server lắng nghe cổng đó, chưa phải lỗi validation của level.
+- Server tĩnh chỉ phục vụ `public/`, không cung cấp `/api/shared`; lỗi JSON khi phản hồi là HTML/404 làm đồng bộ server thất bại. Workspace trình duyệt tại một origin local có thể chỉ có các level mẫu; cần kiểm tra tên/số level trong thư viện trước khi kết luận lỗi dữ liệu.
+- `PlayDemo.open` chặn lỗi cấu trúc từ `Core.analyze` hoặc danh sách khách rỗng. Mất cân bằng số phần riêng lẻ không trực tiếp chặn mở demo trong implementation hiện tại.
+- Kiểm tra trực tiếp bản deployed `/studio/` ngày 02/11/2026 đã tái hiện lỗi Chơi thử của LevelConfig_22: toast `Cần sửa level trước khi chơi: Nhóm chưa chọn nguyên liệu.` Khách 8 có nhóm món thứ 4 rỗng (`Chọn nguyên liệu (0)`); ba nhóm trước đã có nguyên liệu. Bảng đối chiếu cho thấy mọi loại nguyên liệu hiện tại đều khớp số phần giữa order và board. Cần bỏ nhóm trống nếu thêm nhầm, hoặc chọn nguyên liệu cho nhóm đó rồi cập nhật board tương ứng. Phiên chẩn đoán chưa sửa dữ liệu level hay lưu server.

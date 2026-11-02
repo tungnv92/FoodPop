@@ -13,27 +13,32 @@ namespace FoodPop
     {
         public const int DefaultSlotCount = 10;
 
-        // Belt centre line of ConveyorStandalone.png (perspective art) in sprite-local units (centre pivot, 100 PPU), clockwise from top middle.
-        // Đường tâm mặt băng của ConveyorStandalone.png theo đơn vị local của sprite (pivot giữa, 100 PPU), chiều kim đồng hồ từ giữa cạnh trên.
+        // Belt lane centre of conveyor.png (flat top-down art, 994x653 px, centre pivot, 100 PPU) in sprite-local units, clockwise from top middle.
+        // The lane is the midline between the conveyor's outer edge and the table_slot tray placed 0.08 below the conveyor centre (half size 4.27 x 2.59, corner radius 1.0).
+        // Đường tâm làn băng của conveyor.png (art nhìn thẳng, 994x653 px, pivot giữa, 100 PPU) theo đơn vị local của sprite, chiều kim đồng hồ từ giữa cạnh trên.
+        // Làn băng là đường giữa mép ngoài băng và khay table_slot đặt thấp hơn tâm băng 0.08 (nửa kích thước 4.27 x 2.59, bo góc 1.0).
         private static readonly Vector2[] BeltCenterline =
         {
-            new Vector2(-0.172f, 3.836f), new Vector2(0.589f, 3.836f), new Vector2(1.351f, 3.836f), new Vector2(2.113f, 3.836f),
-            new Vector2(2.875f, 3.836f), new Vector2(3.636f, 3.836f), new Vector2(4.398f, 3.836f), new Vector2(5.144f, 3.719f),
-            new Vector2(5.726f, 3.308f), new Vector2(5.972f, 2.716f), new Vector2(6.014f, 2.085f), new Vector2(6.057f, 1.444f),
-            new Vector2(6.100f, 0.794f), new Vector2(6.144f, 0.135f), new Vector2(6.189f, -0.534f), new Vector2(6.234f, -1.213f),
-            new Vector2(6.213f, -1.896f), new Vector2(5.809f, -2.472f), new Vector2(5.095f, -2.767f), new Vector2(4.278f, -2.783f),
-            new Vector2(3.460f, -2.783f), new Vector2(2.641f, -2.783f), new Vector2(1.822f, -2.783f), new Vector2(1.004f, -2.783f),
-            new Vector2(0.185f, -2.783f), new Vector2(-0.634f, -2.783f), new Vector2(-1.452f, -2.783f), new Vector2(-2.271f, -2.783f),
-            new Vector2(-3.090f, -2.783f), new Vector2(-3.908f, -2.783f), new Vector2(-4.727f, -2.783f), new Vector2(-5.513f, -2.648f),
-            new Vector2(-6.079f, -2.181f), new Vector2(-6.255f, -1.523f), new Vector2(-6.209f, -0.840f), new Vector2(-6.164f, -0.167f),
-            new Vector2(-6.120f, 0.497f), new Vector2(-6.076f, 1.151f), new Vector2(-6.034f, 1.796f), new Vector2(-5.991f, 2.432f),
-            new Vector2(-5.886f, 3.054f), new Vector2(-5.439f, 3.565f), new Vector2(-4.742f, 3.821f), new Vector2(-3.981f, 3.836f),
-            new Vector2(-3.219f, 3.836f), new Vector2(-2.457f, 3.836f), new Vector2(-1.696f, 3.836f), new Vector2(-0.934f, 3.836f),
+            new Vector2(0.000f, 2.545f), new Vector2(0.545f, 2.545f), new Vector2(1.091f, 2.545f), new Vector2(1.636f, 2.545f),
+            new Vector2(2.182f, 2.545f), new Vector2(2.727f, 2.545f), new Vector2(3.272f, 2.545f), new Vector2(3.531f, 2.511f),
+            new Vector2(3.772f, 2.411f), new Vector2(3.980f, 2.252f), new Vector2(4.139f, 2.045f), new Vector2(4.238f, 1.804f),
+            new Vector2(4.272f, 1.545f), new Vector2(4.272f, 1.017f), new Vector2(4.272f, 0.488f), new Vector2(4.272f, -0.040f),
+            new Vector2(4.272f, -0.568f), new Vector2(4.272f, -1.097f), new Vector2(4.272f, -1.625f), new Vector2(4.238f, -1.884f),
+            new Vector2(4.139f, -2.125f), new Vector2(3.980f, -2.332f), new Vector2(3.772f, -2.491f), new Vector2(3.531f, -2.591f),
+            new Vector2(3.272f, -2.625f), new Vector2(2.727f, -2.625f), new Vector2(2.182f, -2.625f), new Vector2(1.636f, -2.625f),
+            new Vector2(1.091f, -2.625f), new Vector2(0.545f, -2.625f), new Vector2(0.000f, -2.625f), new Vector2(-0.545f, -2.625f),
+            new Vector2(-1.091f, -2.625f), new Vector2(-1.636f, -2.625f), new Vector2(-2.182f, -2.625f), new Vector2(-2.727f, -2.625f),
+            new Vector2(-3.272f, -2.625f), new Vector2(-3.531f, -2.591f), new Vector2(-3.772f, -2.491f), new Vector2(-3.980f, -2.332f),
+            new Vector2(-4.139f, -2.125f), new Vector2(-4.238f, -1.884f), new Vector2(-4.272f, -1.625f), new Vector2(-4.272f, -1.097f),
+            new Vector2(-4.272f, -0.568f), new Vector2(-4.272f, -0.040f), new Vector2(-4.272f, 0.488f), new Vector2(-4.272f, 1.017f),
+            new Vector2(-4.272f, 1.545f), new Vector2(-4.238f, 1.804f), new Vector2(-4.139f, 2.045f), new Vector2(-3.980f, 2.252f),
+            new Vector2(-3.772f, 2.411f), new Vector2(-3.531f, 2.511f), new Vector2(-3.272f, 2.545f), new Vector2(-2.727f, 2.545f),
+            new Vector2(-2.182f, 2.545f), new Vector2(-1.636f, 2.545f), new Vector2(-1.091f, 2.545f), new Vector2(-0.545f, 2.545f),
         };
 
         [Header("Path")]
         [SerializeField] private SplineContainer splineContainer;
-        [Tooltip("SpriteRenderer của ConveyorStandalone; spline được dựng theo mặt băng của nó.")]
+        [Tooltip("SpriteRenderer của băng chuyền (conveyor); spline được dựng theo làn băng của nó.")]
         [SerializeField] private SpriteRenderer conveyorRenderer;
         [SerializeField] private bool buildSplineIfEmpty = true;
 
@@ -105,8 +110,8 @@ namespace FoodPop
             ResolveReferences();
         }
 
-        // EN: Measures the spline and places the serialized slots before the first frame; references, slots and sorting are set up in the editor (Reset/inspector buttons).
-        // VI: Đo spline và đặt các slot đã gán sẵn trước frame đầu tiên; tham chiếu, slot và thứ tự vẽ được thiết lập trong editor (Reset/nút trong inspector).
+        // EN: Refits the spline to the conveyor art when fitting is enabled (so a stale saved spline never survives an art change), otherwise builds it only when empty; then measures it and places the serialized slots before the first frame.
+        // VI: Dựng lại spline theo art băng chuyền khi bật fit (để spline cũ đã lưu không còn lệch khi đổi art), nếu không thì chỉ dựng khi spline rỗng; sau đó đo spline và đặt các slot đã gán trước frame đầu tiên.
         private void Awake()
         {
             if (splineContainer == null)
@@ -115,7 +120,7 @@ namespace FoodPop
                 enabled = false;
                 return;
             }
-            if (buildSplineIfEmpty && splineContainer.Spline.Count < 2)
+            if (fitSplineToConveyor || (buildSplineIfEmpty && splineContainer.Spline.Count < 2))
                 RebuildSplineFromConveyor();
             RefreshPathMetrics();
             PlaceSlots();
@@ -374,15 +379,14 @@ namespace FoodPop
                 SetLayerRecursively(child, layer);
         }
 
-        // EN: Looks for the ConveyorStandalone sprite renderer under this object, then in its parent.
-        // VI: Tìm sprite renderer ConveyorStandalone trong object này, sau đó trong object cha.
+        // EN: Looks for the renderer showing the "conveyor" belt sprite (not its shadow or line sprites) under this object, then in its parent.
+        // VI: Tìm renderer hiển thị sprite băng "conveyor" (không lấy sprite bóng hay vạch) trong object này, sau đó trong object cha.
         private SpriteRenderer FindConveyorRenderer()
         {
             Transform root = transform.parent != null ? transform.parent : transform;
             foreach (SpriteRenderer candidate in root.GetComponentsInChildren<SpriteRenderer>(true))
             {
-                if (candidate.sprite != null && candidate.sprite.name.StartsWith("ConveyorStandalone") &&
-                    !candidate.sprite.name.Contains("Front"))
+                if (candidate.sprite != null && candidate.sprite.name == "conveyor")
                     return candidate;
             }
             return null;

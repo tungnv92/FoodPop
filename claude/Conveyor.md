@@ -8,6 +8,15 @@ Cập nhật: 29/10/2026.
 - `Conveyor_Chef` trong scene `Assets/HotPot/Scenes/HotPotDemo.unity` đã được đặt thành 10 slot và chia đều lại trên spline.
 - `Slot Count` trong Inspector vẫn cho phép cấu hình số lượng slot khác.
 
+## Đường chạy theo sprite băng chuyền mới (02/11/2026)
+
+- Art băng chuyền đổi sang sprite nhìn thẳng `Assets/HotPot/Art/Sprites/Ingame/conveyor.png` (994x653 px, 100 PPU, pivot giữa), khay giữa là `table_slot.png`.
+- `BeltCenterline` trong `ConveyorChefMovement` được dựng lại theo đường giữa làn băng: giữa mép ngoài `conveyor` và mép `table_slot` (khay đặt thấp hơn tâm băng 0.08). Theo local của sprite: cạnh trên y = 2.545, cạnh dưới y = -2.625, hai cạnh bên x = ±4.272, bo góc bán kính 1.0; điểm đầu vẫn là giữa cạnh trên, chạy theo chiều kim đồng hồ (giữ nguyên ý nghĩa `Station Start/End`, `Station Exit`).
+- Nếu đổi vị trí/kích thước `table_slot` so với `conveyor`, phải cập nhật lại các điểm này.
+- `Awake` giờ luôn dựng lại spline theo art khi `Fit Spline To Conveyor` bật, nên spline cũ lưu trong scene không còn làm lệch đĩa lúc chạy. Tắt tùy chọn này để giữ spline chỉnh tay (khi đó chỉ dựng khi spline rỗng).
+- Tìm renderer tự động (khi chưa gán `Conveyor Renderer`) giờ tìm sprite tên `conveyor` thay cho `ConveyorStandalone`.
+- Offset hàng trước/sau trong scene (0.03 / 0.06) được giữ nguyên.
+
 ## Setup trong Inspector
 
 Inspector của `ConveyorChefMovement` chỉ giữ một nút:
@@ -64,3 +73,4 @@ Bản web: play-engine.js giữ chefItem tham chiếu cùng món trên slot ngu�
 - Kiểm tra Setup trên object tạm trong Unity theo chuỗi `12 → 10 → 14 → 10 → 10`: số phần tử trong danh sách và số component slot con đều khớp Slot Count; slot giữ liên kết prefab.
 - Kiểm tra mã Inspector chỉ còn một nút Setup tổng.
 - Kiểm tra Unity trên object tạm: giữ chỗ, từ chối fill đè, hình học vòng 25%/100%, món Prepared về đúng phần gốc và dọn vòng khi xóa. Web kiểm tra hết level, bảo toàn nguyên liệu và giữ slot nguồn. Chưa chạy trọn hiệu ứng Unity trong Play Mode.
+- 02/11/2026: dựng ảnh xem trước bằng cách ghép `conveyor.png`, `table_slot.png` và 10 `plate_conveyor.png` (scale 0.84) chia đều trên đường mới: các đĩa nằm giữa làn xanh, không đè lên khay hay mép ngoài. Chưa biên dịch và chưa chạy Play Mode trong Unity.

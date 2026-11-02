@@ -445,12 +445,12 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 13
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: c5999f667cb6171479715a9f7dc71d68, type: 3}
+  m_Sprite: {fileID: 21300000, guid: e29cbd31cc1cbda449e80c0484ec245e, type: 3}
   m_Color: {r: 1, g: 0.9647059, b: 0.88235295, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 1
-  m_Size: {x: 1, y: 2.4}
+  m_Size: {x: 1.2, y: 3.5}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -605,7 +605,7 @@ MonoBehaviour:
   - {fileID: 3146141661207296259}
   background: {fileID: 8773297089455669462}
   backgroundPadding: {x: 0.2, y: 0.3}
-  columnSize: {x: 0.8, y: 1.8}
+  columnSize: {x: 1, y: 3.4}
   columnSpacing: 0.15
   dishFill: 1
   columnsOffset: {x: 0, y: 0}
@@ -837,21 +837,29 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4799218594409214930}
     m_Modifications:
+    - target: {fileID: 2978471055527684829, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
+      propertyPath: countRoot
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2978471055527684829, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
+      propertyPath: countText
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 5806865273698220583, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_Name
       value: "Order \xB7 Tuna"
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.8163265
+      value: 1.0204082
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.8163265
+      value: 1.0204082
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.8163265
+      value: 1.0204082
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalPosition.x
@@ -894,7 +902,8 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 2231713651386505452, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 5806865273698220583, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
@@ -966,7 +975,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.98, y: 2.205}
+  m_Size: {x: 0.98, y: 3.3320003}
   m_EdgeRadius: 0
 --- !u!1001 &4375684136188990647
 PrefabInstance:
@@ -1196,15 +1205,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.9718173
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.9718173
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.9718173
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1406,15 +1415,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.9718173
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.9718173
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.9718173
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6033252163900213119, guid: dd1874f0cf72f0e4093d6f3129bafed9, type: 3}
       propertyPath: m_LocalPosition.x

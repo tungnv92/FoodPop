@@ -763,16 +763,75 @@ namespace FoodPop
             dish.SetIceBlockSprites(iceBlockSprites);
             dish.Setup(cell.foodType, cell.requiredCount, GetIcon(cell.foodType), cell.isHidden);
             dish.SetIconConfig(foodIconConfig);
-            Vector3 worldOffset = cell.dishShape == DishShape.Vertical ? parent.TransformVector(Vector3.down * rowSpacing) :
-                cell.dishShape == DishShape.Horizontal ? ingredientColumns[column + 1].position - parent.position : Vector3.zero;
-            Sprite plate = cell.dishShape == DishShape.Horizontal ? horizontalDoublePlate : verticalDoublePlate;
-            Sprite outline = cell.dishShape == DishShape.Horizontal ? horizontalDoubleOutline : verticalDoubleOutline;
-            Sprite lid = cell.dishShape == DishShape.Horizontal ? horizontalDoubleLid : verticalDoubleLid;
-            dish.ConfigureShape(cell.dishShape, cell.secondFoodType, cell.secondCount, dish.transform.InverseTransformVector(worldOffset), plate, doublePlateOutlineMaterial, outline, lid);
+            ApplyDishShape(dish, cell.dishShape, cell.secondFoodType, cell.secondCount, column);
             dish.SetFrozen(cell.isFrozen, cell.blockValue);
             dish.name = $"Ingredient dish · {cell.foodType} · {cell.dishShape}";
             ApplyDishVisuals(dish);
             return dish;
+        }
+
+        // EN: Sizes a dish's footprint for its shape from the current spacing: a vertical double reaches one row down, a horizontal double reaches the next column; picks the matching plate, ring and lid sprites.
+        // VI: Đặt vùng chiếm của đĩa theo hình dạng dựa trên khoảng cách hiện tại: đĩa đôi dọc kéo xuống một hàng, đĩa đôi ngang kéo sang cột kế; chọn sprite đĩa, vòng viền và nắp tương ứng.
+        private void ApplyDishShape(Food dish, DishShape shape, FoodType secondType, int secondCount, int column)
+        {
+            Transform parent = ingredientColumns[column];
+            Vector3 worldOffset = shape == DishShape.Vertical ? parent.TransformVector(Vector3.down * rowSpacing) :
+                shape == DishShape.Horizontal && column + 1 < ingredientColumns.Count ? ingredientColumns[column + 1].position - parent.position : Vector3.zero;
+            Sprite plate = shape == DishShape.Horizontal ? horizontalDoublePlate : verticalDoublePlate;
+            Sprite outline = shape == DishShape.Horizontal ? horizontalDoubleOutline : verticalDoubleOutline;
+            Sprite lid = shape == DishShape.Horizontal ? horizontalDoubleLid : verticalDoubleLid;
+            dish.ConfigureShape(shape, secondType, secondCount, dish.transform.InverseTransformVector(worldOffset), plate, doublePlateOutlineMaterial, outline, lid);
+        }
+
+        // EN: Re-lays out the board after rowSpacing/columnSpacing change (Inspector "Update View" button). Re-spaces the active columns. In Play Mode it snaps every running slide, moves each dish to its row and refits double dishes and link lines. In Edit Mode it stacks each active column's child dishes top to bottom by their current height.
+        // VI: Dàn lại board sau khi đổi rowSpacing/columnSpacing (nút "Update View" trên Inspector). Dàn lại các cột đang bật. Khi Play thì kết thúc ngay các hiệu ứng trượt, đưa từng đĩa về đúng hàng, căn lại đĩa đôi và dây liên kết. Khi chưa Play thì xếp các đĩa con của mỗi cột đang bật từ trên xuống theo độ cao hiện tại.
+        public void UpdateView()
+        {
+            List<Transform> columns = GetColumnObjects();
+            if (columns.Count == 0)
+                return;
+            int activeCount = 0;
+            foreach (Transform column in columns)
+                if (column.gameObject.activeSelf)
+                    activeCount++;
+            ApplyColumnSpacing(activeCount);
+            if (Application.isPlaying)
+                RelayoutBoardDishes();
+            else
+                RelayoutSceneDishes(activeCount);
+        }
+
+        // EN: Play Mode relayout: snaps running slides, puts each anchor dish at its row position, refits double footprints and refreshes link lines.
+        // VI: Dàn lại khi Play: kết thúc hiệu ứng trượt, đặt mỗi đĩa gốc vào vị trí hàng, căn lại vùng đĩa đôi và cập nhật dây liên kết.
+        private void RelayoutBoardDishes()
+        {
+            foreach (Transform column in ingredientColumns)
+                FinishColumnShift(column);
+            for (int c = 0; c < columnDishes.Count && c < ingredientColumns.Count; c++)
+                for (int r = 0; r < columnDishes[c].Count; r++)
+                {
+                    if (!IsDishAnchor(c, r))
+                        continue;
+                    Food dish = columnDishes[c][r];
+                    dish.transform.localPosition = GetRowLocalPosition(r);
+                    if (dish.IsDouble)
+                        ApplyDishShape(dish, dish.Shape, dish.SecondFoodType, dish.SecondAmount, c);
+                }
+            UpdateDishLinkViews();
+        }
+
+        // EN: Edit Mode relayout: for the first activeCount columns, orders the child dishes by height (highest = head) and puts them on consecutive rows.
+        // VI: Dàn lại khi chưa Play: với activeCount cột đầu, sắp các đĩa con theo độ cao (cao nhất là đầu cột) và đặt vào các hàng liên tiếp.
+        private void RelayoutSceneDishes(int activeCount)
+        {
+            for (int c = 0; c < activeCount && c < ingredientColumns.Count; c++)
+            {
+                List<Food> dishes = new List<Food>(ingredientColumns[c].GetComponentsInChildren<Food>(true));
+                dishes.RemoveAll(dish => dish.transform.parent != ingredientColumns[c]);
+                dishes.Sort((a, b) => b.transform.localPosition.y.CompareTo(a.transform.localPosition.y));
+                for (int r = 0; r < dishes.Count; r++)
+                    dishes[r].transform.localPosition = GetRowLocalPosition(r);
+            }
         }
 
         // EN: Captures dish visuals from the first scene dish (or the prefab), then adopts the scene dishes into the reusable pool; row spacing comes from the inspector.
