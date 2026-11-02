@@ -12,8 +12,7 @@ public class UIManager : SingletonMonoBehaviour<UIManager>
     [SerializeField] private Panel _panel;
 
     [Header("Popup Parents")]
-    [SerializeField] private RectTransform _popupBackParent;
-    [SerializeField] private RectTransform _popupFrontParent;
+    [SerializeField] private RectTransform _popupParent;
 
     [Header("Blocker")]
     [SerializeField] private GameObject _blocker;
@@ -78,7 +77,7 @@ public class UIManager : SingletonMonoBehaviour<UIManager>
     /// <returns>The opened popup instance, or null if the prefab was not found.</returns>
     public Popup OpenPopup(PopupId id, object args = null)
     {
-        RectTransform popupParent = (id == PopupId.Settings) ? _popupBackParent : _popupFrontParent;
+        RectTransform popupParent = _popupParent;
 
         if (!IsPopupInstantiated(id))
         {
