@@ -10,13 +10,13 @@ public class PlayButton : MonoBehaviour
     [SerializeField] Color[] levelTextColors;
     private void Start()
     {
-        levelTmp.text = $"Level {ProfileManager.instance.PlayerData.currentLevel}";
-        bool isHard = GameManager.Ins.IsHardLevel();
-        bool isSuperHard = GameManager.Ins.IsSuperHardLevel();
+        //levelTmp.text = $"Level {ProfileManager.instance.PlayerData.currentLevel}";
+        //bool isHard = GameManager.Ins.IsHardLevel();
+        //bool isSuperHard = GameManager.Ins.IsSuperHardLevel();
 
-        hardButton.SetActive(isHard);
-        superHardButton.SetActive(isSuperHard);
-        levelTmp.color = levelTextColors[isHard ? 1 : (isSuperHard ? 2 : 0)];
+        //hardButton.SetActive(isHard);
+        //superHardButton.SetActive(isSuperHard);
+        //levelTmp.color = levelTextColors[isHard ? 1 : (isSuperHard ? 2 : 0)];
     }
     public void OnClick()
     {

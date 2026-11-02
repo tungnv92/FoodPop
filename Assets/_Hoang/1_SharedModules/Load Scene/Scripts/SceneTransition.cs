@@ -7,11 +7,10 @@ using UnityEngine.UI;
 public class SceneTransition : MonoBehaviour
 {
     [SerializeField] CanvasScaler scaler;
-    [SerializeField] Transform holeTf;
     [SerializeField] CanvasGroup progressCanvasGroup;
     [SerializeField] CanvasGroup bgCanvasGroup;
     [SerializeField] Image fillImage;
-    [SerializeField] RectTransform spineRectTf;
+    //[SerializeField] RectTransform spineRectTf;
     private void Start()
     {
         float baseRatio = 1080f / 1920;
@@ -52,6 +51,6 @@ public class SceneTransition : MonoBehaviour
     public void SetProgress(float progress)
     {
         fillImage.fillAmount = progress;
-        spineRectTf.ChangeAnchorPosX((progress - 0.5f) * 356 * 2);
+        //spineRectTf.ChangeAnchorPosX((progress - 0.5f) * 356 * 2);
     }
 }

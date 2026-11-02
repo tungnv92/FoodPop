@@ -15,8 +15,7 @@ using UnityEditor.SceneManagement;
 public class Load : MonoBehaviour
 {
     [SerializeField] Image fillImage;
-    [SerializeField] RectTransform spineRectTf;
-    [SerializeField] GameObject loadingText;
+    //[SerializeField] RectTransform spineRectTf;
     [SerializeField] CanvasScaler loadCanvas;
     //[SerializeField] AdsManager adsManager;
 
@@ -34,29 +33,9 @@ public class Load : MonoBehaviour
 
         yield return null;
         // Init
-        //FirebaseManager.Ins.Init();
-        //bool timeout = false;
-        //Scheduler.DoTask(3, () =>
-        //{
-        //    timeout = true;
-        //});
-        //yield return new WaitUntil(() => FirebaseManager.Ins.FetchRemoteConfigSuccess || timeout);
-        //AdsManager.Ins.Init();
-        //yield return null;
-        ////AppsFlyerManager.Ins.Init();
-        //yield return null;
-        IAPManager.Ins.Init();
-        //yield return null;
-        ////AdMobManager.Ins.Init();
-        //yield return null;
-        //MasterPassManager.Ins.Init();
-        //ProfileManager.Ins.Init();
-        //JourneyOfferManager.Ins.Init();
-        //GalacticManager.Ins.Init();
+        //IAPManager.Ins.Init();
         //AudioManager.Ins.Init();
         VibrationManager.Ins.Init();
-
-        loadingText.SetActive(true);
         // Load scene
         yield return new WaitUntil(() => !tween.active);
         SceneId scene = (GameManager.Ins.Config.CanBackHome()) ? SceneId.Home : SceneId.Game;
@@ -67,12 +46,11 @@ public class Load : MonoBehaviour
         {
             LoadSceneManager.Ins.LoadScene(scene);
         });
-        //StartCoroutine(AdMobManager.Ins.ShowAppOpenAd());
     }
 
     void SetProgress(float progress)
     {
         fillImage.fillAmount = progress;
-        spineRectTf.ChangeAnchorPosX((progress - 0.5f) * 356 * 2);
+        //spineRectTf.ChangeAnchorPosX((progress - 0.5f) * 356 * 2);
     }
 }
