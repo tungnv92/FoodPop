@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace FoodPop
 {
@@ -8,7 +9,7 @@ namespace FoodPop
     public abstract class Booster : MonoBehaviour
     {
         [Tooltip("Icon của booster, cũng là vùng chạm để kích hoạt.")]
-        [SerializeField] private SpriteRenderer icon;
+        [SerializeField] private Image icon;
         private Coroutine shakeRoutine;
 
         // EN: Which booster this is.
@@ -17,7 +18,7 @@ namespace FoodPop
 
         // EN: The icon renderer (subclasses may reuse its sprite).
         // VI: Renderer icon (lớp con có thể dùng lại sprite của nó).
-        protected SpriteRenderer Icon => icon;
+        protected Image Icon => icon;
 
         // EN: Restores icon rotation when hidden during a denied-use shake.
         // VI: Khôi phục góc xoay icon khi bị ẩn giữa nhịp lắc từ chối.
@@ -46,7 +47,7 @@ namespace FoodPop
         {
             if (icon == null || !icon.enabled || !icon.gameObject.activeInHierarchy)
                 return false;
-            Bounds bounds = icon.bounds;
+            Bounds bounds = icon.sprite.bounds;
             return worldPoint.x >= bounds.min.x && worldPoint.x <= bounds.max.x && worldPoint.y >= bounds.min.y && worldPoint.y <= bounds.max.y;
         }
 
@@ -82,7 +83,7 @@ namespace FoodPop
         // VI: Chỉ dùng trong editor: gán renderer icon dùng cho vùng chạm và màu khả dụng.
         public void SetIcon(SpriteRenderer renderer)
         {
-            icon = renderer;
+            //icon = renderer;
         }
 #endif
     }

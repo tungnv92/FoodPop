@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41edf7a9b4d2a4f4a9b52e748b20ab33, type: 3}
+  m_Name: TowerRiseConfig
+  m_EditorClassIdentifier: GamePackages::TowerRiseConfig
+  isFeatureEnabled: 1
+  LevelActiveFeature: 36
+  mileStoneInfos:
+  - index: 0
+    winAmount: 2
+    rewards:
+    - type: 0
+      value: 50
+  - index: 1
+    winAmount: 3
+    rewards:
+    - type: 1
+      value: 15
+  - index: 2
+    winAmount: 5
+    rewards:
+    - type: 2
+      value: 1
+  - index: 3
+    winAmount: 6
+    rewards:
+    - type: 0
+      value: 200
+  - index: 4
+    winAmount: 7
+    rewards:
+    - type: 3
+      value: 1
+    - type: 1
+      value: 15
+  - index: 5
+    winAmount: 8
+    rewards:
+    - type: 0
+      value: 100
+    - type: 1
+      value: 15
+  - index: 6
+    winAmount: 9
+    rewards:
+    - type: 1
+      value: 15
+    - type: 2
+      value: 1
+    - type: 4
+      value: 1
+  - index: 7
+    winAmount: 10
+    rewards:
+    - type: 0
+      value: 500
+    - type: 1
+      value: 30
+  - index: 8
+    winAmount: 14
+    rewards:
+    - type: 1
+      value: 60
+    - type: 5
+      value: 1
+  - index: 9
+    winAmount: 16
+    rewards:
+    - type: 0
+      value: 1000
+    - type: 1
+      value: 30
+    - type: 2
+      value: 1
+    - type: 3
+      value: 1
+    - type: 4
+      value: 1
+    - type: 5
+      value: 1

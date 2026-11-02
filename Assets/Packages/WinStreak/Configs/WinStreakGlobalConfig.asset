@@ -1,0 +1,172 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6db5206a1e09b3b428a0fffda8545621, type: 3}
+  m_Name: WinStreakGlobalConfig
+  m_EditorClassIdentifier: 
+  isFeatureEnabled: 1
+  LevelActiveFeature: 18
+  Round1StartDay: 5
+  Round1EndDay: 1
+  Round2StartDay: 2
+  Round2EndDay: 4
+  FillSpeed: 16
+  resourceSprites:
+  - type: 0
+    sprite: {fileID: 21300000, guid: a6c90861ba194ea459c1b4131e13c0d4, type: 3}
+  - type: 1
+    sprite: {fileID: 21300000, guid: f480a638360352149bcc634b9837f864, type: 3}
+  - type: 2
+    sprite: {fileID: 21300000, guid: b38caca7b9c3401489d0999456c78519, type: 3}
+  - type: 3
+    sprite: {fileID: 21300000, guid: 9a19f7cd8ce00f845bef8356fa5ac251, type: 3}
+  - type: 4
+    sprite: {fileID: 21300000, guid: 5c947fcc06a2cf44491d86de31e982ce, type: 3}
+  - type: 5
+    sprite: {fileID: 21300000, guid: 9fd61e3cb65fe12468d4bb1b2b71bfee, type: 3}
+  winStreakMileStoneInfos:
+  - index: 0
+    screwAmount: 1
+    rewards:
+    - type: 1
+      value: 15
+  - index: 1
+    screwAmount: 10
+    rewards:
+    - type: 0
+      value: 50
+  - index: 2
+    screwAmount: 200
+    rewards:
+    - type: 1
+      value: 15
+  - index: 3
+    screwAmount: 250
+    rewards:
+    - type: 0
+      value: 100
+  - index: 4
+    screwAmount: 250
+    rewards:
+    - type: 1
+      value: 30
+  - index: 5
+    screwAmount: 400
+    rewards:
+    - type: 2
+      value: 1
+  - index: 6
+    screwAmount: 250
+    rewards:
+    - type: 1
+      value: 30
+  - index: 7
+    screwAmount: 250
+    rewards:
+    - type: 0
+      value: 100
+  - index: 8
+    screwAmount: 350
+    rewards:
+    - type: 3
+      value: 1
+  - index: 9
+    screwAmount: 300
+    rewards:
+    - type: 0
+      value: 200
+  - index: 10
+    screwAmount: 400
+    rewards:
+    - type: 4
+      value: 1
+  - index: 11
+    screwAmount: 300
+    rewards:
+    - type: 1
+      value: 30
+  - index: 12
+    screwAmount: 500
+    rewards:
+    - type: 5
+      value: 1
+  - index: 13
+    screwAmount: 300
+    rewards:
+    - type: 0
+      value: 200
+  - index: 14
+    screwAmount: 300
+    rewards:
+    - type: 1
+      value: 60
+  - index: 15
+    screwAmount: 800
+    rewards:
+    - type: 1
+      value: 15
+    - type: 3
+      value: 1
+    - type: 0
+      value: 500
+  - index: 16
+    screwAmount: 350
+    rewards:
+    - type: 4
+      value: 1
+  - index: 17
+    screwAmount: 150
+    rewards:
+    - type: 0
+      value: 100
+  - index: 18
+    screwAmount: 250
+    rewards:
+    - type: 1
+      value: 60
+  - index: 19
+    screwAmount: 800
+    rewards:
+    - type: 0
+      value: 1000
+  - index: 20
+    screwAmount: 800
+    rewards:
+    - type: 2
+      value: 1
+    - type: 5
+      value: 1
+  - index: 21
+    screwAmount: 200
+    rewards:
+    - type: 1
+      value: 30
+  - index: 22
+    screwAmount: 1000
+    rewards:
+    - type: 2
+      value: 1
+    - type: 3
+      value: 1
+    - type: 4
+      value: 1
+    - type: 0
+      value: 100
+  - index: 23
+    screwAmount: 300
+    rewards:
+    - type: 1
+      value: 60
+  - index: 24
+    screwAmount: 5000
+    rewards:
+    - type: 0
+      value: 5000
