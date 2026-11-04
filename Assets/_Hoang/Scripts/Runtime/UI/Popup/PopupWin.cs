@@ -28,6 +28,8 @@ public class PopupWin : Popup
     PlayerDataManager PlayerDataManager => ProfileManager.instance.PlayerDataManager;
 
     int _rewardAmount;
+    // EN: Opens the win popup, calculates coin rewards, updates event progressions, and advances the player's level.
+    // VI: Mở popup chiến thắng, tính toán thưởng xu, cập nhật tiến độ các sự kiện và tăng cấp độ màn chơi của người chơi.
     public override void Open(object args = null)
     {
         base.Open(args);
@@ -56,6 +58,7 @@ public class PopupWin : Popup
         ProfileManager.instance.GameFeatureContext.TowerRiseManager.OnWinLevel();
         ProfileManager.instance.GameFeatureContext.LavaQuestManager.OnLevelWin();
         ProfileManager.instance.GameFeatureContext.MissionControlManager.OnLevelWin(isFirstTry, isHardLevel);
+        ProfileManager.instance.GameFeatureContext.CardCollectionManager.OnLevelWin(isFirstTry);
         ProfileManager.instance.PlayerData.currentLevel++;
         ProfileManager.instance.SaveData();
 

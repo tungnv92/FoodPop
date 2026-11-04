@@ -25,21 +25,81 @@ public class HomePanel : Panel
     [SerializeField] LavaQuestButtonHome _lavaQuestButton;
     [SerializeField] MissionControlButtonHome _missionControlButton;
     [SerializeField] TowerRiseButtonHome _towerRiseButton;
+    [SerializeField] CardCollectionButtonHome _cardCollectionButton;
     public CoinDisplay CoinDisplay => _coinDisplay;
     public LifeDisplay LifeDisplay => _lifeDisplay;
     public ShopTab Shop => _shop;
     public WinStreakHome WinStreakHome => _winStreakHome;
+
+    private const float BASE_RATIO = 1920f / 1080f;
+    private bool _isInnerResized;
+
+    // EN: Initializes the home panel, resizes the inner container to fit the screen aspect ratio, and starts the home sequence.
+    // VI: Khởi tạo panel màn hình chính, điều chỉnh kích thước khung chứa bên trong theo tỉ lệ màn hình và chạy chuỗi sự kiện mở đầu.
     private IEnumerator Start()
     {
-        Debug.Log("Size: " + _refTf.rect.size);
+        ResizeInnerContainer();
         yield return new WaitForEndOfFrame();
-        Debug.Log("Size: " + _refTf.rect.size);
         //AudioManager.Ins.PlayMusic(0, MusicType.Home);
-        _innerRectTf.sizeDelta = _refTf.rect.size;
-        _mainSpineTf.anchoredPosition *= _rectTf.sizeDelta.y / 1920f;
+        if (_mainSpineTf != null)
+        {
+            _mainSpineTf.anchoredPosition *= _rectTf.sizeDelta.y / 1920f;
+        }
         StartCoroutine(RunHomeSequence());
-        _topHorizontal.enabled = false;
+        if (_topHorizontal != null)
+        {
+            _topHorizontal.enabled = false;
+        }
     }
+
+    // EN: Resizes the 1080x1920 inner container once to match the visible screen dimensions and safe area on any aspect ratio.
+    // VI: Điều chỉnh kích thước khung chứa 1080x1920 bên trong một lần để khớp với màn hình hiển thị và vùng an toàn trên mọi tỉ lệ màn hình.
+    public void ResizeInnerContainer()
+    {
+        if (_isInnerResized || _innerRectTf == null) return;
+        _isInnerResized = true;
+
+        float ratio = Screen.height * 1f / Screen.width;
+        if (ratio < BASE_RATIO)
+        {
+            _innerRectTf.ChangeSizeDeltaX(_innerRectTf.sizeDelta.x * BASE_RATIO / ratio);
+        }
+        else
+        {
+            _innerRectTf.ChangeSizeDeltaY(_innerRectTf.sizeDelta.y * ratio / BASE_RATIO);
+        }
+
+        ApplySafeAreaToInner();
+    }
+
+    // EN: Applies Screen.safeArea normalized bounds (following SafeArea.cs) to the inner container's sizeDelta and anchoredPosition.
+    // VI: Áp dụng giới hạn chuẩn hóa của Screen.safeArea (theo phương pháp của SafeArea.cs) vào sizeDelta và anchoredPosition của khung chứa bên trong.
+    private void ApplySafeAreaToInner()
+    {
+        if (Screen.width <= 0 || Screen.height <= 0) return;
+
+        Rect safeArea = Screen.safeArea;
+        Vector2 anchorMin = safeArea.position;
+        Vector2 anchorMax = safeArea.position + safeArea.size;
+        anchorMin.x /= Screen.width;
+        anchorMin.y /= Screen.height;
+        anchorMax.x /= Screen.width;
+        anchorMax.y /= Screen.height;
+
+        if (anchorMin.x >= 0f && anchorMin.y >= 0f && anchorMax.x >= 0f && anchorMax.y >= 0f)
+        {
+            Vector2 fullScreenSize = _innerRectTf.sizeDelta;
+            Vector2 centerOffset = (anchorMin + anchorMax) * 0.5f - new Vector2(0.5f, 0.5f);
+
+            _innerRectTf.sizeDelta = new Vector2(
+                fullScreenSize.x * (anchorMax.x - anchorMin.x),
+                fullScreenSize.y * (anchorMax.y - anchorMin.y));
+            _innerRectTf.anchoredPosition = new Vector2(
+                fullScreenSize.x * centerOffset.x,
+                fullScreenSize.y * centerOffset.y);
+        }
+    }
+
     public IEnumerator RunHomeSequence()
     {
         UIManager.Ins.EnableBlocker(true);
@@ -53,6 +113,8 @@ public class HomePanel : Panel
         UIManager.Ins.EnableBlocker(false);
     }
 
+    // EN: Refreshes event home buttons and runs any pending win/lose or card-drop sequences upon returning to Home.
+    // VI: Cập nhật các nút sự kiện trên màn hình chính và chạy các chuỗi thắng/thua hoặc nhận thẻ đang chờ khi về Home.
     IEnumerator CheckEventsProgress()
     {
         if (_missionControlButton == null)
@@ -97,8 +159,25 @@ public class HomePanel : Panel
             }
         }
 
-        _towerRiseButton.RunAnim();
-        yield return new WaitUntil(() => !_towerRiseButton.IsRunningAnim);
+        if (_towerRiseButton != null)
+        {
+            _towerRiseButton.RunAnim();
+            yield return new WaitUntil(() => !_towerRiseButton.IsRunningAnim);
+        }
+
+        if (_cardCollectionButton == null)
+        {
+            _cardCollectionButton = GetComponentInChildren<CardCollectionButtonHome>(true);
+        }
+
+        if (_cardCollectionButton != null)
+        {
+            _cardCollectionButton.RefreshState();
+            if (_cardCollectionButton.HasPendingCardDrop())
+            {
+                yield return _cardCollectionButton.PresentPendingCardDrop();
+            }
+        }
     }
 
     //IEnumerator CheckNewVersion()
@@ -184,6 +263,8 @@ public class HomePanel : Panel
         UIManager.Ins.EnableBlocker(false);
     }
 
+    // EN: Checks and displays first-time unlock tutorials for active LiveOps events on the Home screen.
+    // VI: Kiểm tra và hiển thị hướng dẫn mở khóa lần đầu cho các sự kiện LiveOps đang hoạt động trên màn hình chính.
     IEnumerator CheckShowTutLiveOps()
     {
         UIManager.Ins.EnableBlocker(true);
@@ -207,10 +288,16 @@ public class HomePanel : Panel
             yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.MissionControl));
         }
 
-        if (_towerRiseButton.CheckShowTut())
+        if (_towerRiseButton != null && _towerRiseButton.CheckShowTut())
         {
             yield return new WaitUntil(() => TowerRiseManager.Ins.Data.isDoneTutorial);
             yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.TowerRiseIntroduce) && !UIManager.Ins.IsPopupOpen(PopupId.TowerRise));
+        }
+
+        if (_cardCollectionButton != null && _cardCollectionButton.CheckShowTut())
+        {
+            yield return new WaitUntil(() => CardCollectionManager.Ins.Data.isDoneTutorial);
+            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.CardCollectionInfo) && !UIManager.Ins.IsPopupOpen(PopupId.CardCollection));
         }
 
         UIManager.Ins.EnableBlocker(false);

@@ -12,6 +12,7 @@ namespace GamePackages
         public LavaQuestManager LavaQuestManager = new();
         public MissionControlManager MissionControlManager = new();
         public TowerRiseManager TowerRiseManager = new();
+        public CardCollectionManager CardCollectionManager = new();
         List<IFeatureSave> l_FeatureSave = new();
         List<IFeatureUpdate> l_FeatureUpdate = new();
         List<IFeatureNewDay> l_FeatureNewday = new();
@@ -22,6 +23,8 @@ namespace GamePackages
         /// Init 
         /// </summary>
         /// <param name="context"></param>
+        // EN: Initializes all feature managers, binds their configs and save contexts, and registers their lifecycle hooks.
+        // VI: Khởi tạo tất cả manager tính năng, gắn cấu hình cùng dữ liệu lưu trữ và đăng ký các hook vòng đời của chúng.
         public GameFeatureContext(ProfileManager context)
         {
             DailyGiftManager.DailyGiftGlobalConfig = context.DailyGiftRewardConfig;
@@ -30,6 +33,7 @@ namespace GamePackages
             LavaQuestManager.LavaQuestConfig = context.LavaQuestConfig;
             MissionControlManager.MissionControlConfig = context.MissionControlConfig;
             TowerRiseManager.TowerRiseConfig = context.TowerRiseConfig;
+            CardCollectionManager.CardCollectionConfig = context.CardCollectionConfig;
 
             RegistryFeatureContext();
             RegistryExtraFeatureContext(context);
@@ -42,10 +46,13 @@ namespace GamePackages
             LavaQuestManager.SetContext(context.PlayerData.LavaQuestData);
             MissionControlManager.SetContext(context.PlayerData.MissionControlData);
             TowerRiseManager.SetContext(context.PlayerData.TowerRiseData);
+            CardCollectionManager.SetContext(context.PlayerData.CardCollectionData);
         }
         /// <summary>
         /// Registry All Feature
         /// </summary>
+        // EN: Registers all feature managers into their corresponding update, new-day, save, and tracking lists.
+        // VI: Đăng ký tất cả manager tính năng vào các danh sách cập nhật, ngày mới, lưu trữ và theo dõi tương ứng.
         void RegistryFeatureContext()
         {
             l_FeatureSave.Clear();
@@ -62,6 +69,7 @@ namespace GamePackages
             RegisterFeature(LavaQuestManager);
             RegisterFeature(MissionControlManager);
             RegisterFeature(TowerRiseManager);
+            RegisterFeature(CardCollectionManager);
         }
         /// <summary>
         /// Registry Extra Context (Time, Data)

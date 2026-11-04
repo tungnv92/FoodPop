@@ -14,13 +14,21 @@ public class NavigationGroup : MonoBehaviour
     public int TabCount => _buttons.Length;
 
     // EN: Waits for initial layout and tab sizing to complete, sizes the active highlight to one tab width,
-    //     and snaps to the default tab.
-    // VI: Chờ layout và kích thước tab khởi tạo xong, đặt độ rộng ô highlight bằng một tab và snap tới tab mặc định.
+    //     and snaps both the scroller and the navigation visuals to the default tab.
+    // VI: Chờ layout và kích thước tab khởi tạo xong, đặt độ rộng ô highlight bằng một tab và đưa cả bộ cuộn
+    //     lẫn hiển thị thanh điều hướng về tab mặc định.
     private IEnumerator Start()
     {
         yield return new WaitForEndOfFrame();
         _activeImageRectTf.ChangeSizeDeltaX(_panelRectTf.rect.width / TabCount);
-        _buttons[Mathf.Clamp(_defaultTabIndex, 0, TabCount - 1)].OnClick();
+
+        int defaultIndex = Mathf.Clamp(_defaultTabIndex, 0, TabCount - 1);
+        _buttons[defaultIndex].OnClick();
+        MoveActiveImage(defaultIndex);
+        foreach (var button in _buttons)
+        {
+            button.OnDrag(defaultIndex);
+        }
     }
 
     // EN: Receives the scroll change callback, resolves the fractional page at the viewport center, moves the highlight

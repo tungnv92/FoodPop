@@ -32,11 +32,15 @@ namespace GamePackages
             set => MissionControlData = value;
         }
         public TowerRiseData TowerRiseData;
+        public CardCollectionData CardCollectionData;
+        public CardCollectionData cardCollectionData { get => CardCollectionData; set => CardCollectionData = value; }
         public TowerRiseData towerRiseData
         {
             get => TowerRiseData;
             set => TowerRiseData = value;
         }
+        // EN: Initializes default player data, resources, settings, and feature save states for a new profile.
+        // VI: Khởi tạo dữ liệu người chơi mặc định, tài nguyên, cài đặt và trạng thái lưu của các tính năng cho hồ sơ mới.
         public void OnInit()
         {
             isFirstAppOpen = true;
@@ -58,6 +62,7 @@ namespace GamePackages
             LavaQuestData = new();
             MissionControlData = new();
             TowerRiseData = new();
+            CardCollectionData = new();
         }
 
         public void OnNewDay()

@@ -12,8 +12,8 @@ GameObject:
   - component: {fileID: 3564627134351012057}
   - component: {fileID: 513115655597654506}
   - component: {fileID: 3266606094601576100}
-  - component: {fileID: 4376380292894075479}
   - component: {fileID: 7543821585565914637}
+  - component: {fileID: 6968874922538562940}
   m_Layer: 5
   m_Name: Hand Tut Anim
   m_TagString: Untagged
@@ -90,7 +90,7 @@ Animator:
   m_GameObject: {fileID: 849084045574754328}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 5c218061d53d11c42968649020f2433b, type: 2}
+  m_Controller: {fileID: 9100000, guid: a47128be2c1cc3842b3afaf8e27e56fe, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -102,22 +102,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &4376380292894075479
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 849084045574754328}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a568545e17877b940afae15ababe78d5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  handTF: {fileID: 5983303589820672209}
-  touch_go: {fileID: 7037998481672715226}
-  handAnim: {fileID: 3266606094601576100}
-  altButton: {fileID: 849084045574754328}
 --- !u!114 &7543821585565914637
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -162,7 +146,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 4376380292894075479}
+      - m_Target: {fileID: 6968874922538562940}
         m_TargetAssemblyTypeName: HandTutAnim, Assembly-CSharp
         m_MethodName: OnClickAlter
         m_Mode: 1
@@ -174,6 +158,22 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &6968874922538562940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 849084045574754328}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc673e978d6062a41a2cf4d1a3e51de9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HandTutAnim
+  handTF: {fileID: 5983303589820672209}
+  touch_go: {fileID: 7037998481672715226}
+  handAnim: {fileID: 3266606094601576100}
+  altButton: {fileID: 849084045574754328}
 --- !u!1 &5890466252298989959
 GameObject:
   m_ObjectHideFlags: 0
@@ -209,7 +209,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 90.3, y: -102.4}
-  m_SizeDelta: {x: 143.9697, y: 215.9547}
+  m_SizeDelta: {x: 120, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4389403120888409586
 CanvasRenderer:
@@ -239,9 +239,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 1947792091, guid: 4241bb91a9cb71b46b04c6c93600c0c0, type: 3}
+  m_Sprite: {fileID: 2787473312476223579, guid: 14849cb35752ae645846a5db5fb7e5c9, type: 3}
   m_Type: 0
-  m_PreserveAspect: 0
+  m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -314,7 +314,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300004, guid: b27bcf37600cca24196520251965a496, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 9ba9c4ec1cba7e94dbc475b77d4e862c, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

@@ -23,7 +23,7 @@ public class ShopTab : HomeTab
     public override void OpenTab()
     {
         _contentTf.ChangeAnchorPosY(0);
-        _shop.Init();
+        //_shop.Init();
     }
     public void ScrollToCoins()
     {

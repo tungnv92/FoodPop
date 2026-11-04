@@ -1,0 +1,572 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f786beb5092e1cc42a16091de7207664, type: 3}
+  m_Name: Card Collection Config
+  m_EditorClassIdentifier: Assembly-CSharp::GamePackages.CardCollectionConfig
+  isFeatureEnabled: 1
+  unlockLevelIndex: 40
+  eventDurationDays: 14
+  rarityConfigs:
+  - rarity: 1
+    dropWeight: 65
+    duplicateTicketReward: 10
+    backCardSprite: {fileID: 0}
+  - rarity: 2
+    dropWeight: 25
+    duplicateTicketReward: 30
+    backCardSprite: {fileID: 0}
+  - rarity: 3
+    dropWeight: 8
+    duplicateTicketReward: 20
+    backCardSprite: {fileID: 0}
+  - rarity: 4
+    dropWeight: 2
+    duplicateTicketReward: 50
+    backCardSprite: {fileID: 0}
+  pityWinsForThreeStar: 8
+  pityWinsForFourStar: 20
+  unownedCardPreferenceChance: 0.75
+  spinCostTickets: 50
+  spinSetTargetCount: 12
+  spinSetBonusCardRarity: 4
+  spinSlots:
+  - slotIndex: 0
+    slotType: 0
+    resourceReward:
+      type: 0
+      value: 1000
+    cardRarity: 1
+    weight: 8
+    customIcon: {fileID: 0}
+  - slotIndex: 1
+    slotType: 1
+    resourceReward:
+      type: 0
+      value: 0
+    cardRarity: 1
+    weight: 14
+    customIcon: {fileID: 0}
+  - slotIndex: 2
+    slotType: 1
+    resourceReward:
+      type: 0
+      value: 0
+    cardRarity: 3
+    weight: 5
+    customIcon: {fileID: 0}
+  - slotIndex: 3
+    slotType: 0
+    resourceReward:
+      type: 2
+      value: 1
+    cardRarity: 1
+    weight: 8
+    customIcon: {fileID: 0}
+  - slotIndex: 4
+    slotType: 1
+    resourceReward:
+      type: 0
+      value: 0
+    cardRarity: 1
+    weight: 14
+    customIcon: {fileID: 0}
+  - slotIndex: 5
+    slotType: 1
+    resourceReward:
+      type: 0
+      value: 0
+    cardRarity: 2
+    weight: 10
+    customIcon: {fileID: 0}
+  - slotIndex: 6
+    slotType: 1
+    resourceReward:
+      type: 0
+      value: 0
+    cardRarity: 4
+    weight: 2
+    customIcon: {fileID: 0}
+  - slotIndex: 7
+    slotType: 1
+    resourceReward:
+      type: 0
+      value: 0
+    cardRarity: 2
+    weight: 10
+    customIcon: {fileID: 0}
+  - slotIndex: 8
+    slotType: 1
+    resourceReward:
+      type: 0
+      value: 0
+    cardRarity: 3
+    weight: 5
+    customIcon: {fileID: 0}
+  - slotIndex: 9
+    slotType: 0
+    resourceReward:
+      type: 4
+      value: 1
+    cardRarity: 1
+    weight: 8
+    customIcon: {fileID: 0}
+  - slotIndex: 10
+    slotType: 1
+    resourceReward:
+      type: 0
+      value: 0
+    cardRarity: 1
+    weight: 14
+    customIcon: {fileID: 0}
+  - slotIndex: 11
+    slotType: 1
+    resourceReward:
+      type: 0
+      value: 0
+    cardRarity: 2
+    weight: 10
+    customIcon: {fileID: 0}
+  grandRewardResources:
+  - type: 0
+    value: 6000
+  - type: 5
+    value: 6
+  grandRewardFrameId: -1
+  grandRewardFrameSprite: {fileID: 0}
+  backCardSprites:
+  - {fileID: -7787715715777697990, guid: af88d995ade101042b079108b70f7ca8, type: 3}
+  - {fileID: 1575430082679526904, guid: 1efc524a9f9aed7458b16591136a7cae, type: 3}
+  - {fileID: 2444977924109663576, guid: 00211ec6dceb4a54babe400ca6767cb0, type: 3}
+  - {fileID: -6971265144172533120, guid: 3997b543d9fdd55409cd2330010b679e, type: 3}
+  collections:
+  - collectionId: 0
+    collectionName: Treats
+    collectionIcon: {fileID: 0}
+    rewards:
+    - type: 2
+      value: 1
+    - type: 4
+      value: 1
+    - type: 3
+      value: 1
+    - type: 5
+      value: 1
+  - collectionId: 1
+    collectionName: Pumpkins
+    collectionIcon: {fileID: 0}
+    rewards:
+    - type: 2
+      value: 1
+    - type: 4
+      value: 1
+    - type: 3
+      value: 1
+    - type: 5
+      value: 1
+  - collectionId: 2
+    collectionName: Home Decor
+    collectionIcon: {fileID: 0}
+    rewards:
+    - type: 2
+      value: 1
+    - type: 4
+      value: 1
+    - type: 3
+      value: 1
+    - type: 5
+      value: 1
+  - collectionId: 3
+    collectionName: Witchcraft
+    collectionIcon: {fileID: 0}
+    rewards:
+    - type: 2
+      value: 1
+    - type: 4
+      value: 1
+    - type: 3
+      value: 1
+    - type: 5
+      value: 1
+  - collectionId: 4
+    collectionName: Backyard
+    collectionIcon: {fileID: 0}
+    rewards:
+    - type: 2
+      value: 1
+    - type: 4
+      value: 1
+    - type: 3
+      value: 1
+    - type: 5
+      value: 1
+  - collectionId: 5
+    collectionName: Costumes
+    collectionIcon: {fileID: 0}
+    rewards:
+    - type: 2
+      value: 1
+    - type: 4
+      value: 1
+    - type: 3
+      value: 1
+    - type: 5
+      value: 1
+  cards:
+  - cardId: 0
+    collectionId: 0
+    cardIndexInCollection: 0
+    cardName: Treats #1
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 1
+    collectionId: 0
+    cardIndexInCollection: 1
+    cardName: Treats #2
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 2
+    collectionId: 0
+    cardIndexInCollection: 2
+    cardName: Treats #3
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 3
+    collectionId: 0
+    cardIndexInCollection: 3
+    cardName: Treats #4
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 4
+    collectionId: 0
+    cardIndexInCollection: 4
+    cardName: Treats #5
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 5
+    collectionId: 0
+    cardIndexInCollection: 5
+    cardName: Treats #6
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 6
+    collectionId: 0
+    cardIndexInCollection: 6
+    cardName: Treats #7
+    rarity: 2
+    cardSprite: {fileID: 0}
+  - cardId: 7
+    collectionId: 0
+    cardIndexInCollection: 7
+    cardName: Treats #8
+    rarity: 3
+    cardSprite: {fileID: 0}
+  - cardId: 8
+    collectionId: 0
+    cardIndexInCollection: 8
+    cardName: Treats #9
+    rarity: 4
+    cardSprite: {fileID: 0}
+  - cardId: 9
+    collectionId: 1
+    cardIndexInCollection: 0
+    cardName: Pumpkins #1
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 10
+    collectionId: 1
+    cardIndexInCollection: 1
+    cardName: Pumpkins #2
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 11
+    collectionId: 1
+    cardIndexInCollection: 2
+    cardName: Pumpkins #3
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 12
+    collectionId: 1
+    cardIndexInCollection: 3
+    cardName: Pumpkins #4
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 13
+    collectionId: 1
+    cardIndexInCollection: 4
+    cardName: Pumpkins #5
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 14
+    collectionId: 1
+    cardIndexInCollection: 5
+    cardName: Pumpkins #6
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 15
+    collectionId: 1
+    cardIndexInCollection: 6
+    cardName: Pumpkins #7
+    rarity: 2
+    cardSprite: {fileID: 0}
+  - cardId: 16
+    collectionId: 1
+    cardIndexInCollection: 7
+    cardName: Pumpkins #8
+    rarity: 3
+    cardSprite: {fileID: 0}
+  - cardId: 17
+    collectionId: 1
+    cardIndexInCollection: 8
+    cardName: Pumpkins #9
+    rarity: 4
+    cardSprite: {fileID: 0}
+  - cardId: 18
+    collectionId: 2
+    cardIndexInCollection: 0
+    cardName: Home Decor #1
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 19
+    collectionId: 2
+    cardIndexInCollection: 1
+    cardName: Home Decor #2
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 20
+    collectionId: 2
+    cardIndexInCollection: 2
+    cardName: Home Decor #3
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 21
+    collectionId: 2
+    cardIndexInCollection: 3
+    cardName: Home Decor #4
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 22
+    collectionId: 2
+    cardIndexInCollection: 4
+    cardName: Home Decor #5
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 23
+    collectionId: 2
+    cardIndexInCollection: 5
+    cardName: Home Decor #6
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 24
+    collectionId: 2
+    cardIndexInCollection: 6
+    cardName: Home Decor #7
+    rarity: 2
+    cardSprite: {fileID: 0}
+  - cardId: 25
+    collectionId: 2
+    cardIndexInCollection: 7
+    cardName: Home Decor #8
+    rarity: 3
+    cardSprite: {fileID: 0}
+  - cardId: 26
+    collectionId: 2
+    cardIndexInCollection: 8
+    cardName: Home Decor #9
+    rarity: 4
+    cardSprite: {fileID: 0}
+  - cardId: 27
+    collectionId: 3
+    cardIndexInCollection: 0
+    cardName: Witchcraft #1
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 28
+    collectionId: 3
+    cardIndexInCollection: 1
+    cardName: Witchcraft #2
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 29
+    collectionId: 3
+    cardIndexInCollection: 2
+    cardName: Witchcraft #3
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 30
+    collectionId: 3
+    cardIndexInCollection: 3
+    cardName: Witchcraft #4
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 31
+    collectionId: 3
+    cardIndexInCollection: 4
+    cardName: Witchcraft #5
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 32
+    collectionId: 3
+    cardIndexInCollection: 5
+    cardName: Witchcraft #6
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 33
+    collectionId: 3
+    cardIndexInCollection: 6
+    cardName: Witchcraft #7
+    rarity: 2
+    cardSprite: {fileID: 0}
+  - cardId: 34
+    collectionId: 3
+    cardIndexInCollection: 7
+    cardName: Witchcraft #8
+    rarity: 3
+    cardSprite: {fileID: 0}
+  - cardId: 35
+    collectionId: 3
+    cardIndexInCollection: 8
+    cardName: Witchcraft #9
+    rarity: 4
+    cardSprite: {fileID: 0}
+  - cardId: 36
+    collectionId: 4
+    cardIndexInCollection: 0
+    cardName: Backyard #1
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 37
+    collectionId: 4
+    cardIndexInCollection: 1
+    cardName: Backyard #2
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 38
+    collectionId: 4
+    cardIndexInCollection: 2
+    cardName: Backyard #3
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 39
+    collectionId: 4
+    cardIndexInCollection: 3
+    cardName: Backyard #4
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 40
+    collectionId: 4
+    cardIndexInCollection: 4
+    cardName: Backyard #5
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 41
+    collectionId: 4
+    cardIndexInCollection: 5
+    cardName: Backyard #6
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 42
+    collectionId: 4
+    cardIndexInCollection: 6
+    cardName: Backyard #7
+    rarity: 2
+    cardSprite: {fileID: 0}
+  - cardId: 43
+    collectionId: 4
+    cardIndexInCollection: 7
+    cardName: Backyard #8
+    rarity: 3
+    cardSprite: {fileID: 0}
+  - cardId: 44
+    collectionId: 4
+    cardIndexInCollection: 8
+    cardName: Backyard #9
+    rarity: 4
+    cardSprite: {fileID: 0}
+  - cardId: 45
+    collectionId: 5
+    cardIndexInCollection: 0
+    cardName: Costumes #1
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 46
+    collectionId: 5
+    cardIndexInCollection: 1
+    cardName: Costumes #2
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 47
+    collectionId: 5
+    cardIndexInCollection: 2
+    cardName: Costumes #3
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 48
+    collectionId: 5
+    cardIndexInCollection: 3
+    cardName: Costumes #4
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 49
+    collectionId: 5
+    cardIndexInCollection: 4
+    cardName: Costumes #5
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 50
+    collectionId: 5
+    cardIndexInCollection: 5
+    cardName: Costumes #6
+    rarity: 1
+    cardSprite: {fileID: 0}
+  - cardId: 51
+    collectionId: 5
+    cardIndexInCollection: 6
+    cardName: Costumes #7
+    rarity: 2
+    cardSprite: {fileID: 0}
+  - cardId: 52
+    collectionId: 5
+    cardIndexInCollection: 7
+    cardName: Costumes #8
+    rarity: 3
+    cardSprite: {fileID: 0}
+  - cardId: 53
+    collectionId: 5
+    cardIndexInCollection: 8
+    cardName: Costumes #9
+    rarity: 4
+    cardSprite: {fileID: 0}
+  shopPacks:
+  - productId: card_pack_basic
+    packName: Basic Pack
+    totalCardsCount: 3
+    guaranteedRarity: 1
+    guaranteedCount: 3
+    packSprite: {fileID: 0}
+  - productId: card_pack_rare
+    packName: Rare Pack
+    totalCardsCount: 4
+    guaranteedRarity: 2
+    guaranteedCount: 2
+    packSprite: {fileID: 0}
+  - productId: card_pack_epic
+    packName: Epic Pack
+    totalCardsCount: 5
+    guaranteedRarity: 3
+    guaranteedCount: 2
+    packSprite: {fileID: 0}
+  - productId: card_pack_special
+    packName: Special Pack
+    totalCardsCount: 6
+    guaranteedRarity: 4
+    guaranteedCount: 1
+    packSprite: {fileID: 0}

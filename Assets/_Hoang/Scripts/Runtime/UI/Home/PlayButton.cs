@@ -10,7 +10,7 @@ public class PlayButton : MonoBehaviour
     [SerializeField] Color[] levelTextColors;
     private void Start()
     {
-        //levelTmp.text = $"Level {ProfileManager.instance.PlayerData.currentLevel}";
+        levelTmp.text = $"Level {ProfileManager.instance.PlayerData.currentLevel}";
         //bool isHard = GameManager.Ins.IsHardLevel();
         //bool isSuperHard = GameManager.Ins.IsSuperHardLevel();
 

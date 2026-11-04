@@ -68,4 +68,11 @@ public enum PopupId
     TowerRiseClaimBox,
     TowerRiseInfo,
     TowerRiseIntroduce,
+
+    CardCollection,
+    CardCollectionInfo,
+    CardCollectionSpin,
+    CardCollectionShop,
+    CardCollectionAlbum,
+    CardCollectionReward,
 }

@@ -39,6 +39,7 @@ namespace GamePackages
         public LavaQuestConfig LavaQuestConfig;
         public MissionControlConfig MissionControlConfig;
         public TowerRiseConfig TowerRiseConfig;
+        public CardCollectionConfig CardCollectionConfig;
         [Header("Avatar & Frame Configs")]
         public HomeFeatures.Profile.AvatarConfig AvatarConfig;
         public FrameConfig FrameConfig;
@@ -81,6 +82,8 @@ namespace GamePackages
             TimeManager.UpdateTime();
             GameFeatureContext.Update();
         }
+        // EN: Loads player save data, initializes time and feature managers, and binds feature configurations.
+        // VI: Nạp dữ liệu lưu của người chơi, khởi tạo các manager thời gian và tính năng, đồng thời gắn cấu hình tính năng.
         void LoadData()
         {
             SaveService ??= new SaveService();
@@ -97,6 +100,7 @@ namespace GamePackages
             GameFeatureContext.WinStreakManager.WinStreakGlobalConfig = WinStreakGlobalConfig;
             GameFeatureContext.LavaQuestManager.LavaQuestConfig = LavaQuestConfig;
             GameFeatureContext.TowerRiseManager.TowerRiseConfig = TowerRiseConfig;
+            GameFeatureContext.CardCollectionManager.CardCollectionConfig = CardCollectionConfig;
         }
 
         public Sprite GetAvatarSprite(int id)
