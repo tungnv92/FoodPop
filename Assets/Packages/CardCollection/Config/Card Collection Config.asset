@@ -13,25 +13,25 @@ MonoBehaviour:
   m_Name: Card Collection Config
   m_EditorClassIdentifier: Assembly-CSharp::GamePackages.CardCollectionConfig
   isFeatureEnabled: 1
-  unlockLevelIndex: 40
+  unlockLevelIndex: 0
   eventDurationDays: 14
   rarityConfigs:
   - rarity: 1
     dropWeight: 65
     duplicateTicketReward: 10
-    backCardSprite: {fileID: 0}
+    backCardSprite: {fileID: 21300000, guid: af88d995ade101042b079108b70f7ca8, type: 3}
   - rarity: 2
     dropWeight: 25
     duplicateTicketReward: 30
-    backCardSprite: {fileID: 0}
+    backCardSprite: {fileID: 21300000, guid: 1efc524a9f9aed7458b16591136a7cae, type: 3}
   - rarity: 3
     dropWeight: 8
     duplicateTicketReward: 20
-    backCardSprite: {fileID: 0}
+    backCardSprite: {fileID: 21300000, guid: 00211ec6dceb4a54babe400ca6767cb0, type: 3}
   - rarity: 4
     dropWeight: 2
     duplicateTicketReward: 50
-    backCardSprite: {fileID: 0}
+    backCardSprite: {fileID: 21300000, guid: 3997b543d9fdd55409cd2330010b679e, type: 3}
   pityWinsForThreeStar: 8
   pityWinsForFourStar: 20
   unownedCardPreferenceChance: 0.75
@@ -46,7 +46,7 @@ MonoBehaviour:
       value: 1000
     cardRarity: 1
     weight: 8
-    customIcon: {fileID: 0}
+    customIcon: {fileID: 21300000, guid: 5623de151132fe84ca8905ef17b634a5, type: 3}
   - slotIndex: 1
     slotType: 1
     resourceReward:
@@ -54,7 +54,7 @@ MonoBehaviour:
       value: 0
     cardRarity: 1
     weight: 14
-    customIcon: {fileID: 0}
+    customIcon: {fileID: 7024648501981196136, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 2
     slotType: 1
     resourceReward:
@@ -62,7 +62,7 @@ MonoBehaviour:
       value: 0
     cardRarity: 3
     weight: 5
-    customIcon: {fileID: 0}
+    customIcon: {fileID: 8963368785945452489, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 3
     slotType: 0
     resourceReward:
@@ -70,7 +70,7 @@ MonoBehaviour:
       value: 1
     cardRarity: 1
     weight: 8
-    customIcon: {fileID: 0}
+    customIcon: {fileID: 21300000, guid: b38caca7b9c3401489d0999456c78519, type: 3}
   - slotIndex: 4
     slotType: 1
     resourceReward:
@@ -78,7 +78,7 @@ MonoBehaviour:
       value: 0
     cardRarity: 1
     weight: 14
-    customIcon: {fileID: 0}
+    customIcon: {fileID: 7024648501981196136, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 5
     slotType: 1
     resourceReward:
@@ -86,7 +86,7 @@ MonoBehaviour:
       value: 0
     cardRarity: 2
     weight: 10
-    customIcon: {fileID: 0}
+    customIcon: {fileID: -1145144668836272637, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 6
     slotType: 1
     resourceReward:
@@ -94,7 +94,7 @@ MonoBehaviour:
       value: 0
     cardRarity: 4
     weight: 2
-    customIcon: {fileID: 0}
+    customIcon: {fileID: -7415955986125602904, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 7
     slotType: 1
     resourceReward:
@@ -102,7 +102,7 @@ MonoBehaviour:
       value: 0
     cardRarity: 2
     weight: 10
-    customIcon: {fileID: 0}
+    customIcon: {fileID: -1145144668836272637, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 8
     slotType: 1
     resourceReward:
@@ -110,7 +110,7 @@ MonoBehaviour:
       value: 0
     cardRarity: 3
     weight: 5
-    customIcon: {fileID: 0}
+    customIcon: {fileID: 8963368785945452489, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 9
     slotType: 0
     resourceReward:
@@ -118,7 +118,7 @@ MonoBehaviour:
       value: 1
     cardRarity: 1
     weight: 8
-    customIcon: {fileID: 0}
+    customIcon: {fileID: 21300000, guid: 5c947fcc06a2cf44491d86de31e982ce, type: 3}
   - slotIndex: 10
     slotType: 1
     resourceReward:
@@ -126,7 +126,7 @@ MonoBehaviour:
       value: 0
     cardRarity: 1
     weight: 14
-    customIcon: {fileID: 0}
+    customIcon: {fileID: 7024648501981196136, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 11
     slotType: 1
     resourceReward:
@@ -134,7 +134,7 @@ MonoBehaviour:
       value: 0
     cardRarity: 2
     weight: 10
-    customIcon: {fileID: 0}
+    customIcon: {fileID: -1145144668836272637, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   grandRewardResources:
   - type: 0
     value: 6000
@@ -143,10 +143,10 @@ MonoBehaviour:
   grandRewardFrameId: -1
   grandRewardFrameSprite: {fileID: 0}
   backCardSprites:
-  - {fileID: -7787715715777697990, guid: af88d995ade101042b079108b70f7ca8, type: 3}
-  - {fileID: 1575430082679526904, guid: 1efc524a9f9aed7458b16591136a7cae, type: 3}
-  - {fileID: 2444977924109663576, guid: 00211ec6dceb4a54babe400ca6767cb0, type: 3}
-  - {fileID: -6971265144172533120, guid: 3997b543d9fdd55409cd2330010b679e, type: 3}
+  - {fileID: 21300000, guid: af88d995ade101042b079108b70f7ca8, type: 3}
+  - {fileID: 21300000, guid: 1efc524a9f9aed7458b16591136a7cae, type: 3}
+  - {fileID: 21300000, guid: 00211ec6dceb4a54babe400ca6767cb0, type: 3}
+  - {fileID: 21300000, guid: 3997b543d9fdd55409cd2330010b679e, type: 3}
   collections:
   - collectionId: 0
     collectionName: Treats
@@ -226,347 +226,347 @@ MonoBehaviour:
     cardIndexInCollection: 0
     cardName: Treats #1
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 62e1da57e3978224fbab140c8d314c73, type: 3}
   - cardId: 1
     collectionId: 0
     cardIndexInCollection: 1
     cardName: Treats #2
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 6fcbe10b365a79e4588c03893ab71ec6, type: 3}
   - cardId: 2
     collectionId: 0
     cardIndexInCollection: 2
     cardName: Treats #3
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: b75cbbc2708fb8248a0b5e06ce5bae50, type: 3}
   - cardId: 3
     collectionId: 0
     cardIndexInCollection: 3
     cardName: Treats #4
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 2dfb1ff18718a0242a04d110a5fd6438, type: 3}
   - cardId: 4
     collectionId: 0
     cardIndexInCollection: 4
     cardName: Treats #5
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 138c50f425ae3514b8d4b1941b06fc79, type: 3}
   - cardId: 5
     collectionId: 0
     cardIndexInCollection: 5
     cardName: Treats #6
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: a82f74eedeb63ac4d91524e02707b3af, type: 3}
   - cardId: 6
     collectionId: 0
     cardIndexInCollection: 6
     cardName: Treats #7
     rarity: 2
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: e3eadbde9c7c6b345ab41aaeaa119936, type: 3}
   - cardId: 7
     collectionId: 0
     cardIndexInCollection: 7
     cardName: Treats #8
     rarity: 3
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 8e4ef6402fbe6654d9cae97d055b7751, type: 3}
   - cardId: 8
     collectionId: 0
     cardIndexInCollection: 8
     cardName: Treats #9
     rarity: 4
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 89e13a17ed31f714aa87e9f5186b237d, type: 3}
   - cardId: 9
     collectionId: 1
     cardIndexInCollection: 0
     cardName: Pumpkins #1
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 5ef0fda898689d5478b9c4199d21e0f5, type: 3}
   - cardId: 10
     collectionId: 1
     cardIndexInCollection: 1
     cardName: Pumpkins #2
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 88e0928b2f82fff42b2a42d1d4e09534, type: 3}
   - cardId: 11
     collectionId: 1
     cardIndexInCollection: 2
     cardName: Pumpkins #3
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 41cf0b083ec62e741b08b34f301d6e56, type: 3}
   - cardId: 12
     collectionId: 1
     cardIndexInCollection: 3
     cardName: Pumpkins #4
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: a3e03881c8377a3418aee90796bbc157, type: 3}
   - cardId: 13
     collectionId: 1
     cardIndexInCollection: 4
     cardName: Pumpkins #5
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 13acfa2791d34a9459917ee56aa3876e, type: 3}
   - cardId: 14
     collectionId: 1
     cardIndexInCollection: 5
     cardName: Pumpkins #6
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 69beaa840b6ee684db33669d0ad837e2, type: 3}
   - cardId: 15
     collectionId: 1
     cardIndexInCollection: 6
     cardName: Pumpkins #7
     rarity: 2
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: f29f36dee2e70be4e84fbfc11f89f94b, type: 3}
   - cardId: 16
     collectionId: 1
     cardIndexInCollection: 7
     cardName: Pumpkins #8
     rarity: 3
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: e03d0ebe4b9c55c4eb9c76bfadb18c96, type: 3}
   - cardId: 17
     collectionId: 1
     cardIndexInCollection: 8
     cardName: Pumpkins #9
     rarity: 4
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 71d50791ede07724a97ee1d030c10e1c, type: 3}
   - cardId: 18
     collectionId: 2
     cardIndexInCollection: 0
     cardName: Home Decor #1
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 96ad33f85727164478f09fca6c055ce8, type: 3}
   - cardId: 19
     collectionId: 2
     cardIndexInCollection: 1
     cardName: Home Decor #2
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: ecb18f923b564f245a44a78d8f6d6ca5, type: 3}
   - cardId: 20
     collectionId: 2
     cardIndexInCollection: 2
     cardName: Home Decor #3
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 8ed3017e4a49e304091fd1f63f2f092d, type: 3}
   - cardId: 21
     collectionId: 2
     cardIndexInCollection: 3
     cardName: Home Decor #4
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 6656901a1e798d646b75bfe63d13450d, type: 3}
   - cardId: 22
     collectionId: 2
     cardIndexInCollection: 4
     cardName: Home Decor #5
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 0fd86887b106200499f50d52080f0314, type: 3}
   - cardId: 23
     collectionId: 2
     cardIndexInCollection: 5
     cardName: Home Decor #6
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 58f230448c732cd45b4d58eb8f3ed7d3, type: 3}
   - cardId: 24
     collectionId: 2
     cardIndexInCollection: 6
     cardName: Home Decor #7
     rarity: 2
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: bb5090b400f1f1f479d4e2dd6167afde, type: 3}
   - cardId: 25
     collectionId: 2
     cardIndexInCollection: 7
     cardName: Home Decor #8
     rarity: 3
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: aa2be7b8d926bce4ebfe9e74efdc5374, type: 3}
   - cardId: 26
     collectionId: 2
     cardIndexInCollection: 8
     cardName: Home Decor #9
     rarity: 4
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: e3b0925d51f10ac4b99c361e01effb41, type: 3}
   - cardId: 27
     collectionId: 3
     cardIndexInCollection: 0
     cardName: Witchcraft #1
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 3f4e1e69d5fd9984eb438ef40ed4194e, type: 3}
   - cardId: 28
     collectionId: 3
     cardIndexInCollection: 1
     cardName: Witchcraft #2
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: c72b17b3985953d439ed44522376af3b, type: 3}
   - cardId: 29
     collectionId: 3
     cardIndexInCollection: 2
     cardName: Witchcraft #3
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 58cebfcdeb39b2041a01824f8657f987, type: 3}
   - cardId: 30
     collectionId: 3
     cardIndexInCollection: 3
     cardName: Witchcraft #4
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 233c53525d239e747b839c9cf0464c55, type: 3}
   - cardId: 31
     collectionId: 3
     cardIndexInCollection: 4
     cardName: Witchcraft #5
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: d5d9f48ab9be30f4cab598385b408b34, type: 3}
   - cardId: 32
     collectionId: 3
     cardIndexInCollection: 5
     cardName: Witchcraft #6
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: fb314dd28d496fa4c8464a0f8e2a2d00, type: 3}
   - cardId: 33
     collectionId: 3
     cardIndexInCollection: 6
     cardName: Witchcraft #7
     rarity: 2
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 6b031e3d42057ab4889db51a06920d82, type: 3}
   - cardId: 34
     collectionId: 3
     cardIndexInCollection: 7
     cardName: Witchcraft #8
     rarity: 3
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: ae35ae98e05d00c408d3af0e8a28c43c, type: 3}
   - cardId: 35
     collectionId: 3
     cardIndexInCollection: 8
     cardName: Witchcraft #9
     rarity: 4
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: c52647b03f819894f8bf2f6269ebe185, type: 3}
   - cardId: 36
     collectionId: 4
     cardIndexInCollection: 0
     cardName: Backyard #1
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: f71150a850dc7b64ca4f60905019c6f8, type: 3}
   - cardId: 37
     collectionId: 4
     cardIndexInCollection: 1
     cardName: Backyard #2
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: ecb4bffbafbd8714ebe227f8fb2d2d9b, type: 3}
   - cardId: 38
     collectionId: 4
     cardIndexInCollection: 2
     cardName: Backyard #3
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: e706a84475d8ef640bcf842fbf617d16, type: 3}
   - cardId: 39
     collectionId: 4
     cardIndexInCollection: 3
     cardName: Backyard #4
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 94ad6f0315f260f4ca6c1a3e83d21b2a, type: 3}
   - cardId: 40
     collectionId: 4
     cardIndexInCollection: 4
     cardName: Backyard #5
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 7def79b9673439c4ab4838f4cb68d51a, type: 3}
   - cardId: 41
     collectionId: 4
     cardIndexInCollection: 5
     cardName: Backyard #6
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 24d3bd6de03f5574a93ac60b985c9e4d, type: 3}
   - cardId: 42
     collectionId: 4
     cardIndexInCollection: 6
     cardName: Backyard #7
     rarity: 2
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: eba15f0d941e0784b86228794eafbbdb, type: 3}
   - cardId: 43
     collectionId: 4
     cardIndexInCollection: 7
     cardName: Backyard #8
     rarity: 3
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 9494c846a45bd994eb75299c3dfca199, type: 3}
   - cardId: 44
     collectionId: 4
     cardIndexInCollection: 8
     cardName: Backyard #9
     rarity: 4
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 9f490c6e163028f4b824ca9e6726c27c, type: 3}
   - cardId: 45
     collectionId: 5
     cardIndexInCollection: 0
     cardName: Costumes #1
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 8fbbb1ebe88ee564fb74411460f492bb, type: 3}
   - cardId: 46
     collectionId: 5
     cardIndexInCollection: 1
     cardName: Costumes #2
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: fe8680416b61eca4cbfca47b2aa22c57, type: 3}
   - cardId: 47
     collectionId: 5
     cardIndexInCollection: 2
     cardName: Costumes #3
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 16db497f0fc35f8459fafd97e8888d41, type: 3}
   - cardId: 48
     collectionId: 5
     cardIndexInCollection: 3
     cardName: Costumes #4
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: d9cc68e41db7e8c49b741a3faa7e4267, type: 3}
   - cardId: 49
     collectionId: 5
     cardIndexInCollection: 4
     cardName: Costumes #5
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 484fdac9c6229bb4c86d611b9a4d6b31, type: 3}
   - cardId: 50
     collectionId: 5
     cardIndexInCollection: 5
     cardName: Costumes #6
     rarity: 1
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 904b00edbb8236f4fb523a40ed40d7b6, type: 3}
   - cardId: 51
     collectionId: 5
     cardIndexInCollection: 6
     cardName: Costumes #7
     rarity: 2
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 6b0d56cf00130ec48b9646506c5721d2, type: 3}
   - cardId: 52
     collectionId: 5
     cardIndexInCollection: 7
     cardName: Costumes #8
     rarity: 3
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: 826fd6a4deb4f0b44a6d86590422c48b, type: 3}
   - cardId: 53
     collectionId: 5
     cardIndexInCollection: 8
     cardName: Costumes #9
     rarity: 4
-    cardSprite: {fileID: 0}
+    cardSprite: {fileID: 21300000, guid: b8fb450616ccc89429e779b52387963c, type: 3}
   shopPacks:
   - productId: card_pack_basic
     packName: Basic Pack
     totalCardsCount: 3
     guaranteedRarity: 1
     guaranteedCount: 3
-    packSprite: {fileID: 0}
+    packSprite: {fileID: -1953949645243978493, guid: 028e1ea6fae24d94cb1dce9ea9e91bb8, type: 3}
   - productId: card_pack_rare
     packName: Rare Pack
     totalCardsCount: 4
     guaranteedRarity: 2
     guaranteedCount: 2
-    packSprite: {fileID: 0}
+    packSprite: {fileID: -5742520653065449687, guid: 028e1ea6fae24d94cb1dce9ea9e91bb8, type: 3}
   - productId: card_pack_epic
     packName: Epic Pack
     totalCardsCount: 5
     guaranteedRarity: 3
     guaranteedCount: 2
-    packSprite: {fileID: 0}
+    packSprite: {fileID: 3256844157343697093, guid: 028e1ea6fae24d94cb1dce9ea9e91bb8, type: 3}
   - productId: card_pack_special
     packName: Special Pack
     totalCardsCount: 6
     guaranteedRarity: 4
     guaranteedCount: 1
-    packSprite: {fileID: 0}
+    packSprite: {fileID: -4455745830411913122, guid: 028e1ea6fae24d94cb1dce9ea9e91bb8, type: 3}

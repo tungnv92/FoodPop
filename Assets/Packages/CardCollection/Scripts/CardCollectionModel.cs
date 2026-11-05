@@ -34,6 +34,7 @@ namespace GamePackages
         public int pendingDroppedTicketsEarned;
         public List<int> ownedCardIds = new();
         public List<int> claimedCollectionIds = new();
+        public List<int> claimedSpinSlots = new();
 
         // EN: Initializes a new CardCollectionData instance with default values.
         // VI: Khởi tạo đối tượng CardCollectionData mới với các giá trị mặc định.
@@ -62,6 +63,7 @@ namespace GamePackages
             pendingDroppedTicketsEarned = 0;
             ownedCardIds.Clear();
             claimedCollectionIds.Clear();
+            claimedSpinSlots.Clear();
         }
 
         // EN: Starts a new 14-day event cycle with the given start and expiration timestamps while preserving tutorial completion.
@@ -83,6 +85,7 @@ namespace GamePackages
             pendingDroppedTicketsEarned = 0;
             ownedCardIds.Clear();
             claimedCollectionIds.Clear();
+            claimedSpinSlots.Clear();
         }
 
         // EN: Checks whether the player already owns the card with the given ID.
@@ -110,6 +113,24 @@ namespace GamePackages
         public bool IsCollectionClaimed(int collectionId)
         {
             return claimedCollectionIds != null && claimedCollectionIds.Contains(collectionId);
+        }
+
+        // EN: Checks whether the spin slot at the given index has already been rewarded and disabled.
+        // VI: Kiểm tra xem ô vòng quay tại chỉ số chỉ định đã được nhận thưởng và vô hiệu hóa hay chưa.
+        public bool IsSpinSlotClaimed(int slotIndex)
+        {
+            return claimedSpinSlots != null && claimedSpinSlots.Contains(slotIndex);
+        }
+
+        // EN: Marks the spin slot at the given index as rewarded so it will be disabled and skipped in subsequent spins.
+        // VI: Đánh dấu ô vòng quay tại chỉ số chỉ định là đã nhận thưởng để vô hiệu hóa và bỏ qua trong các lượt quay tiếp theo.
+        public void MarkSpinSlotClaimed(int slotIndex)
+        {
+            claimedSpinSlots ??= new List<int>();
+            if (!claimedSpinSlots.Contains(slotIndex))
+            {
+                claimedSpinSlots.Add(slotIndex);
+            }
         }
 
         // EN: Clears any pending card drop notification stored from the last level win.

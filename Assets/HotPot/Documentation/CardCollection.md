@@ -38,6 +38,7 @@ All Card Collection runtime scripts are located under `Assets/Packages/CardColle
 3. **Halloween Spin Popup (Picture 3)**:
    - [`PopupCardCollectionSpin.cs`](file:///d:/Projects/FoodPop/Assets/Packages/CardCollection/Scripts/PopupCardCollectionSpin.cs) & [`CardCollectionSpinSlotUI.cs`](file:///d:/Projects/FoodPop/Assets/Packages/CardCollection/Scripts/CardCollectionSpinSlotUI.cs)
    - Displays the 12 perimeter reward slots, `Complete set after X/12 spins` milestone header, current ticket balance, and animated slot highlight on spin (`Spin 50`).
+   - After each spin, the rewarded slot is marked as claimed in `CardCollectionData.claimedSpinSlots`, visually disabled (`CardCollectionSpinSlotUI.SetDisabled(true)`), and skipped in both the random roll (`CardCollectionManager.RollSpinSlotIndex()`) and the board highlight stepping animation (`PopupCardCollectionSpin.IESpinBoardAnimation()`) for all subsequent spins.
 4. **Card Pack IAP Shop Popup (Picture 4)**:
    - [`PopupCardCollectionShop.cs`](file:///d:/Projects/FoodPop/Assets/Packages/CardCollection/Scripts/PopupCardCollectionShop.cs) & [`CardCollectionPackItemUI.cs`](file:///d:/Projects/FoodPop/Assets/Packages/CardCollection/Scripts/CardCollectionPackItemUI.cs)
    - Displays the 4 purchasable Card Packs (*Basic Pack*, *Rare Pack*, *Epic Pack*, *Special Pack*) and integrates with `IAPManager`.
@@ -45,7 +46,7 @@ All Card Collection runtime scripts are located under `Assets/Packages/CardColle
    - [`PopupCardCollectionAlbum.cs`](file:///d:/Projects/FoodPop/Assets/Packages/CardCollection/Scripts/PopupCardCollectionAlbum.cs), [`CardCollectionCardSlotUI.cs`](file:///d:/Projects/FoodPop/Assets/Packages/CardCollection/Scripts/CardCollectionCardSlotUI.cs), & [`CardCollectionRewardUI.cs`](file:///d:/Projects/FoodPop/Assets/Packages/CardCollection/Scripts/CardCollectionRewardUI.cs)
    - Displays the `3x3` card grid for a collection (`CardCollectionCardSlotUI` sets the slot image to `cardInfo.cardSprite` when owned, or the rarity-corresponding `BackCard` sprite via `CardCollectionConfig.GetBackCardSprite(rarity)` when unowned), completion rewards via `CardCollectionRewardUI.SetReward()`, `X/9` progress bar, and `< 1/6 >` page navigation.
 6. **Card Reward Reveal & Home Button**:
-   - [`PopupCardReward.cs`](file:///d:/Projects/FoodPop/Assets/Packages/CardCollection/Scripts/PopupCardReward.cs): Reveals newly earned cards and shows duplicate-to-ticket conversion.
+   - [`PopupCardReward.cs`](file:///d:/Projects/FoodPop/Assets/Packages/CardCollection/Scripts/PopupCardReward.cs): Displays the rarity-matching `BackCard` sprite at the center first (`CardCollectionConfig.GetBackCardSprite(rarity)`), plays a horizontal flip animation (`PlayCardFlipAndDuplicateTransition()`) to reveal `cardInfo.cardSprite`, and if the card is a duplicate, animates the card shifting left and scaling down while popping in the arrow and converted ticket amount on the right (`AppendDuplicateLayoutTransition()`). Once all animations finish, activates `continueButton`.
    - [`CardCollectionButtonHome.cs`](file:///d:/Projects/FoodPop/Assets/Packages/CardCollection/Scripts/CardCollectionButtonHome.cs): Home screen widget displaying countdown timer, notification badge, tutorial hand, and pending card drop animations on returning to Home.
 
 ---

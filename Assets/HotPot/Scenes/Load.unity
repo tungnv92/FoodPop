@@ -1029,6 +1029,23 @@ MonoBehaviour:
       claimedIndexes: 
       finishedPendingClaimMilestoneIndexes: 
       unclaimedRewardInfos: []
+    CardCollectionData:
+      isUnlocked: 0
+      unlockTimeIso: 
+      expireTimeIso: 
+      isShowedInfo: 0
+      isDoneTutorial: 0
+      isClaimedGrandReward: 0
+      ticketAmount: 0
+      currentSpinSetCount: 0
+      totalSpinCount: 0
+      firstTryWinsWithoutTier3: 0
+      firstTryWinsWithoutTier4: 0
+      pendingDroppedCardId: -1
+      pendingDroppedCardWasDuplicate: 0
+      pendingDroppedTicketsEarned: 0
+      ownedCardIds: 
+      claimedCollectionIds: 
   TimeManager:
     sLastOnlineTime: 
     isInitialized: 0
@@ -1060,12 +1077,16 @@ MonoBehaviour:
       lastCompletedMilestoneIndex: -1
       pendingIntroduceScroll: 0
       isClaimingRewards: 0
+    CardCollectionManager:
+      CardCollectionConfig: {fileID: 0}
+      isCheatForceActive: 0
   DailyGiftRewardConfig: {fileID: 11400000, guid: eebc7db2521728b48a3deff2f119c7ee, type: 2}
   DailyRewardGlobalConfig: {fileID: 11400000, guid: 315c4ac04a3e0f64f8097f6675becc3f, type: 2}
   WinStreakGlobalConfig: {fileID: 11400000, guid: 607eecc0952ba3b47b35debfc6272f8d, type: 2}
   LavaQuestConfig: {fileID: 11400000, guid: ff2ea3d4ac7f1ff4baf5b266b80b2d83, type: 2}
   MissionControlConfig: {fileID: 11400000, guid: 323cdf83256bfe0448c48009b9a282bc, type: 2}
   TowerRiseConfig: {fileID: 11400000, guid: a7c3e1f82b4d5a6479b0c8d3e5f1a2b4, type: 2}
+  CardCollectionConfig: {fileID: 11400000, guid: 379c9497d919d56439c2fec5ce8ce180, type: 2}
   AvatarConfig: {fileID: 11400000, guid: d563700d72823154e8120752a0c8b815, type: 2}
   FrameConfig: {fileID: 11400000, guid: c43ef8a83b3627b43b90d055fcff0e8b, type: 2}
   RemoteConfigBase:

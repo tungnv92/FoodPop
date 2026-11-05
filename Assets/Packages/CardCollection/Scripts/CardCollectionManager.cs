@@ -532,6 +532,7 @@ namespace GamePackages
             if (Data == null) return;
             Data.ownedCardIds ??= new List<int>();
             Data.claimedCollectionIds ??= new List<int>();
+            Data.claimedSpinSlots ??= new List<int>();
         }
 
         // EN: Grants a single ResourceGame reward through PlayerDataManager.
@@ -568,15 +569,39 @@ namespace GamePackages
 
         #region LUCKY SPIN
 
-        // EN: Checks whether the player has enough duplicate tickets to perform a spin.
-        // VI: Kiểm tra xem người chơi có đủ số vé trùng lặp để thực hiện một lượt quay hay không.
-        public bool CanSpin()
+        // EN: Checks whether the specified spin slot index has already been rewarded and disabled.
+        // VI: Kiểm tra xem ô vòng quay tại chỉ số chỉ định đã được nhận thưởng và vô hiệu hóa hay chưa.
+        public bool IsSpinSlotClaimed(int slotIndex)
         {
-            return Data != null && Data.ticketAmount >= SpinCostTickets;
+            return Data != null && Data.IsSpinSlotClaimed(slotIndex);
         }
 
-        // EN: Spends tickets to spin the 12-slot board, grants the landed slot reward, and checks the 12-spin set bonus.
-        // VI: Tiêu vé để quay bàn 12 ô, trao phần thưởng tại ô trúng và kiểm tra thưởng mốc 12 lượt quay.
+        // EN: Checks whether at least one slot on the spin board has not yet been rewarded.
+        // VI: Kiểm tra xem trên bàn quay còn ít nhất một ô phần thưởng chưa được nhận hay không.
+        public bool HasAvailableSpinSlot()
+        {
+            if (Data == null || config == null) return false;
+            config.EnsureDefaultSetup();
+            int totalSlots = config.spinSlots != null ? config.spinSlots.Count : 0;
+            for (int i = 0; i < totalSlots; i++)
+            {
+                if (!Data.IsSpinSlotClaimed(i))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // EN: Checks whether the player has enough duplicate tickets and an available slot to perform a spin.
+        // VI: Kiểm tra xem người chơi có đủ số vé trùng lặp và còn ô trống chưa nhận để thực hiện một lượt quay hay không.
+        public bool CanSpin()
+        {
+            return Data != null && Data.ticketAmount >= SpinCostTickets && HasAvailableSpinSlot();
+        }
+
+        // EN: Spends tickets to spin the 12-slot board, marks the landed slot as disabled, grants its reward, and checks the 12-spin set bonus.
+        // VI: Tiêu vé để quay bàn 12 ô, đánh dấu ô trúng thưởng bị vô hiệu hóa, trao phần thưởng và kiểm tra thưởng mốc 12 lượt quay.
         public bool TryExecuteSpin(
             out int landedSlotIndex,
             out CardSpinSlotInfo landedSlot,
@@ -594,6 +619,7 @@ namespace GamePackages
             Data.ticketAmount -= SpinCostTickets;
             landedSlotIndex = RollSpinSlotIndex();
             landedSlot = config.spinSlots[landedSlotIndex];
+            Data.MarkSpinSlotClaimed(landedSlotIndex);
 
             if (landedSlot.slotType == CardSpinSlotType.Resource)
             {
@@ -605,12 +631,11 @@ namespace GamePackages
                 spinCardDrop = GrantCard(cardId);
             }
 
-            Data.currentSpinSetCount++;
+            Data.currentSpinSetCount = Data.claimedSpinSlots.Count;
             Data.totalSpinCount++;
 
-            if (Data.currentSpinSetCount >= SpinSetTargetCount)
+            if (Data.currentSpinSetCount == SpinSetTargetCount)
             {
-                Data.currentSpinSetCount = 0;
                 int bonusCardId = RollCardIdForRarity(config.spinSetBonusCardRarity);
                 setBonusCardDrop = GrantCard(bonusCardId);
             }
@@ -620,32 +645,37 @@ namespace GamePackages
             return true;
         }
 
-        // EN: Performs a weighted random roll across the 12 slots on the spin board.
-        // VI: Thực hiện quay ngẫu nhiên có trọng số trên 12 ô của bàn quay.
+        // EN: Performs a weighted random roll across only the unclaimed slots on the spin board.
+        // VI: Thực hiện quay ngẫu nhiên có trọng số chỉ trên các ô chưa nhận thưởng của bàn quay.
         private int RollSpinSlotIndex()
         {
             if (config == null || config.spinSlots == null || config.spinSlots.Count == 0) return 0;
 
+            List<int> availableIndices = new();
             float totalWeight = 0f;
             for (int i = 0; i < config.spinSlots.Count; i++)
             {
+                if (IsSpinSlotClaimed(i)) continue;
+                availableIndices.Add(i);
                 totalWeight += Mathf.Max(0f, config.spinSlots[i].weight);
             }
 
-            if (totalWeight <= 0f) return UnityEngine.Random.Range(0, config.spinSlots.Count);
+            if (availableIndices.Count == 0) return 0;
+            if (totalWeight <= 0f) return availableIndices[UnityEngine.Random.Range(0, availableIndices.Count)];
 
             float roll = UnityEngine.Random.Range(0f, totalWeight);
             float cumulative = 0f;
-            for (int i = 0; i < config.spinSlots.Count; i++)
+            for (int i = 0; i < availableIndices.Count; i++)
             {
-                cumulative += Mathf.Max(0f, config.spinSlots[i].weight);
+                int slotIdx = availableIndices[i];
+                cumulative += Mathf.Max(0f, config.spinSlots[slotIdx].weight);
                 if (roll <= cumulative)
                 {
-                    return i;
+                    return slotIdx;
                 }
             }
 
-            return 0;
+            return availableIndices[availableIndices.Count - 1];
         }
 
         #endregion
