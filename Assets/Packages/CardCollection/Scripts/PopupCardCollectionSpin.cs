@@ -28,7 +28,7 @@ public class PopupCardCollectionSpin : Popup
     [SerializeField] private Button spinButton;
 
     [Tooltip("Số vòng quay tối thiểu chạy qua các ô còn hoạt động trước khi dừng ở ô trúng thưởng.")]
-    [SerializeField] private int minFullLaps = 2;
+    [SerializeField] private int minFullLaps = 3;
 
     private bool _isSpinning;
     private int _currentHighlightIndex;
@@ -58,20 +58,24 @@ public class PopupCardCollectionSpin : Popup
         _isSpinning = false;
     }
 
-    // EN: Initializes the 12 board slot UI elements from CardCollectionConfig.spinSlots and applies their claimed/disabled state.
-    // VI: Khởi tạo 12 phần tử giao diện ô quay từ cấu hình CardCollectionConfig.spinSlots và áp dụng trạng thái đã nhận/vô hiệu hóa.
+    // EN: Initializes the 12 board slot UI elements from the active spin board and applies their claimed/disabled state.
+    // VI: Khởi tạo 12 phần tử giao diện ô quay từ bàn quay đang hoạt động và áp dụng trạng thái đã nhận/vô hiệu hóa.
     private void SetupBoardSlots()
     {
         if (Manager == null || Manager.config == null || slotUIs == null) return;
         Manager.config.EnsureDefaultSetup();
+        Manager.AdvanceSpinBoardIfCompleted();
 
-        int count = Mathf.Min(slotUIs.Count, Manager.config.spinSlots.Count);
+        List<CardSpinSlotInfo> currentSlots = Manager.GetCurrentSpinSlots();
+        if (currentSlots == null) return;
+
+        int count = Mathf.Min(slotUIs.Count, currentSlots.Count);
         for (int i = 0; i < count; i++)
         {
             if (slotUIs[i] != null)
             {
                 bool isClaimed = Manager.IsSpinSlotClaimed(i);
-                slotUIs[i].Setup(i, Manager.config.spinSlots[i], isClaimed);
+                slotUIs[i].Setup(i, currentSlots[i], isClaimed);
             }
         }
 
@@ -138,8 +142,7 @@ public class PopupCardCollectionSpin : Popup
         if (!Manager.TryExecuteSpin(
                 out int landedSlotIndex,
                 out CardSpinSlotInfo landedSlot,
-                out CardDropResult spinCardDrop,
-                out CardDropResult setBonusCardDrop))
+                out CardDropResult spinCardDrop))
         {
             return;
         }
@@ -156,8 +159,7 @@ public class PopupCardCollectionSpin : Popup
             activeSlotIndices,
             landedSlotIndex,
             landedSlot,
-            spinCardDrop,
-            setBonusCardDrop));
+            spinCardDrop));
     }
 
     // EN: Returns the ordered list of slot indices that are currently enabled (not yet rewarded).
@@ -208,14 +210,13 @@ public class PopupCardCollectionSpin : Popup
         return 0;
     }
 
-    // EN: Animates the highlight stepping only across unclaimed slots with deceleration, then disables the rewarded slot.
-    // VI: Diễn hoạt khung sáng chỉ nhảy qua các ô chưa nhận với tốc độ giảm dần, sau đó vô hiệu hóa ô vừa trúng thưởng.
+    // EN: Animates the highlight stepping across unclaimed slots with 3x deceleration on the final 6 steps, holds for 0.8s, and advances the board if all 12 slots are completed.
+    // VI: Diễn hoạt khung sáng nhảy qua các ô chưa nhận với giảm tốc 3 lần ở 6 bước cuối, dừng 0.8 giây và chuyển bàn mới nếu hoàn thành đủ 12 ô.
     private IEnumerator IESpinBoardAnimation(
         List<int> activeSlotIndices,
         int targetSlotIndex,
         CardSpinSlotInfo landedSlot,
-        CardDropResult spinCardDrop,
-        CardDropResult setBonusCardDrop)
+        CardDropResult spinCardDrop)
     {
         int activeCount = activeSlotIndices != null ? activeSlotIndices.Count : 0;
 
@@ -227,14 +228,21 @@ public class PopupCardCollectionSpin : Popup
 
             int stepsToTarget = (targetPos - startPos + activeCount) % activeCount;
             int totalSteps = Mathf.Max(1, minFullLaps) * activeCount + stepsToTarget;
+            int decelStepCount = Mathf.Min(6, totalSteps);
 
             for (int step = 0; step <= totalSteps; step++)
             {
                 int slotIdx = activeSlotIndices[(startPos + step) % activeCount];
                 HighlightOnlySlot(slotIdx);
 
-                float t = (float)step / totalSteps;
-                float delay = Mathf.Lerp(0.04f, 0.24f, t * t);
+                int remainingSteps = totalSteps - step;
+                float delay = 0.04f;
+                if (remainingSteps < decelStepCount && decelStepCount > 0)
+                {
+                    float decelProgress = 1f - ((float)remainingSteps / decelStepCount);
+                    delay = Mathf.Lerp(0.04f, 0.04f * 3f, decelProgress);
+                }
+
                 yield return new WaitForSeconds(delay);
             }
         }
@@ -248,7 +256,7 @@ public class PopupCardCollectionSpin : Popup
             slotUIs[targetSlotIndex].PlayLandedPulse();
         }
 
-        yield return new WaitForSeconds(0.45f);
+        yield return new WaitForSeconds(0.8f);
 
         if (slotUIs != null && targetSlotIndex >= 0 && targetSlotIndex < slotUIs.Count && slotUIs[targetSlotIndex] != null)
         {
@@ -257,7 +265,12 @@ public class PopupCardCollectionSpin : Popup
 
         _currentHighlightIndex = GetNextActiveSlotIndex(targetSlotIndex);
 
-        PresentSpinRewards(landedSlot, spinCardDrop, setBonusCardDrop);
+        PresentSpinRewards(landedSlot, spinCardDrop);
+
+        if (Manager != null && Manager.AdvanceSpinBoardIfCompleted())
+        {
+            SetupBoardSlots();
+        }
 
         _isSpinning = false;
         RefreshUI();
@@ -281,13 +294,8 @@ public class PopupCardCollectionSpin : Popup
     // VI: Hiển thị phần thưởng trúng được từ lượt quay (qua RewardAnimator cho tài nguyên hoặc PopupCardReward cho thẻ).
     private void PresentSpinRewards(
         CardSpinSlotInfo landedSlot,
-        CardDropResult spinCardDrop,
-        CardDropResult setBonusCardDrop)
+        CardDropResult spinCardDrop)
     {
-        List<CardDropResult> cardsToShow = new();
-        if (spinCardDrop != null) cardsToShow.Add(spinCardDrop);
-        if (setBonusCardDrop != null) cardsToShow.Add(setBonusCardDrop);
-
         if (landedSlot != null && landedSlot.slotType == CardSpinSlotType.Resource && landedSlot.resourceReward != null)
         {
             Panel panel = UIManager.Ins != null ? UIManager.Ins.GetPanel() : null;
@@ -302,9 +310,9 @@ public class PopupCardCollectionSpin : Popup
             }
         }
 
-        if (cardsToShow.Count > 0 && UIManager.Ins != null)
+        if (spinCardDrop != null && UIManager.Ins != null)
         {
-            UIManager.Ins.OpenPopup(PopupId.CardCollectionReward, cardsToShow);
+            UIManager.Ins.OpenPopup(PopupId.CardCollectionReward, spinCardDrop);
         }
     }
 

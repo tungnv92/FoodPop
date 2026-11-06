@@ -17,20 +17,20 @@ MonoBehaviour:
   eventDurationDays: 14
   rarityConfigs:
   - rarity: 1
-    dropWeight: 65
+    dropWeight: 60
     duplicateTicketReward: 10
     backCardSprite: {fileID: 21300000, guid: af88d995ade101042b079108b70f7ca8, type: 3}
   - rarity: 2
-    dropWeight: 25
+    dropWeight: 30
     duplicateTicketReward: 30
     backCardSprite: {fileID: 21300000, guid: 1efc524a9f9aed7458b16591136a7cae, type: 3}
   - rarity: 3
-    dropWeight: 8
-    duplicateTicketReward: 20
+    dropWeight: 10
+    duplicateTicketReward: 80
     backCardSprite: {fileID: 21300000, guid: 00211ec6dceb4a54babe400ca6767cb0, type: 3}
   - rarity: 4
-    dropWeight: 2
-    duplicateTicketReward: 50
+    dropWeight: 0
+    duplicateTicketReward: 200
     backCardSprite: {fileID: 21300000, guid: 3997b543d9fdd55409cd2330010b679e, type: 3}
   pityWinsForThreeStar: 8
   pityWinsForFourStar: 20
@@ -40,100 +40,124 @@ MonoBehaviour:
   spinSetBonusCardRarity: 4
   spinSlots:
   - slotIndex: 0
+    subPool: 2
     slotType: 0
     resourceReward:
       type: 0
       value: 1000
     cardRarity: 1
-    weight: 8
+    specificCardId: -1
+    weight: 100
     customIcon: {fileID: 21300000, guid: 5623de151132fe84ca8905ef17b634a5, type: 3}
   - slotIndex: 1
-    slotType: 1
+    subPool: 1
+    slotType: 2
     resourceReward:
       type: 0
       value: 0
     cardRarity: 1
-    weight: 14
+    specificCardId: 27
+    weight: 100
     customIcon: {fileID: 7024648501981196136, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 2
-    slotType: 1
+    subPool: 3
+    slotType: 2
     resourceReward:
       type: 0
       value: 0
     cardRarity: 3
-    weight: 5
+    specificCardId: 33
+    weight: 100
     customIcon: {fileID: 8963368785945452489, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 3
+    subPool: 3
     slotType: 0
     resourceReward:
       type: 2
       value: 1
     cardRarity: 1
-    weight: 8
+    specificCardId: -1
+    weight: 100
     customIcon: {fileID: 21300000, guid: b38caca7b9c3401489d0999456c78519, type: 3}
   - slotIndex: 4
-    slotType: 1
+    subPool: 1
+    slotType: 2
     resourceReward:
       type: 0
       value: 0
     cardRarity: 1
-    weight: 14
+    specificCardId: 28
+    weight: 100
     customIcon: {fileID: 7024648501981196136, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 5
-    slotType: 1
+    subPool: 2
+    slotType: 2
     resourceReward:
       type: 0
       value: 0
     cardRarity: 2
-    weight: 10
+    specificCardId: 30
+    weight: 100
     customIcon: {fileID: -1145144668836272637, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 6
-    slotType: 1
+    subPool: 5
+    slotType: 2
     resourceReward:
       type: 0
       value: 0
     cardRarity: 4
-    weight: 2
+    specificCardId: 35
+    weight: 100
     customIcon: {fileID: -7415955986125602904, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 7
-    slotType: 1
+    subPool: 2
+    slotType: 2
     resourceReward:
       type: 0
       value: 0
     cardRarity: 2
-    weight: 10
+    specificCardId: 31
+    weight: 100
     customIcon: {fileID: -1145144668836272637, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 8
-    slotType: 1
+    subPool: 4
+    slotType: 2
     resourceReward:
       type: 0
       value: 0
     cardRarity: 3
-    weight: 5
+    specificCardId: 34
+    weight: 100
     customIcon: {fileID: 8963368785945452489, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 9
+    subPool: 4
     slotType: 0
     resourceReward:
       type: 4
       value: 1
     cardRarity: 1
-    weight: 8
+    specificCardId: -1
+    weight: 100
     customIcon: {fileID: 21300000, guid: 5c947fcc06a2cf44491d86de31e982ce, type: 3}
   - slotIndex: 10
-    slotType: 1
+    subPool: 1
+    slotType: 2
     resourceReward:
       type: 0
       value: 0
     cardRarity: 1
-    weight: 14
+    specificCardId: 29
+    weight: 100
     customIcon: {fileID: 7024648501981196136, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   - slotIndex: 11
-    slotType: 1
+    subPool: 2
+    slotType: 2
     resourceReward:
       type: 0
       value: 0
     cardRarity: 2
-    weight: 10
+    specificCardId: 32
+    weight: 100
     customIcon: {fileID: -1145144668836272637, guid: 68d82999792f8ea49a6ebe95fd71fad5, type: 3}
   grandRewardResources:
   - type: 0
@@ -267,13 +291,13 @@ MonoBehaviour:
     collectionId: 0
     cardIndexInCollection: 7
     cardName: Treats #8
-    rarity: 3
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 8e4ef6402fbe6654d9cae97d055b7751, type: 3}
   - cardId: 8
     collectionId: 0
     cardIndexInCollection: 8
     cardName: Treats #9
-    rarity: 4
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 89e13a17ed31f714aa87e9f5186b237d, type: 3}
   - cardId: 9
     collectionId: 1
@@ -297,19 +321,19 @@ MonoBehaviour:
     collectionId: 1
     cardIndexInCollection: 3
     cardName: Pumpkins #4
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: a3e03881c8377a3418aee90796bbc157, type: 3}
   - cardId: 13
     collectionId: 1
     cardIndexInCollection: 4
     cardName: Pumpkins #5
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 13acfa2791d34a9459917ee56aa3876e, type: 3}
   - cardId: 14
     collectionId: 1
     cardIndexInCollection: 5
     cardName: Pumpkins #6
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 69beaa840b6ee684db33669d0ad837e2, type: 3}
   - cardId: 15
     collectionId: 1
@@ -321,13 +345,13 @@ MonoBehaviour:
     collectionId: 1
     cardIndexInCollection: 7
     cardName: Pumpkins #8
-    rarity: 3
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: e03d0ebe4b9c55c4eb9c76bfadb18c96, type: 3}
   - cardId: 17
     collectionId: 1
     cardIndexInCollection: 8
     cardName: Pumpkins #9
-    rarity: 4
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 71d50791ede07724a97ee1d030c10e1c, type: 3}
   - cardId: 18
     collectionId: 2
@@ -369,7 +393,7 @@ MonoBehaviour:
     collectionId: 2
     cardIndexInCollection: 6
     cardName: Home Decor #7
-    rarity: 2
+    rarity: 3
     cardSprite: {fileID: 21300000, guid: bb5090b400f1f1f479d4e2dd6167afde, type: 3}
   - cardId: 25
     collectionId: 2
@@ -381,7 +405,7 @@ MonoBehaviour:
     collectionId: 2
     cardIndexInCollection: 8
     cardName: Home Decor #9
-    rarity: 4
+    rarity: 3
     cardSprite: {fileID: 21300000, guid: e3b0925d51f10ac4b99c361e01effb41, type: 3}
   - cardId: 27
     collectionId: 3
@@ -405,25 +429,25 @@ MonoBehaviour:
     collectionId: 3
     cardIndexInCollection: 3
     cardName: Witchcraft #4
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 233c53525d239e747b839c9cf0464c55, type: 3}
   - cardId: 31
     collectionId: 3
     cardIndexInCollection: 4
     cardName: Witchcraft #5
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: d5d9f48ab9be30f4cab598385b408b34, type: 3}
   - cardId: 32
     collectionId: 3
     cardIndexInCollection: 5
     cardName: Witchcraft #6
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: fb314dd28d496fa4c8464a0f8e2a2d00, type: 3}
   - cardId: 33
     collectionId: 3
     cardIndexInCollection: 6
     cardName: Witchcraft #7
-    rarity: 2
+    rarity: 3
     cardSprite: {fileID: 21300000, guid: 6b031e3d42057ab4889db51a06920d82, type: 3}
   - cardId: 34
     collectionId: 3
@@ -459,25 +483,25 @@ MonoBehaviour:
     collectionId: 4
     cardIndexInCollection: 3
     cardName: Backyard #4
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 94ad6f0315f260f4ca6c1a3e83d21b2a, type: 3}
   - cardId: 40
     collectionId: 4
     cardIndexInCollection: 4
     cardName: Backyard #5
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 7def79b9673439c4ab4838f4cb68d51a, type: 3}
   - cardId: 41
     collectionId: 4
     cardIndexInCollection: 5
     cardName: Backyard #6
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 24d3bd6de03f5574a93ac60b985c9e4d, type: 3}
   - cardId: 42
     collectionId: 4
     cardIndexInCollection: 6
     cardName: Backyard #7
-    rarity: 2
+    rarity: 3
     cardSprite: {fileID: 21300000, guid: eba15f0d941e0784b86228794eafbbdb, type: 3}
   - cardId: 43
     collectionId: 4
@@ -513,25 +537,25 @@ MonoBehaviour:
     collectionId: 5
     cardIndexInCollection: 3
     cardName: Costumes #4
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: d9cc68e41db7e8c49b741a3faa7e4267, type: 3}
   - cardId: 49
     collectionId: 5
     cardIndexInCollection: 4
     cardName: Costumes #5
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 484fdac9c6229bb4c86d611b9a4d6b31, type: 3}
   - cardId: 50
     collectionId: 5
     cardIndexInCollection: 5
     cardName: Costumes #6
-    rarity: 1
+    rarity: 2
     cardSprite: {fileID: 21300000, guid: 904b00edbb8236f4fb523a40ed40d7b6, type: 3}
   - cardId: 51
     collectionId: 5
     cardIndexInCollection: 6
     cardName: Costumes #7
-    rarity: 2
+    rarity: 3
     cardSprite: {fileID: 21300000, guid: 6b0d56cf00130ec48b9646506c5721d2, type: 3}
   - cardId: 52
     collectionId: 5
@@ -548,25 +572,25 @@ MonoBehaviour:
   shopPacks:
   - productId: card_pack_basic
     packName: Basic Pack
-    totalCardsCount: 3
+    totalCardsCount: 2
     guaranteedRarity: 1
-    guaranteedCount: 3
+    guaranteedCount: 2
     packSprite: {fileID: -1953949645243978493, guid: 028e1ea6fae24d94cb1dce9ea9e91bb8, type: 3}
   - productId: card_pack_rare
     packName: Rare Pack
-    totalCardsCount: 4
+    totalCardsCount: 3
     guaranteedRarity: 2
-    guaranteedCount: 2
+    guaranteedCount: 1
     packSprite: {fileID: -5742520653065449687, guid: 028e1ea6fae24d94cb1dce9ea9e91bb8, type: 3}
   - productId: card_pack_epic
     packName: Epic Pack
-    totalCardsCount: 5
+    totalCardsCount: 4
     guaranteedRarity: 3
-    guaranteedCount: 2
+    guaranteedCount: 1
     packSprite: {fileID: 3256844157343697093, guid: 028e1ea6fae24d94cb1dce9ea9e91bb8, type: 3}
   - productId: card_pack_special
     packName: Special Pack
-    totalCardsCount: 6
+    totalCardsCount: 5
     guaranteedRarity: 4
     guaranteedCount: 1
     packSprite: {fileID: -4455745830411913122, guid: 028e1ea6fae24d94cb1dce9ea9e91bb8, type: 3}

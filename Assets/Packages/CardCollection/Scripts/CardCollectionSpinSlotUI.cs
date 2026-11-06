@@ -44,6 +44,17 @@ public class CardCollectionSpinSlotUI : MonoBehaviour
             {
                 rewardIconImage.sprite = slotInfo.customIcon;
             }
+            else if (slotInfo.slotType != CardSpinSlotType.Resource &&
+                     CardCollectionManager.Instance != null &&
+                     CardCollectionManager.Instance.config != null &&
+                     rewardIconImage != null)
+            {
+                Sprite rarityCardIcon = CardCollectionManager.Instance.config.GetSpinCardIcon(slotInfo.cardRarity);
+                if (rarityCardIcon != null)
+                {
+                    rewardIconImage.sprite = rarityCardIcon;
+                }
+            }
             else if (slotInfo.slotType == CardSpinSlotType.Resource &&
                      slotInfo.resourceReward != null &&
                      ProfileManager.instance != null &&

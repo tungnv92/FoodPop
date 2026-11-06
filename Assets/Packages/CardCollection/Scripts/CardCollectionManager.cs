@@ -67,7 +67,15 @@ namespace GamePackages
 
         public int EventDurationDays => config != null ? Mathf.Max(1, config.eventDurationDays) : 14;
 
-        public int SpinCostTickets => config != null ? Mathf.Max(1, config.spinCostTickets) : 50;
+        public int SpinCostTickets
+        {
+            get
+            {
+                if (config == null) return 50;
+                int claimedOnBoard = Data != null && Data.claimedSpinSlots != null ? Data.claimedSpinSlots.Count : 0;
+                return config.GetSpinCostForStep(claimedOnBoard);
+            }
+        }
 
         public int SpinSetTargetCount => config != null ? Mathf.Max(1, config.spinSetTargetCount) : 12;
 
@@ -288,8 +296,8 @@ namespace GamePackages
 
         #region CARD DROP & RARITY ALGORITHM
 
-        // EN: Handles level win events; unlocks the event at level 40 and awards 1 random card on a first-try win.
-        // VI: Xử lý khi thắng màn chơi; mở khóa sự kiện khi thắng màn 40 và thưởng 1 thẻ ngẫu nhiên nếu thắng ngay lần thử đầu.
+        // EN: Handles level win events; unlocks the event at level 40 and awards 1 card using NormalGachaRule on a first-try win.
+        // VI: Xử lý khi thắng màn chơi; mở khóa sự kiện khi thắng màn 40 và thưởng 1 thẻ theo NormalGachaRule nếu thắng ngay lần thử đầu.
         public CardDropResult OnLevelWin(bool isFirstTry)
         {
             if (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null)
@@ -301,13 +309,13 @@ namespace GamePackages
                 }
             }
 
-            if (!isActive || !isFirstTry || Data == null)
+            if (!isActive || !isFirstTry || Data == null || config == null)
             {
                 return null;
             }
 
-            CardRarity rolledRarity = RollCardRarityWithPity();
-            int rolledCardId = RollCardIdForRarity(rolledRarity);
+            config.EnsureDefaultSetup();
+            int rolledCardId = RollCardByGachaRule(config.normalGachaRule);
             CardDropResult dropResult = GrantCard(rolledCardId);
 
             if (dropResult != null)
@@ -321,41 +329,287 @@ namespace GamePackages
             return dropResult;
         }
 
-        // EN: Rolls a card rarity using base drop weights combined with pity counters for 3-star and 4-star cards.
-        // VI: Quay độ hiếm của thẻ dựa trên trọng số cơ bản kết hợp bộ đếm bảo hiểm cho thẻ 3 sao và 4 sao.
+        // EN: Resolves a single card ID using the CardPackResolver algorithm (Hard Guarantee Pity -> Weighted Rarity -> Dynamic Set Weight [base * Early * Finish * Miss] -> Weighted Card [newCardMultiplier]).
+        // VI: Chọn một mã thẻ theo thuật toán CardPackResolver (Bảo hiểm cứng Pity -> Quay độ hiếm -> Trọng số bộ động [base * Early * Finish * Miss] -> Trọng số thẻ [newCardMultiplier]).
+        public int RollCardByGachaRule(CardGachaSlotRule rule)
+        {
+            if (config == null) return 0;
+            config.EnsureDefaultSetup();
+            Data?.EnsureSetGachaProgressCount();
+
+            rule ??= config.normalGachaRule;
+
+            if (rule.enableHardGuarantee && TryRollHardGuaranteedCard(rule, out int guaranteedCardId))
+            {
+                return guaranteedCardId;
+            }
+
+            CardRarity rolledRarity = RollRarityFromGachaRule(rule);
+            int rolledSetId = RollCollectionForRarity(rule, rolledRarity);
+            return RollCardInCollectionAndRarity(rolledSetId, rolledRarity, GetRuleNewCardMultiplier(rule, rolledSetId));
+        }
+
+        // EN: Checks whether any incomplete set has reached its hard guarantee threshold N (draws without a new card >= N) and forces a new card from that set.
+        // VI: Kiểm tra xem có bộ sưu tập chưa hoàn thành nào đạt ngưỡng bảo hiểm cứng N (số lượt không ra thẻ mới >= N) để ép ra thẻ mới của bộ đó hay không.
+        private bool TryRollHardGuaranteedCard(CardGachaSlotRule rule, out int guaranteedCardId)
+        {
+            guaranteedCardId = -1;
+            if (Data == null) return false;
+            Data.EnsureSetGachaProgressCount();
+
+            for (int setId = 0; setId < TOTAL_COLLECTIONS; setId++)
+            {
+                CardSetGachaParam setParam = config.GetSetGachaParam(setId);
+                if (setParam == null || setParam.guaranteeDraws <= 0) continue;
+
+                int drawsWithoutNew = Data.setDrawsWithoutNewCard[setId];
+                if (drawsWithoutNew < setParam.guaranteeDraws) continue;
+
+                List<CardCollectionCardInfo> unownedAllowedCards = GetUnownedCardsInSetForRule(setId, rule);
+                if (unownedAllowedCards.Count == 0) continue;
+
+                guaranteedCardId = RollWeightedCardFromCandidates(unownedAllowedCards, rule);
+                return guaranteedCardId >= 0;
+            }
+
+            return false;
+        }
+
+        // EN: Returns all unowned cards in the specified collection whose rarity has a positive weight in the given gacha rule.
+        // VI: Trả về danh sách các thẻ chưa sở hữu trong bộ sưu tập chỉ định có độ hiếm được phép rơi trong quy tắc gacha.
+        private List<CardCollectionCardInfo> GetUnownedCardsInSetForRule(int collectionId, CardGachaSlotRule rule)
+        {
+            List<CardCollectionCardInfo> list = new();
+            List<CardCollectionCardInfo> setCards = GetCardsInCollection(collectionId);
+            for (int i = 0; i < setCards.Count; i++)
+            {
+                CardCollectionCardInfo c = setCards[i];
+                if ((Data == null || !Data.HasCard(c.cardId)) && rule.GetRarityWeight(c.rarity) > 0f)
+                {
+                    list.Add(c);
+                }
+            }
+            return list;
+        }
+
+        // EN: Picks one card from the candidate list weighted by its rarity weight in the rule.
+        // VI: Chọn một thẻ từ danh sách ứng viên dựa theo trọng số độ hiếm trong quy tắc.
+        private int RollWeightedCardFromCandidates(List<CardCollectionCardInfo> candidates, CardGachaSlotRule rule)
+        {
+            if (candidates == null || candidates.Count == 0) return -1;
+
+            float totalWeight = 0f;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                totalWeight += Mathf.Max(0.01f, rule.GetRarityWeight(candidates[i].rarity));
+            }
+
+            float roll = UnityEngine.Random.Range(0f, totalWeight);
+            float cumulative = 0f;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                cumulative += Mathf.Max(0.01f, rule.GetRarityWeight(candidates[i].rarity));
+                if (roll <= cumulative)
+                {
+                    return candidates[i].cardId;
+                }
+            }
+
+            return candidates[candidates.Count - 1].cardId;
+        }
+
+        // EN: Rolls a card rarity (1 to 4 stars) according to the rarity weights in the given gacha rule.
+        // VI: Quay độ hiếm thẻ (1 đến 4 sao) theo trọng số độ hiếm trong quy tắc gacha được truyền vào.
+        private CardRarity RollRarityFromGachaRule(CardGachaSlotRule rule)
+        {
+            CardRarity[] rarities = { CardRarity.OneStar, CardRarity.TwoStar, CardRarity.ThreeStar, CardRarity.FourStar };
+            float totalWeight = 0f;
+            for (int i = 0; i < rarities.Length; i++)
+            {
+                totalWeight += rule.GetRarityWeight(rarities[i]);
+            }
+
+            if (totalWeight <= 0f) return CardRarity.OneStar;
+
+            float roll = UnityEngine.Random.Range(0f, totalWeight);
+            float cumulative = 0f;
+            for (int i = 0; i < rarities.Length; i++)
+            {
+                float w = rule.GetRarityWeight(rarities[i]);
+                if (w <= 0f) continue;
+                cumulative += w;
+                if (roll <= cumulative)
+                {
+                    return rarities[i];
+                }
+            }
+
+            return CardRarity.OneStar;
+        }
+
+        // EN: Rolls a collection ID (0..5) among sets that contain at least one card of the rolled rarity, using dynamic weight = base * Early * Finish * Miss.
+        // VI: Quay chọn bộ sưu tập (0..5) trong các bộ có chứa thẻ thuộc độ hiếm đã quay, dùng công thức trọng số động = base * Early * Finish * Miss.
+        private int RollCollectionForRarity(CardGachaSlotRule rule, CardRarity rarity)
+        {
+            List<int> eligibleSets = new(TOTAL_COLLECTIONS);
+            List<float> setWeights = new(TOTAL_COLLECTIONS);
+            float totalWeight = 0f;
+
+            for (int setId = 0; setId < TOTAL_COLLECTIONS; setId++)
+            {
+                if (!DoesSetHaveCardOfRarity(setId, rarity)) continue;
+
+                float w = ComputeDynamicSetWeight(setId, rule);
+                eligibleSets.Add(setId);
+                setWeights.Add(w);
+                totalWeight += w;
+            }
+
+            if (eligibleSets.Count == 0) return 0;
+            if (totalWeight <= 0f) return eligibleSets[UnityEngine.Random.Range(0, eligibleSets.Count)];
+
+            float roll = UnityEngine.Random.Range(0f, totalWeight);
+            float cumulative = 0f;
+            for (int i = 0; i < eligibleSets.Count; i++)
+            {
+                cumulative += setWeights[i];
+                if (roll <= cumulative)
+                {
+                    return eligibleSets[i];
+                }
+            }
+
+            return eligibleSets[eligibleSets.Count - 1];
+        }
+
+        // EN: Checks whether the specified collection contains at least one card of the given rarity.
+        // VI: Kiểm tra xem bộ sưu tập chỉ định có chứa ít nhất một thẻ thuộc độ hiếm tương ứng hay không.
+        private bool DoesSetHaveCardOfRarity(int collectionId, CardRarity rarity)
+        {
+            List<CardCollectionCardInfo> setCards = GetCardsInCollection(collectionId);
+            for (int i = 0; i < setCards.Count; i++)
+            {
+                if (setCards[i].rarity == rarity) return true;
+            }
+            return false;
+        }
+
+        // EN: Computes the dynamic gacha weight for a collection: base * Early * Finish * Miss (or base only if the set is already complete for allowed rarities).
+        // VI: Tính trọng số gacha động cho một bộ sưu tập: base * Early * Finish * Miss (hoặc chỉ lấy base nếu bộ đã đủ thẻ trong các độ hiếm cho phép).
+        private float ComputeDynamicSetWeight(int collectionId, CardGachaSlotRule rule)
+        {
+            CardSetGachaParam setParam = config.GetSetGachaParam(collectionId);
+            float baseWeight = rule.useNormalSetParams && setParam != null
+                ? setParam.baseWeight
+                : (rule.setBaseWeights != null && collectionId < rule.setBaseWeights.Length
+                    ? rule.setBaseWeights[collectionId]
+                    : 100f);
+
+            float p = GetSetCompletionRatioForRule(collectionId, rule);
+            if (p >= 1f)
+            {
+                return Mathf.Max(0f, baseWeight);
+            }
+
+            float earlyStrength = rule.useNormalSetParams && setParam != null ? setParam.earlyStrength : 0f;
+            float finishStrength = rule.useNormalSetParams && setParam != null ? setParam.finishStrength : rule.finishStrength;
+            float finishCurve = rule.useNormalSetParams && setParam != null ? setParam.finishCurve : rule.finishCurve;
+            float missPerDraw = rule.useNormalSetParams && setParam != null ? setParam.missPerDraw : 0f;
+
+            int drawsSinceLastNew = (Data != null && Data.setDrawsWithoutNewCard != null && collectionId < Data.setDrawsWithoutNewCard.Count)
+                ? Mathf.Max(0, Data.setDrawsWithoutNewCard[collectionId])
+                : 0;
+
+            float earlyBoost = 1f + (1f - p) * Mathf.Max(0f, earlyStrength);
+            float finishBoost = 1f + Mathf.Pow(Mathf.Clamp01(p), Mathf.Max(0.1f, finishCurve)) * Mathf.Max(0f, finishStrength);
+            float missBoost = 1f + Mathf.Max(0f, missPerDraw) * drawsSinceLastNew;
+
+            return Mathf.Max(0f, baseWeight) * earlyBoost * finishBoost * missBoost;
+        }
+
+        // EN: Calculates the completion ratio p = owned / total for cards in the collection whose rarity is allowed by the given rule.
+        // VI: Tính tỉ lệ hoàn thành p = số thẻ đã có / tổng số thẻ của bộ sưu tập trong các độ hiếm mà quy tắc cho phép.
+        private float GetSetCompletionRatioForRule(int collectionId, CardGachaSlotRule rule)
+        {
+            List<CardCollectionCardInfo> setCards = GetCardsInCollection(collectionId);
+            int totalEligible = 0;
+            int ownedEligible = 0;
+
+            for (int i = 0; i < setCards.Count; i++)
+            {
+                if (rule.GetRarityWeight(setCards[i].rarity) <= 0f) continue;
+                totalEligible++;
+                if (Data != null && Data.HasCard(setCards[i].cardId))
+                {
+                    ownedEligible++;
+                }
+            }
+
+            if (totalEligible <= 0) return 1f;
+            return (float)ownedEligible / totalEligible;
+        }
+
+        // EN: Returns the new-card weight multiplier for the given rule and collection.
+        // VI: Trả về hệ số nhân trọng số ưu tiên thẻ mới cho quy tắc và bộ sưu tập tương ứng.
+        private float GetRuleNewCardMultiplier(CardGachaSlotRule rule, int collectionId)
+        {
+            if (rule.useNormalSetParams)
+            {
+                CardSetGachaParam setParam = config.GetSetGachaParam(collectionId);
+                if (setParam != null) return Mathf.Max(1f, setParam.newCardMultiplier);
+            }
+            return Mathf.Max(1f, rule.newCardMultiplier);
+        }
+
+        // EN: Selects a card within the specified collection and rarity, weighting unowned cards by newCardMultiplier (defaultWeight 1 * newCardMultiplier).
+        // VI: Chọn một thẻ trong bộ sưu tập và độ hiếm chỉ định, nhân trọng số ưu tiên newCardMultiplier cho các thẻ chưa sở hữu.
+        private int RollCardInCollectionAndRarity(int collectionId, CardRarity rarity, float newCardMultiplier)
+        {
+            List<CardCollectionCardInfo> candidates = new();
+            List<CardCollectionCardInfo> setCards = GetCardsInCollection(collectionId);
+            for (int i = 0; i < setCards.Count; i++)
+            {
+                if (setCards[i].rarity == rarity)
+                {
+                    candidates.Add(setCards[i]);
+                }
+            }
+
+            if (candidates.Count == 0)
+            {
+                return RollCardIdForRarity(rarity);
+            }
+
+            float totalWeight = 0f;
+            float[] weights = new float[candidates.Count];
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                bool isOwned = Data != null && Data.HasCard(candidates[i].cardId);
+                weights[i] = isOwned ? 1f : Mathf.Max(1f, newCardMultiplier);
+                totalWeight += weights[i];
+            }
+
+            float roll = UnityEngine.Random.Range(0f, totalWeight);
+            float cumulative = 0f;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                cumulative += weights[i];
+                if (roll <= cumulative)
+                {
+                    return candidates[i].cardId;
+                }
+            }
+
+            return candidates[candidates.Count - 1].cardId;
+        }
+
+        // EN: Rolls a card rarity using NormalGachaRule weights.
+        // VI: Quay độ hiếm của thẻ dựa trên trọng số NormalGachaRule.
         public CardRarity RollCardRarityWithPity()
         {
-            if (Data == null || config == null) return CardRarity.OneStar;
+            if (config == null) return CardRarity.OneStar;
             config.EnsureDefaultSetup();
-
-            Data.firstTryWinsWithoutTier3++;
-            Data.firstTryWinsWithoutTier4++;
-
-            CardRarity selectedRarity;
-            if (config.pityWinsForFourStar > 0 && Data.firstTryWinsWithoutTier4 >= config.pityWinsForFourStar)
-            {
-                selectedRarity = CardRarity.FourStar;
-            }
-            else if (config.pityWinsForThreeStar > 0 && Data.firstTryWinsWithoutTier3 >= config.pityWinsForThreeStar)
-            {
-                selectedRarity = CardRarity.ThreeStar;
-            }
-            else
-            {
-                selectedRarity = RollWeightedRarity(CardRarity.OneStar);
-            }
-
-            if (selectedRarity == CardRarity.FourStar)
-            {
-                Data.firstTryWinsWithoutTier4 = 0;
-                Data.firstTryWinsWithoutTier3 = 0;
-            }
-            else if (selectedRarity == CardRarity.ThreeStar)
-            {
-                Data.firstTryWinsWithoutTier3 = 0;
-            }
-
-            return selectedRarity;
+            return RollRarityFromGachaRule(config.normalGachaRule);
         }
 
         // EN: Performs a weighted random roll across configured rarities at or above the specified minimum rarity.
@@ -383,7 +637,7 @@ namespace GamePackages
                 var rc = config.rarityConfigs[i];
                 if (rc.rarity < minRarity) continue;
 
-                cumulative += Mathf.Max(0f, rc.dropWeight);
+                cumulative += Mathf.Max(0f, config.rarityConfigs[i].dropWeight);
                 if (roll <= cumulative)
                 {
                     return rc.rarity;
@@ -393,8 +647,8 @@ namespace GamePackages
             return minRarity;
         }
 
-        // EN: Selects a card ID of the given rarity, applying the configured preference toward unowned cards.
-        // VI: Chọn mã thẻ theo độ hiếm chỉ định, áp dụng tỉ lệ ưu tiên cho các thẻ người chơi chưa sở hữu.
+        // EN: Selects a card ID of the given rarity, applying preference toward unowned cards.
+        // VI: Chọn mã thẻ theo độ hiếm chỉ định, áp dụng ưu tiên cho các thẻ người chơi chưa sở hữu.
         public int RollCardIdForRarity(CardRarity rarity)
         {
             if (config == null) return 0;
@@ -429,8 +683,8 @@ namespace GamePackages
             return allMatching[UnityEngine.Random.Range(0, allMatching.Count)];
         }
 
-        // EN: Grants the specified card to the player, or converts it into Spin Tickets if it is a duplicate.
-        // VI: Trao thẻ chỉ định cho người chơi, hoặc chuyển đổi thành Vé quay nếu thẻ đó đã được sở hữu trước đó.
+        // EN: Grants the specified card to the player, updates per-set gacha pity counters, or converts duplicate cards into Spin Tokens (1★=10, 2★=30, 3★=80, 4★=200).
+        // VI: Trao thẻ chỉ định cho người chơi, cập nhật bộ đếm bảo hiểm gacha từng bộ, hoặc quy đổi thẻ trùng thành Token quay thưởng (1★=10, 2★=30, 3★=80, 4★=200).
         public CardDropResult GrantCard(int cardId)
         {
             if (Data == null || config == null) return null;
@@ -441,12 +695,13 @@ namespace GamePackages
             int totalBefore = GetTotalOwnedCardsCount();
 
             bool isNewCard = Data.AddCard(cardId);
-            int ticketsEarned = 0;
+            UpdateSetGachaProgressOnDraw(cardInfo.collectionId, isNewCard);
 
+            int ticketsEarned = 0;
             if (!isNewCard)
             {
                 CardRarityDropConfig rarityCfg = config.GetRarityConfig(cardInfo.rarity);
-                ticketsEarned = rarityCfg != null ? Mathf.Max(1, rarityCfg.duplicateTicketReward) : 5;
+                ticketsEarned = rarityCfg != null ? Mathf.Max(1, rarityCfg.duplicateTicketReward) : 10;
                 Data.ticketAmount += ticketsEarned;
             }
 
@@ -467,6 +722,27 @@ namespace GamePackages
             Save();
             OnDataChanged?.Invoke();
             return result;
+        }
+
+        // EN: Updates the draws-since-last-new-card counter for all 6 collections after a card draw, resetting the counter to 0 for the collection that received a new card.
+        // VI: Cập nhật số lượt bốc chưa ra thẻ mới cho cả 6 bộ sưu tập sau mỗi lần nhận thẻ, đặt lại về 0 cho bộ sưu tập vừa nhận được thẻ mới.
+        private void UpdateSetGachaProgressOnDraw(int drawnCollectionId, bool isNewCard)
+        {
+            if (Data == null) return;
+            Data.EnsureSetGachaProgressCount();
+
+            for (int setId = 0; setId < TOTAL_COLLECTIONS; setId++)
+            {
+                if (!IsCollectionCompleted(setId))
+                {
+                    Data.setDrawsWithoutNewCard[setId]++;
+                }
+            }
+
+            if (isNewCard && drawnCollectionId >= 0 && drawnCollectionId < TOTAL_COLLECTIONS)
+            {
+                Data.setDrawsWithoutNewCard[drawnCollectionId] = 0;
+            }
         }
 
         #endregion
@@ -569,20 +845,78 @@ namespace GamePackages
 
         #region LUCKY SPIN
 
-        // EN: Checks whether the specified spin slot index has already been rewarded and disabled.
-        // VI: Kiểm tra xem ô vòng quay tại chỉ số chỉ định đã được nhận thưởng và vô hiệu hóa hay chưa.
+        // EN: Returns the active Lucky Spin board configuration based on the player's current board index.
+        // VI: Trả về cấu hình bàn quay Lucky Spin đang hoạt động dựa trên chỉ số bàn hiện tại của người chơi.
+        public CardSpinBoardInfo GetCurrentSpinBoard()
+        {
+            if (config == null) return null;
+            config.EnsureDefaultSetup();
+            int boardIdx = Data != null ? Data.currentSpinBoardIndex : 0;
+            return config.GetSpinBoard(boardIdx);
+        }
+
+        // EN: Returns the 12 slot configurations for the player's currently active Lucky Spin board.
+        // VI: Trả về 12 cấu hình ô cho bàn quay Lucky Spin đang hoạt động của người chơi.
+        public List<CardSpinSlotInfo> GetCurrentSpinSlots()
+        {
+            if (config == null) return null;
+            config.EnsureDefaultSetup();
+            int boardIdx = Data != null ? Data.currentSpinBoardIndex : 0;
+            return config.GetSpinBoardSlots(boardIdx);
+        }
+
+        // EN: Advances to the next spin board (or resets repeating Board 4) when all 12 slots on the current board have been claimed.
+        // VI: Chuyển sang bàn quay tiếp theo (hoặc làm mới Bàn 4 lặp lại) khi cả 12 ô trên bàn hiện tại đã được nhận hết.
+        public bool AdvanceSpinBoardIfCompleted()
+        {
+            if (Data == null || config == null) return false;
+            config.EnsureDefaultSetup();
+
+            List<CardSpinSlotInfo> currentSlots = GetCurrentSpinSlots();
+            int totalSlots = currentSlots != null ? currentSlots.Count : 0;
+            if (totalSlots <= 0) return false;
+
+            for (int i = 0; i < totalSlots; i++)
+            {
+                if (!Data.IsSpinSlotClaimed(i))
+                {
+                    return false;
+                }
+            }
+
+            Data.ResetSpinClaimedSlots();
+            Data.currentSpinSetCount = 0;
+
+            int maxBoardIdx = config.spinBoards != null && config.spinBoards.Count > 0
+                ? config.spinBoards.Count - 1
+                : 0;
+            if (Data.currentSpinBoardIndex < maxBoardIdx)
+            {
+                Data.currentSpinBoardIndex++;
+            }
+
+            Save();
+            OnDataChanged?.Invoke();
+            return true;
+        }
+
+        // EN: Checks whether the specified spin slot index has already been rewarded and disabled on the current board.
+        // VI: Kiểm tra xem ô vòng quay tại chỉ số chỉ định đã được nhận thưởng và vô hiệu hóa trên bàn hiện tại hay chưa.
         public bool IsSpinSlotClaimed(int slotIndex)
         {
             return Data != null && Data.IsSpinSlotClaimed(slotIndex);
         }
 
-        // EN: Checks whether at least one slot on the spin board has not yet been rewarded.
-        // VI: Kiểm tra xem trên bàn quay còn ít nhất một ô phần thưởng chưa được nhận hay không.
+        // EN: Checks whether at least one slot on the current spin board has not yet been rewarded.
+        // VI: Kiểm tra xem trên bàn quay hiện tại còn ít nhất một ô phần thưởng chưa được nhận hay không.
         public bool HasAvailableSpinSlot()
         {
             if (Data == null || config == null) return false;
             config.EnsureDefaultSetup();
-            int totalSlots = config.spinSlots != null ? config.spinSlots.Count : 0;
+            AdvanceSpinBoardIfCompleted();
+
+            List<CardSpinSlotInfo> currentSlots = GetCurrentSpinSlots();
+            int totalSlots = currentSlots != null ? currentSlots.Count : 0;
             for (int i = 0; i < totalSlots; i++)
             {
                 if (!Data.IsSpinSlotClaimed(i))
@@ -600,30 +934,36 @@ namespace GamePackages
             return Data != null && Data.ticketAmount >= SpinCostTickets && HasAvailableSpinSlot();
         }
 
-        // EN: Spends tickets to spin the 12-slot board, marks the landed slot as disabled, grants its reward, and checks the 12-spin set bonus.
-        // VI: Tiêu vé để quay bàn 12 ô, đánh dấu ô trúng thưởng bị vô hiệu hóa, trao phần thưởng và kiểm tra thưởng mốc 12 lượt quay.
+        // EN: Spends tickets to spin the 12-slot board using subPool 1->5 priority, marks the landed slot as disabled, and grants its reward.
+        // VI: Tiêu vé để quay bàn 12 ô theo thứ tự ưu tiên subPool 1->5, đánh dấu ô trúng thưởng bị vô hiệu hóa và trao phần thưởng của ô đó.
         public bool TryExecuteSpin(
             out int landedSlotIndex,
             out CardSpinSlotInfo landedSlot,
-            out CardDropResult spinCardDrop,
-            out CardDropResult setBonusCardDrop)
+            out CardDropResult spinCardDrop)
         {
             landedSlotIndex = 0;
             landedSlot = null;
             spinCardDrop = null;
-            setBonusCardDrop = null;
 
             if (!CanSpin() || config == null) return false;
             config.EnsureDefaultSetup();
 
-            Data.ticketAmount -= SpinCostTickets;
-            landedSlotIndex = RollSpinSlotIndex();
-            landedSlot = config.spinSlots[landedSlotIndex];
+            List<CardSpinSlotInfo> currentSlots = GetCurrentSpinSlots();
+            if (currentSlots == null || currentSlots.Count == 0) return false;
+
+            int spinCost = SpinCostTickets;
+            Data.ticketAmount -= spinCost;
+            landedSlotIndex = RollSpinSlotIndex(currentSlots);
+            landedSlot = currentSlots[landedSlotIndex];
             Data.MarkSpinSlotClaimed(landedSlotIndex);
 
             if (landedSlot.slotType == CardSpinSlotType.Resource)
             {
                 GrantResourceReward(landedSlot.resourceReward, "CardCollection_Spin");
+            }
+            else if (landedSlot.slotType == CardSpinSlotType.SpecificCard && landedSlot.specificCardId >= 0)
+            {
+                spinCardDrop = GrantCard(landedSlot.specificCardId);
             }
             else
             {
@@ -634,30 +974,40 @@ namespace GamePackages
             Data.currentSpinSetCount = Data.claimedSpinSlots.Count;
             Data.totalSpinCount++;
 
-            if (Data.currentSpinSetCount == SpinSetTargetCount)
-            {
-                int bonusCardId = RollCardIdForRarity(config.spinSetBonusCardRarity);
-                setBonusCardDrop = GrantCard(bonusCardId);
-            }
-
             Save();
             OnDataChanged?.Invoke();
             return true;
         }
 
-        // EN: Performs a weighted random roll across only the unclaimed slots on the spin board.
-        // VI: Thực hiện quay ngẫu nhiên có trọng số chỉ trên các ô chưa nhận thưởng của bàn quay.
-        private int RollSpinSlotIndex()
+        // EN: Performs a weighted random roll across unclaimed slots in the lowest remaining subPool (1->5) on the active spin board.
+        // VI: Thực hiện quay ngẫu nhiên có trọng số trên các ô chưa nhận thuộc subPool thấp nhất còn lại (1->5) trên bàn quay hiện tại.
+        private int RollSpinSlotIndex(List<CardSpinSlotInfo> currentSlots)
         {
-            if (config == null || config.spinSlots == null || config.spinSlots.Count == 0) return 0;
+            if (currentSlots == null || currentSlots.Count == 0) return 0;
+
+            int minSubPool = int.MaxValue;
+            for (int i = 0; i < currentSlots.Count; i++)
+            {
+                if (IsSpinSlotClaimed(i)) continue;
+                int pool = Mathf.Max(1, currentSlots[i].subPool);
+                if (pool < minSubPool)
+                {
+                    minSubPool = pool;
+                }
+            }
+
+            if (minSubPool == int.MaxValue) return 0;
 
             List<int> availableIndices = new();
             float totalWeight = 0f;
-            for (int i = 0; i < config.spinSlots.Count; i++)
+            for (int i = 0; i < currentSlots.Count; i++)
             {
                 if (IsSpinSlotClaimed(i)) continue;
+                int pool = Mathf.Max(1, currentSlots[i].subPool);
+                if (pool != minSubPool) continue;
+
                 availableIndices.Add(i);
-                totalWeight += Mathf.Max(0f, config.spinSlots[i].weight);
+                totalWeight += Mathf.Max(0f, currentSlots[i].weight);
             }
 
             if (availableIndices.Count == 0) return 0;
@@ -668,7 +1018,7 @@ namespace GamePackages
             for (int i = 0; i < availableIndices.Count; i++)
             {
                 int slotIdx = availableIndices[i];
-                cumulative += Mathf.Max(0f, config.spinSlots[slotIdx].weight);
+                cumulative += Mathf.Max(0f, currentSlots[slotIdx].weight);
                 if (roll <= cumulative)
                 {
                     return slotIdx;
@@ -694,13 +1044,26 @@ namespace GamePackages
             return OpenCardPackInfo(packInfo);
         }
 
-        // EN: Opens a card pack based on its CardPackShopInfo rules (guaranteed rarity cards + normal rolls).
-        // VI: Mở gói thẻ dựa trên quy tắc CardPackShopInfo (các thẻ đảm bảo độ hiếm + các thẻ quay thường).
+        // EN: Opens a card pack based on its per-slot Gacha rules (or fallback rarity rules) and returns the granted cards.
+        // VI: Mở gói thẻ dựa trên quy tắc Gacha của từng khe thẻ (hoặc quy tắc độ hiếm dự phòng) và trả về danh sách các thẻ nhận được.
         public List<CardDropResult> OpenCardPackInfo(CardPackShopInfo packInfo)
         {
             if (packInfo == null) return null;
-            List<CardDropResult> results = new(packInfo.totalCardsCount);
+            if (config != null) config.EnsureDefaultSetup();
 
+            if (packInfo.slotRules != null && packInfo.slotRules.Count > 0)
+            {
+                List<CardDropResult> slotResults = new(packInfo.slotRules.Count);
+                for (int i = 0; i < packInfo.slotRules.Count; i++)
+                {
+                    int cardId = RollCardByGachaRule(packInfo.slotRules[i]);
+                    CardDropResult res = GrantCard(cardId);
+                    if (res != null) slotResults.Add(res);
+                }
+                return slotResults;
+            }
+
+            List<CardDropResult> results = new(packInfo.totalCardsCount);
             int guaranteed = Mathf.Clamp(packInfo.guaranteedCount, 0, packInfo.totalCardsCount);
             for (int i = 0; i < guaranteed; i++)
             {
@@ -712,8 +1075,7 @@ namespace GamePackages
 
             for (int i = guaranteed; i < packInfo.totalCardsCount; i++)
             {
-                CardRarity rarity = RollWeightedRarity(CardRarity.OneStar);
-                int cardId = RollCardIdForRarity(rarity);
+                int cardId = RollCardByGachaRule(config != null ? config.normalGachaRule : null);
                 CardDropResult res = GrantCard(cardId);
                 if (res != null) results.Add(res);
             }

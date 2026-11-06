@@ -8,7 +8,9 @@ public class CardCollectionCardSlotUI : MonoBehaviour
     [Tooltip("Hình ảnh hiển thị mặt trước của thẻ khi đã nhận hoặc mặt sau (BackCard) theo độ hiếm khi chưa nhận.")]
     [FormerlySerializedAs("cardArtImage")]
     [SerializeField] private Image cardImage;
+    [SerializeField] private CardPreviewUI cardPreview;
 
+    CardCollectionCardInfo cardInfo;
     public int CardId { get; private set; }
 
     // EN: Updates the card slot sprite to the card's configured sprite when owned, or the rarity's BackCard sprite (1 to 4 stars) when unowned.
@@ -16,6 +18,7 @@ public class CardCollectionCardSlotUI : MonoBehaviour
     public void Setup(CardCollectionCardInfo cardInfo, bool isOwned)
     {
         if (cardInfo == null) return;
+        this.cardInfo = cardInfo;
         CardId = cardInfo.cardId;
 
         if (cardImage == null)
@@ -33,5 +36,10 @@ public class CardCollectionCardSlotUI : MonoBehaviour
         {
             cardImage.sprite = CardCollectionManager.Instance.config.GetBackCardSprite(cardInfo.rarity);
         }
+    }
+
+    public void OnClick()
+    {
+        if (cardPreview != null)  cardPreview.ShowPreview(cardInfo);
     }
 }

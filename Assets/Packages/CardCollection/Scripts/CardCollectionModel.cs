@@ -25,6 +25,7 @@ namespace GamePackages
         public bool isDoneTutorial;
         public bool isClaimedGrandReward;
         public int ticketAmount;
+        public int currentSpinBoardIndex;
         public int currentSpinSetCount;
         public int totalSpinCount;
         public int firstTryWinsWithoutTier3;
@@ -35,6 +36,7 @@ namespace GamePackages
         public List<int> ownedCardIds = new();
         public List<int> claimedCollectionIds = new();
         public List<int> claimedSpinSlots = new();
+        public List<int> setDrawsWithoutNewCard = new();
 
         // EN: Initializes a new CardCollectionData instance with default values.
         // VI: Khởi tạo đối tượng CardCollectionData mới với các giá trị mặc định.
@@ -54,6 +56,7 @@ namespace GamePackages
             isDoneTutorial = false;
             isClaimedGrandReward = false;
             ticketAmount = 0;
+            currentSpinBoardIndex = 0;
             currentSpinSetCount = 0;
             totalSpinCount = 0;
             firstTryWinsWithoutTier3 = 0;
@@ -64,6 +67,7 @@ namespace GamePackages
             ownedCardIds.Clear();
             claimedCollectionIds.Clear();
             claimedSpinSlots.Clear();
+            ResetSetGachaProgress();
         }
 
         // EN: Starts a new 14-day event cycle with the given start and expiration timestamps while preserving tutorial completion.
@@ -76,6 +80,7 @@ namespace GamePackages
             isShowedInfo = false;
             isClaimedGrandReward = false;
             ticketAmount = 0;
+            currentSpinBoardIndex = 0;
             currentSpinSetCount = 0;
             totalSpinCount = 0;
             firstTryWinsWithoutTier3 = 0;
@@ -86,6 +91,30 @@ namespace GamePackages
             ownedCardIds.Clear();
             claimedCollectionIds.Clear();
             claimedSpinSlots.Clear();
+            ResetSetGachaProgress();
+        }
+
+        // EN: Initializes or resets the per-set gacha pity counters (draws without a new card for each of the 6 sets).
+        // VI: Khởi tạo hoặc đặt lại bộ đếm bảo hiểm gacha theo từng bộ sưu tập (số lượt bốc chưa ra thẻ mới cho mỗi bộ trong 6 bộ).
+        public void ResetSetGachaProgress()
+        {
+            setDrawsWithoutNewCard ??= new List<int>(6);
+            setDrawsWithoutNewCard.Clear();
+            for (int i = 0; i < 6; i++)
+            {
+                setDrawsWithoutNewCard.Add(0);
+            }
+        }
+
+        // EN: Ensures the per-set gacha progress list has 6 valid entries.
+        // VI: Đảm bảo danh sách bộ đếm tiến độ gacha của 6 bộ sưu tập có đủ 6 phần tử hợp lệ.
+        public void EnsureSetGachaProgressCount()
+        {
+            setDrawsWithoutNewCard ??= new List<int>(6);
+            while (setDrawsWithoutNewCard.Count < 6)
+            {
+                setDrawsWithoutNewCard.Add(0);
+            }
         }
 
         // EN: Checks whether the player already owns the card with the given ID.
@@ -131,6 +160,14 @@ namespace GamePackages
             {
                 claimedSpinSlots.Add(slotIndex);
             }
+        }
+
+        // EN: Clears the list of claimed spin slots when advancing to the next spin board or resetting a repeating board.
+        // VI: Xóa danh sách các ô đã nhận thưởng khi chuyển sang bàn quay tiếp theo hoặc làm mới bàn quay lặp lại.
+        public void ResetSpinClaimedSlots()
+        {
+            claimedSpinSlots ??= new List<int>();
+            claimedSpinSlots.Clear();
         }
 
         // EN: Clears any pending card drop notification stored from the last level win.
