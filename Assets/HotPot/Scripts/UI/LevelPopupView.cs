@@ -8,14 +8,8 @@ namespace FoodPop
     // EN: Binds gameplay actions to an authored popup prefab without rebuilding its editable hierarchy.
     // VI: Nối hành động gameplay với prefab popup đã dựng mà không tạo lại cấu trúc có thể chỉnh sửa.
     [DisallowMultipleComponent]
-    public abstract class LevelPopupView : MonoBehaviour
+    public abstract class LevelPopupView : UICanvasPrime
     {
-        [Tooltip("Canvas của prefab popup này.")]
-        [SerializeField] private Canvas popupCanvas;
-        [Tooltip("Nhóm hiển thị dùng cho hiệu ứng xuất hiện.")]
-        [SerializeField] private CanvasGroup canvasGroup;
-        [Tooltip("Khung nội dung được phóng nhẹ khi xuất hiện.")]
-        [SerializeField] private RectTransform card;
         [Tooltip("Nút chính: sang màn, chơi lại hoặc hồi sinh tùy prefab.")]
         [SerializeField] private Button primaryButton;
         [Tooltip("Nút phụ từ chối hồi sinh; để trống với popup thắng và thua.")]
@@ -32,9 +26,12 @@ namespace FoodPop
         private Vector3 restScale;
         private bool capturedDefaults;
 
-        // EN: Exposes the authored canvas to the editor preview renderer without searching or changing the hierarchy.
-        // VI: Cung cấp canvas đã dựng cho bộ xem thử editor mà không tìm kiếm hoặc thay đổi cấu trúc.
-        public Canvas Canvas => popupCanvas;
+        // EN: Opens the authored popup without gameplay callbacks for generic access.
+        // VI: Mở popup đã thiết kế không kèm callback gameplay cho API tổng quát.
+        public override void Open()
+        {
+            Open(null, null, true, true);
+        }
 
         // EN: Opens a concrete popup while retaining authored text and scale and binding only this opening's actions.
         // VI: Mở popup cụ thể, giữ chữ và tỉ lệ đã thiết kế, chỉ nối hành động cho lần mở hiện tại.
@@ -47,7 +44,7 @@ namespace FoodPop
                 capturedDefaults = true;
             }
             ReleaseRuntimeState();
-            gameObject.SetActive(true);
+            base.Open();
             primaryAction = available ? primary : null;
             secondaryAction = secondary;
             if (primaryButton != null)
@@ -98,8 +95,15 @@ namespace FoodPop
         // VI: Giải phóng hoạt cảnh và callback trước khi ẩn, kể cả lúc xem thử trong chế độ chỉnh sửa.
         public void Hide()
         {
+            Close();
+        }
+
+        // EN: Cleans popup callbacks and animation before the common canvas close lifecycle.
+        // VI: Dọn callback và hoạt cảnh popup trước vòng đời đóng canvas chung.
+        public override void Close()
+        {
             ReleaseRuntimeState();
-            gameObject.SetActive(false);
+            base.Close();
         }
 
         // EN: Clears transient animation and event ownership independently of Unity lifecycle callback timing.
@@ -111,9 +115,9 @@ namespace FoodPop
             ClearActions();
         }
 
-        // EN: Cancels the entrance animation and releases callbacks whenever the popup is closed or destroyed.
-        // VI: Hủy hoạt cảnh xuất hiện và giải phóng callback khi popup đóng hoặc bị hủy.
-        protected void OnDisable()
+        // EN: Releases common popup state on disable; specialized canvases can extend cleanup for their subscriptions.
+        // VI: Giải phóng trạng thái popup chung khi tắt; canvas cụ thể có thể bổ sung dọn đăng ký sự kiện.
+        protected virtual void OnDisable()
         {
             ReleaseRuntimeState();
         }

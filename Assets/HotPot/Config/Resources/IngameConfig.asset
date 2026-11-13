@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 944725d166234054ab789e406d87dc4d, type: 3}
   m_Name: IngameConfig
   m_EditorClassIdentifier: Assembly-CSharp::FoodPop.IngameConfig
+  foodIcons: {fileID: 11400000, guid: 8e8a947c10e8406f9e6f03211e19a357, type: 2}
+  boosterConfig: {fileID: 11400000, guid: 79ef3925ca4848faa1944fe3edd6d213, type: 2}
   ingredientFlight:
     serveFlyDuration: 0.4
     serveArcHeight: 1.3
@@ -72,11 +74,13 @@ MonoBehaviour:
     stepForwardDuration: 0.4
     queueSpacing: {x: 0.8, y: 0.16}
   preparation:
-    preparationDuration: 1
     chopPunch: 0.08
     cuttingScale: 1.3
     liftDuration: 0.25
     dropDuration: 0.3
+    nearFlightDistance: 2
+    flightTimePerUnit: 0.04
+    maxFlightMultiplier: 2
     hopHeight: 0.6
     cuttingSortingBoost: 20
     debrisPerChop: 3
@@ -114,3 +118,5 @@ MonoBehaviour:
     maxTilt: 8
   dishTwinkle:
     minLayers: 2
+  preWin:
+    speedMultiplier: 1.4

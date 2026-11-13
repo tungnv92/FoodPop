@@ -8,7 +8,7 @@ namespace FoodPop
     {
         // EN: Requests auto play + recording and enters Play Mode.
         // VI: Yêu cầu tự chơi + quay màn hình rồi vào Play Mode.
-        [MenuItem("Tools/HotPot/Auto Play And Record")]
+        [MenuItem("Tools/FoodPop/Auto Play And Record")]
         public static void Run()
         {
             if (EditorApplication.isPlaying)

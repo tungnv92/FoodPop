@@ -13,7 +13,43 @@ namespace GamePackages
     [Serializable]
     public class LavaQuestManager : ContextData<LavaQuestData>, IFeatureNewDay, IFeatureUpdate
     {
-        public static LavaQuestManager Instance => ProfileManager.instance != null && ProfileManager.instance.GameFeatureContext != null
+        // EN: Signals persisted UI-owned feature state changes without exposing the model.
+        // VI: Báo thay đổi trạng thái tính năng do giao diện yêu cầu sau khi lưu mà không lộ model.
+        public event Action StateChanged;
+
+        // EN: Reads isDoneTutorial without exposing mutable feature data.
+        // VI: Đọc isDoneTutorial mà không lộ dữ liệu tính năng có thể sửa.
+        public bool HasCompletedTutorial => Data != null ? Data.isDoneTutorial : false;
+
+        // EN: Persists isDoneTutorial when first marked by the feature UI.
+        // VI: Lưu isDoneTutorial khi giao diện tính năng đánh dấu lần đầu.
+        public void CompleteTutorial()
+        {
+            if (Data == null || Data.isDoneTutorial) return;
+            Data.isDoneTutorial = true;
+            Save();
+            StateChanged?.Invoke();
+        }
+        // EN: Reads isShowedInfo without exposing mutable feature data.
+        // VI: Đọc isShowedInfo mà không lộ dữ liệu tính năng có thể sửa.
+        public bool HasShownInfo => Data != null ? Data.isShowedInfo : false;
+
+        // EN: Persists isShowedInfo when first marked by the feature UI.
+        // VI: Lưu isShowedInfo khi giao diện tính năng đánh dấu lần đầu.
+        public void MarkInfoShown()
+        {
+            if (Data == null || Data.isShowedInfo) return;
+            Data.isShowedInfo = true;
+            Save();
+            StateChanged?.Invoke();
+        }
+        // EN: Reads completedBotCount without exposing mutable feature data.
+        // VI: Đọc completedBotCount mà không lộ dữ liệu tính năng có thể sửa.
+        public int CompletedBotCount => Data != null ? Data.completedBotCount : 0;
+
+        // EN: Coordinates Instance using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối Instance qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        public static LavaQuestManager Instance => ProfileManager.instance.GameFeatureContext != null
             ? ProfileManager.instance.GameFeatureContext.LavaQuestManager
             : null;
 
@@ -26,17 +62,20 @@ namespace GamePackages
             set => LavaQuestConfig = value;
         }
 
-        public new LavaQuestData Data => base.Data ?? (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.LavaQuestData : null);
-        public LavaQuestData lavaQuestData => Data;
+        // EN: Keeps the mutable feature model private while public callers use value queries.
+        // VI: Giữ model tính năng có thể sửa ở phạm vi riêng, nơi gọi public dùng truy vấn giá trị.
+        private LavaQuestData lavaQuestData => Data;
 
         private bool _pendingWinAnimation;
         private bool _pendingLoseAnimation;
 
+        // EN: Coordinates UnlockLevel using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối UnlockLevel qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public int UnlockLevel
         {
             get
             {
-                if (ProfileManager.instance != null && ProfileManager.instance.RemoteConfigBase != null)
+                if (ProfileManager.instance.RemoteConfigBase != null)
                 {
                     return ProfileManager.instance.RemoteConfigBase.level_unlock_busquest;
                 }
@@ -48,8 +87,12 @@ namespace GamePackages
 
         public static bool IsTemporarilyDisabled = false;
 
-        public bool IsLevelUnlocked => ProfileManager.instance != null && ProfileManager.instance.PlayerData != null &&
-                                       ProfileManager.instance.PlayerData.currentLevel >= UnlockLevel;
+        // EN: Checks the unlock level through read-only player manager queries.
+        // VI: Kiểm tra level mở khóa qua truy vấn chỉ đọc của manager người chơi.
+        // EN: Checks the unlock level through read-only player manager queries.
+        // VI: Kiểm tra level mở khóa qua truy vấn chỉ đọc của manager người chơi.
+        public bool IsLevelUnlocked => ProfileManager.instance.PlayerDataManager.IsInitialized &&
+                                       ProfileManager.instance.PlayerDataManager.GetCurrentLevel() >= UnlockLevel;
 
         public bool isActive => IsLevelUnlocked && LavaQuestConfig.isFeatureEnabled;
 
@@ -86,17 +129,11 @@ namespace GamePackages
             }
         }
 
-        public override void SetContext(LavaQuestData data)
+        // EN: Binds the saved model through internal initialization and initializes this feature's state.
+        // VI: Gắn model lưu qua khởi tạo nội bộ và khởi tạo trạng thái của tính năng này.
+        internal override void SetContext(LavaQuestData data)
         {
-            if (data == null)
-            {
-                data = new LavaQuestData();
-                if (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null)
-                {
-                    ProfileManager.instance.PlayerData.LavaQuestData = data;
-                }
-            }
-            base.SetContext(data);
+            base.SetContext(data ?? throw new System.ArgumentNullException(nameof(data)));
             CheckExpire();
         }
 
@@ -113,9 +150,11 @@ namespace GamePackages
         /// <summary>
         /// Returns authoritative time (server time if available, otherwise device local time).
         /// </summary>
+        // EN: Coordinates GetCurrentTime using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối GetCurrentTime qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public DateTime GetCurrentTime()
         {
-            if (ProfileManager.instance != null && ProfileManager.instance.TimeManager != null)
+            if (ProfileManager.instance.TimeManager != null)
             {
                 return ProfileManager.instance.TimeManager.GetNow();
             }
@@ -360,6 +399,8 @@ namespace GamePackages
         /// Grants reward to player transactionally and idempotently.
         /// Shared equally between 1 real user and bot winners (total 10,000 Coins pool).
         /// </summary>
+        // EN: Coordinates GrantReward using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối GrantReward qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public void GrantReward()
         {
             if (Data == null || Data.rewardGranted) return;
@@ -376,11 +417,8 @@ namespace GamePackages
             Data.rewardGranted = true;
             Data.rewardTransactionId = Guid.NewGuid().ToString();
 
-            if (ProfileManager.instance != null && ProfileManager.instance.PlayerDataManager != null)
-            {
-                ProfileManager.instance.PlayerDataManager.OnAddCoin(rewardPerWinner, "lava_quest");
-                ProfileManager.instance.SaveData();
-            }
+            ProfileManager.instance.PlayerDataManager.OnAddCoin(rewardPerWinner, "lava_quest");
+            ProfileManager.instance.SaveData();
 
             LogState("LAVAQUEST_REWARD_GRANTED", $"RewardPerWinner={rewardPerWinner}, WinnerCount={winnerCount}, TxId={Data.rewardTransactionId}");
             Save();

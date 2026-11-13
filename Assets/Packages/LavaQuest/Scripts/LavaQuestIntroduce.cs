@@ -99,10 +99,11 @@ public class PopupLavaQuestIntroduce : Popup
         }
     }
 
+    // EN: Coordinates ButtonClose using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ButtonClose qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void ButtonClose()
     {
-        LavaQuestManager.Ins.Data.isDoneTutorial = true;
-        LavaQuestManager.Ins.Save();
+        LavaQuestManager.Ins.CompleteTutorial();
         Close();
     }
 }

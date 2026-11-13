@@ -24,6 +24,10 @@ public class PopupLavaQuestFinding : Popup
         AnimShowUsers();
     }
 
+    // EN: Coordinates AnimShowUsers using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối AnimShowUsers qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+    // EN: Coordinates AnimShowUsers using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối AnimShowUsers qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void AnimShowUsers()
     {
         if (fakeUsers != null)
@@ -39,8 +43,8 @@ public class PopupLavaQuestFinding : Popup
             }
         }
 
-        int frameId = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.frame_avatar_id : 0;
-        int avatarId = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.avatar_id : 0;
+        int frameId = ProfileManager.instance.PlayerDataManager.IsInitialized ? ProfileManager.instance.PlayerDataManager.FrameId : 0;
+        int avatarId = ProfileManager.instance.PlayerDataManager.IsInitialized ? ProfileManager.instance.PlayerDataManager.AvatarId : 0;
         if (realUser != null)
         {
             realUser.OnInitt(frameId, avatarId);
@@ -84,8 +88,10 @@ public class PopupLavaQuestFinding : Popup
         });
     }
 
-    // EN: Closes the matchmaking popup, starts a new LavaQuest attempt, and opens or refreshes the LavaQuest view.
-    // VI: Đóng popup tìm người chơi, bắt đầu lượt thử LavaQuest mới và mở hoặc làm mới giao diện LavaQuest.
+    // EN: Coordinates ButtonContinue using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ButtonContinue qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+    // EN: Coordinates ButtonContinue using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ButtonContinue qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void ButtonContinue()
     {
         Close();
@@ -94,7 +100,7 @@ public class PopupLavaQuestFinding : Popup
             Manager.StartNewAttempt();
         }
 
-        int currentLevel = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.currentLevel : 1;
+        int currentLevel = ProfileManager.instance.PlayerDataManager.IsInitialized ? ProfileManager.instance.PlayerDataManager.GetCurrentLevel() : 1;
         //if (ABIAnalyticsManager.Instance != null)
         //{
         //    ABIAnalyticsManager.Instance.LavaQuestStart(currentLevel);
@@ -112,7 +118,7 @@ public class PopupLavaQuestFinding : Popup
             UIManager.Ins.OpenPopup(PopupId.LavaQuest);
         }
 
-        if (Manager != null && Manager.Data != null && !Manager.Data.isShowedInfo)
+        if (Manager != null && Manager.IsInitialized && !Manager.HasShownInfo)
         {
             UIManager.Ins.OpenPopup(PopupId.LavaQuestInfo);
         }

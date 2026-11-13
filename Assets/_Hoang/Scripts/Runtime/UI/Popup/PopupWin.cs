@@ -28,6 +28,8 @@ public class PopupWin : Popup
     PlayerDataManager PlayerDataManager => ProfileManager.instance.PlayerDataManager;
 
     int _rewardAmount;
+    // EN: Opens the view using manager queries and commands instead of mutable save models.
+    // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
     public override void Open(object args = null)
     {
         base.Open(args);
@@ -40,24 +42,22 @@ public class PopupWin : Popup
         if (isSuperHard) _rewardAmount = GameManager.Ins.Config.WinRewardAmountSuperHard;
 
         rewardCoinTmp.text = _rewardAmount.ToString();
-        bool canBackHome = ProfileManager.instance.PlayerData.currentLevel >= GameManager.Ins.Config.BackHomeAfterWinLevel;
+        bool canBackHome = ProfileManager.instance.PlayerDataManager.GetCurrentLevel() >= GameManager.Ins.Config.BackHomeAfterWinLevel;
         UIManager.Ins.GetPanel().SetActiveCoin(!canBackHome);
         continueTmp.text = canBackHome ? "Continue" : "Claim";
-        ProfileManager.instance.PlayerData.PendingCoinAmount += _rewardAmount;
-        ProfileManager.instance.SaveData();
+        ProfileManager.instance.PlayerDataManager.AddPendingCoins(_rewardAmount);
         //newFeature.InitProgress();
         //_boxTf.ChangeSizeDeltaY(newFeature.gameObject.activeInHierarchy ? _normalHeight : _shortenHeight);
         //multiCoinButton.SetActive(GameManager.Ins.Config.CanShowMultiCoin() && SDKBridge.IsActiveRewardAds);
         // Events
-        int retryCount = ProfileManager.instance.GameFeatureContext.RecordManager.GetRetryCount(ProfileManager.instance.PlayerData.currentLevel);
+        int retryCount = ProfileManager.instance.GameFeatureContext.RecordManager.GetRetryCount(ProfileManager.instance.PlayerDataManager.GetCurrentLevel());
         bool isFirstTry = retryCount <= 0;
         bool isHardLevel = isHard || isSuperHard;
         ProfileManager.instance.GameFeatureContext.WinStreakManager.OnLevelWin();
         ProfileManager.instance.GameFeatureContext.TowerRiseManager.OnWinLevel();
         ProfileManager.instance.GameFeatureContext.LavaQuestManager.OnLevelWin();
         ProfileManager.instance.GameFeatureContext.MissionControlManager.OnLevelWin(isFirstTry, isHardLevel);
-        ProfileManager.instance.PlayerData.currentLevel++;
-        ProfileManager.instance.SaveData();
+        ProfileManager.instance.PlayerDataManager.IncreaseLevel();
 
         //multiCoinButton.SetActive(DataManager.Ins.Data.LevelIndex >= GameManager.Ins.Config.LevelEnableMultiCoin);
         openAnim.Play(() =>
@@ -86,6 +86,8 @@ public class PopupWin : Popup
         base.Close();
     }
 
+    // EN: Continues the win flow and claims pending coins through the player manager at the reward callback.
+    // VI: Tiếp tục luồng thắng và nhận xu chờ qua manager người chơi tại callback nhận thưởng.
     public void OnClickContinue()
     {
         //if (!NetworkManager.Ins.IsInternetAvailable())
@@ -127,9 +129,7 @@ public class PopupWin : Popup
             coinAnim.Init(_rewardAmount);
             coinAnim.OnReceiveReward(() =>
             {
-                ProfileManager.instance.PlayerDataManager.OnAddCoin(ProfileManager.instance.PlayerData.PendingCoinAmount, "ingame_win");
-                ProfileManager.instance.PlayerData.PendingCoinAmount = 0;
-                ProfileManager.instance.SaveData();
+                ProfileManager.instance.PlayerDataManager.ClaimPendingCoins("ingame_win");
             });
             coinAnim.OnComplete(() =>
             {
@@ -146,6 +146,8 @@ public class PopupWin : Popup
 
     }
 
+    // EN: Coordinates OnClickX2Coin using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối OnClickX2Coin qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void OnClickX2Coin()
     {
         //if (!NetworkManager.Ins.IsInternetAvailable())
@@ -158,7 +160,7 @@ public class PopupWin : Popup
         //SDKBridge.TrackAdsReward_Click(GamePlacement.Win.ToString(), ButtonPlacement.BtnClaimX2EndGame.ToString(), PlayerDataManager.GetCurrentLevel());
         //SDKBridge.ShowReward(successCallback: () =>
         //{
-        //    ProfileManager.instance.PlayerData.PendingCoinAmount += _rewardAmount;
+        //    ProfileManager.instance.PlayerDataManager.AddPendingCoins(_rewardAmount);
         //    ProfileManager.instance.GameFeatureContext.RecordManager.RecordAdsReward();
         //    SDKBridge.TrackAdsReward_Complete(GamePlacement.Win.ToString(), ButtonPlacement.BtnClaimX2EndGame.ToString(), PlayerDataManager.GetCurrentLevel(), new List<ResourceGame>() { new ResourceGame() {type= ResourceType.Coin, value = _rewardAmount * 2 } });
 
@@ -184,8 +186,8 @@ public class PopupWin : Popup
         //        coinAnim.Init(_rewardAmount * 2);
         //        coinAnim.OnReceiveReward(() =>
         //        {
-        //            ProfileManager.instance.PlayerDataManager.OnAddCoin(ProfileManager.instance.PlayerData.PendingCoinAmount, "ingame_win");
-        //            ProfileManager.instance.PlayerData.PendingCoinAmount = 0;
+        //            ProfileManager.instance.PlayerDataManager.OnAddCoin(ProfileManager.instance.PlayerDataManager.PendingCoinAmount, "ingame_win");
+        //            ProfileManager.instance.PlayerDataManager.ClearPendingCoins();
         //            ProfileManager.instance.SaveData();
         //        });
         //        coinAnim.OnComplete(() =>

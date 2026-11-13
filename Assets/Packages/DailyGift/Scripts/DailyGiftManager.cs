@@ -9,7 +9,9 @@ namespace GamePackages
     {
         public const int MAX_DAY = 7;
         public DailyGiftRewardConfig DailyGiftGlobalConfig;
-        public override void SetContext(DailyGiftData data)
+        // EN: Binds the saved model through internal initialization and initializes this feature's state.
+        // VI: Gắn model lưu qua khởi tạo nội bộ và khởi tạo trạng thái của tính năng này.
+        internal override void SetContext(DailyGiftData data)
         {
             base.SetContext(data);
         }
@@ -28,9 +30,11 @@ namespace GamePackages
             Data.isEnableClaim = true;
             Data.isSuggested = false;
         }
+        // EN: Coordinates IsEnabledFeature using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối IsEnabledFeature qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public bool IsEnabledFeature()
         {
-            return ProfileManager.instance.PlayerData.currentLevel >= DailyGiftGlobalConfig.LevelActiveFeature;
+            return ProfileManager.instance.PlayerDataManager.GetCurrentLevel() >= DailyGiftGlobalConfig.LevelActiveFeature;
         }
         public bool IsGoodToClaim()
         {

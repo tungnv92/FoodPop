@@ -20,9 +20,11 @@ public class GameManager : SingletonMonoBehaviour<GameManager>
         this.startupTime = startupTime;
     }
 
+    // EN: Coordinates IsHardLevel using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối IsHardLevel qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public bool IsHardLevel()
     {
-        int level = ProfileManager.instance.PlayerData.currentLevel;
+        int level = ProfileManager.instance.PlayerDataManager.GetCurrentLevel();
 
         if (level < 15) return false;
 
@@ -35,9 +37,11 @@ public class GameManager : SingletonMonoBehaviour<GameManager>
         }
     }
 
+    // EN: Coordinates IsSuperHardLevel using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối IsSuperHardLevel qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public bool IsSuperHardLevel()
     {
-        int level = ProfileManager.instance.PlayerData.currentLevel;
+        int level = ProfileManager.instance.PlayerDataManager.GetCurrentLevel();
 
         return level >= Config.FirstSuperHard && level % 10 == 0;
     }
@@ -57,6 +61,10 @@ public class GameConfig
     public int RevivePrice = 1000;
     public int RefillLivesPrice = 1000;
     public int FirstSuperHard = 50;
-    public bool CanBackHome() => ProfileManager.instance.PlayerData.currentLevel > BackHomeAfterWinLevel;
-    public bool CanShowMultiCoin() => ProfileManager.instance.PlayerData.currentLevel >= LevelEnableMultiCoin;
+    // EN: Coordinates CanBackHome using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối CanBackHome qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+    public bool CanBackHome() => ProfileManager.instance.PlayerDataManager.GetCurrentLevel() > BackHomeAfterWinLevel;
+    // EN: Coordinates CanShowMultiCoin using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối CanShowMultiCoin qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+    public bool CanShowMultiCoin() => ProfileManager.instance.PlayerDataManager.GetCurrentLevel() >= LevelEnableMultiCoin;
 }

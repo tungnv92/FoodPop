@@ -3,22 +3,24 @@ using UnityEngine;
 
 namespace FoodPop
 {
-    // EN: Progress of one ordered final dish: its recipe (the first ingredient is the base that must come first), ingredients still to send, ingredients flying to it and whether it has been assembled on the tray.
-    // VI: Tiến độ của một món hoàn chỉnh được order: công thức (nguyên liệu đầu tiên là đế, phải tới trước), nguyên liệu còn phải gửi, nguyên liệu đang bay tới và trạng thái đã ghép xong trên khay.
+    // EN: Progress of one ordered final dish: its recipe (the first ingredient is the base that must come first, unless the dish picture allows any order), ingredients still to send, ingredients flying to it and whether it has been assembled on the tray.
+    // VI: Tiến độ của một món hoàn chỉnh được order: công thức (nguyên liệu đầu tiên là đế, phải tới trước, trừ khi hình món cho phép thứ tự bất kỳ), nguyên liệu còn phải gửi, nguyên liệu đang bay tới và trạng thái đã ghép xong trên khay.
     internal sealed class DishProgress
     {
-        public readonly FinalFoodType type;
+        public readonly FinalFoodView dish;
         public readonly List<FoodType> recipe;
         public readonly List<FoodType> missing;
+        public readonly bool anyOrder;
         public int incoming;
         public bool baseReserved;
         public bool assembled;
 
-        // EN: Creates the record of a dish: every recipe ingredient starts as missing (ingredients of type None are skipped).
-        // VI: Tạo bản ghi của một món: mọi nguyên liệu trong công thức ban đầu đều đang thiếu (bỏ qua nguyên liệu None).
-        public DishProgress(FinalFoodType type, IReadOnlyList<FoodType> ingredients)
+        // EN: Creates the record of a dish with its optional picture prefab: every recipe ingredient starts as missing (ingredients of type None are skipped) and the prefab decides whether the base must come first.
+        // VI: Tạo bản ghi của một món kèm prefab hình tùy chọn: mọi nguyên liệu trong công thức ban đầu đều đang thiếu (bỏ qua nguyên liệu None) và prefab quyết định đế có phải tới trước không.
+        public DishProgress(FinalFoodView dish, IReadOnlyList<FoodType> ingredients)
         {
-            this.type = type;
+            this.dish = dish;
+            anyOrder = dish != null && dish.AnyIngredientOrder;
             recipe = new List<FoodType>();
             foreach (FoodType ingredient in ingredients)
             {
@@ -32,13 +34,13 @@ namespace FoodPop
         // VI: Nguyên liệu đế (đầu tiên trong công thức) phải tới món trước mọi nguyên liệu khác.
         public FoodType BaseIngredient => recipe.Count > 0 ? recipe[0] : FoodType.None;
 
-        // EN: Accepts a missing ingredient only when this dish has no incoming flight; the base must land before other recipe ingredients can depart.
-        // VI: Chỉ nhận nguyên liệu còn thiếu khi món không có nguyên liệu đang bay tới; đế phải đáp xuống trước khi nguyên liệu khác trong công thức được rời băng chuyền.
+        // EN: Accepts a missing ingredient only when this dish has no incoming flight; the base must land before other recipe ingredients can depart, unless the dish accepts its ingredients in any order.
+        // VI: Chỉ nhận nguyên liệu còn thiếu khi món không có nguyên liệu đang bay tới; đế phải đáp xuống trước khi nguyên liệu khác trong công thức được rời băng chuyền, trừ khi món nhận nguyên liệu theo thứ tự bất kỳ.
         public bool CanAccept(FoodType ingredient)
         {
             if (incoming > 0 || !missing.Contains(ingredient))
                 return false;
-            return ingredient == BaseIngredient || baseReserved;
+            return anyOrder || ingredient == BaseIngredient || baseReserved;
         }
 
         // EN: Books one ingredient for this dish as it leaves the belt.

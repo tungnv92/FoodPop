@@ -1,218 +1,228 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace FoodPop
 {
-    // EN: Animates the holding drawer independently of food collection and order matching.
-    // VI: Điều khiển ngăn kéo giữ món độc lập với việc thu food và tìm order.
-    [ExecuteAlways]
+    // EN: The holding bag: back layer, stored food and front layer. Exposes the bag mouth for flights, pops in when used and out when empty, and plays a soft squash bounce when food goes in or out.
+    // VI: Túi giữ món: lớp sau, food đang giữ và lớp trước. Cung cấp vị trí miệng túi cho các chuyến bay, bật hiện khi dùng và thu ẩn khi trống, nảy nhún mềm khi food vào hoặc ra.
     public sealed class FoodHoldingTray : MonoBehaviour
     {
-        public enum DrawerState { Retracted, Extending, Extended, Retracting }
+        [Tooltip("Thân túi (chứa lớp sau, food và lớp trước); đây là phần nảy nhún và phần hiện/ẩn.")]
+        [FormerlySerializedAs("drawer")]
+        [SerializeField] private Transform body;
+        [Tooltip("Điểm miệng túi; để trống thì dùng thân túi cộng mouthOffset.")]
+        [SerializeField] private Transform mouth;
+        [Tooltip("Vị trí miệng túi so với thân túi (tọa độ cục bộ), dùng khi chưa gán mouth.")]
+        [SerializeField] private Vector3 mouthOffset = new Vector3(0f, 0.62f, 0f);
+        [Tooltip("Độ cao đáy túi trong tọa độ cục bộ của thân túi; túi nhún và mọc lên quanh đáy này để không bị nhấc khỏi bàn.")]
+        [SerializeField] private float bottomY = -0.9f;
+        [Tooltip("Thời gian một nhịp nảy nhún, tính bằng giây.")]
+        [SerializeField, Min(0.05f)] private float bounceDuration = 0.28f;
+        [Tooltip("Độ nhún tối đa của túi (0.1 = bẹp 10%).")]
+        [SerializeField, Range(0f, 0.4f)] private float bounceStrength = 0.1f;
 
-        [Tooltip("Phần khay di chuyển, chứa lớp sau, food và lớp trước.")]
-        [SerializeField] private Transform drawer;
-        [Tooltip("Vị trí cục bộ khi khay kéo ra hoàn toàn.")]
-        [SerializeField] private Vector3 extendedPosition;
-        [Tooltip("Độ dịch vào vách so với vị trí kéo ra.")]
-        [SerializeField] private Vector3 retractOffset = new Vector3(0f, 0.65f, 0f);
-        [Tooltip("Thời gian kéo ra hoặc thu vào hoàn toàn, tính bằng giây.")]
-        [SerializeField, Min(0.01f)] private float slideDuration = 0.3f;
-        [Tooltip("Bắt đầu với khay thu gọn khi vào màn chơi.")]
-        [SerializeField] private bool startRetracted = true;
-        [Tooltip("Vật liệu cắt phần khay còn nằm trong vách.")]
-        [SerializeField] private Material clippedMaterial;
-        [Tooltip("Độ cao mép vách trong tọa độ cục bộ của khay.")]
-        [SerializeField] private float wallEdgeY = 0.46f;
-        [Tooltip("Thời gian giữ khay ở vị trí kéo ra khi chạy thử, tính bằng giây.")]
-        [SerializeField, Min(0f)] private float testHoldDuration = 1f;
-        private Coroutine slide;
-        private Coroutine motionTest;
-        private float extension;
-        private MaterialPropertyBlock clipProperties;
-        public DrawerState State { get; private set; }
+        [Header("Hiện / ẩn")]
+        [Tooltip("Ẩn túi khi vào màn chơi; túi chỉ hiện khi booster Clean dùng tới.")]
+        [SerializeField] private bool startHidden = true;
+        [Tooltip("Thời gian túi bật hiện (mọc lên từ đáy, nảy nhẹ), tính bằng giây.")]
+        [SerializeField, Min(0.01f)] private float showDuration = 0.28f;
+        [Tooltip("Thời gian túi thu nhỏ rồi ẩn đi, tính bằng giây.")]
+        [SerializeField, Min(0.01f)] private float hideDuration = 0.2f;
 
-        // EN: Initializes runtime position and restores nonserialized clipping after editor reload or leaving Play Mode.
-        // VI: Khởi tạo vị trí lúc chơi và khôi phục dữ liệu cắt không được lưu sau tải lại editor hoặc thoát Play Mode.
-        private void OnEnable()
+        private Vector3 restScale;
+        private Vector3 restPosition;
+        private bool hasRest;
+        private Coroutine bounce;
+        private Coroutine fade;
+        private float bounceStartTime;
+        private float squash;
+        private float appear = 1f;
+        private bool shown = true;
+
+        // EN: The transform that bounces and pops; falls back to this object when no body is assigned.
+        // VI: Transform được nảy nhún và hiện/ẩn; dùng chính object này nếu chưa gán thân túi.
+        public Transform Body => body != null ? body : transform;
+
+        // EN: World position of the bag mouth, where food enters and leaves.
+        // VI: Vị trí world của miệng túi, nơi food đi vào và đi ra.
+        public Vector3 MouthPosition => mouth != null ? mouth.position : Body.TransformPoint(mouthOffset);
+
+        // EN: True while the bag is shown or popping in.
+        // VI: True khi túi đang hiện hoặc đang bật hiện.
+        public bool IsShown => shown;
+
+        // EN: Finds the "Bag" child when no body is assigned, remembers the authored pose and starts hidden when requested.
+        // VI: Tự tìm object con "Bag" khi chưa gán thân túi, ghi nhớ tư thế thiết kế và ẩn túi lúc đầu nếu được yêu cầu.
+        private void Awake()
         {
-            if (Application.IsPlaying(gameObject))
-                SetImmediate(!startRetracted);
-            else if (drawer != null)
-                RefreshClipping();
+            if (body == null)
+                body = transform.Find("Bag");
+            CaptureRest();
+            if (startHidden)
+                HideImmediate();
         }
 
-        // EN: Refreshes the stationary clip plane after parent movement and for food added while the drawer is idle.
-        // VI: Cập nhật mặt cắt cố định sau khi di chuyển cha và cho food thêm vào khi khay đứng yên.
-        private void LateUpdate()
-        {
-            if (drawer != null)
-                RefreshClipping();
-        }
-
-        // EN: Cancels runtime movement and tests on disable without changing authored prefab or editor positions.
-        // VI: Hủy chuyển động và lượt thử lúc tắt trong game, không thay đổi vị trí thiết kế của prefab hoặc editor.
+        // EN: Stops running animations and snaps to the target visibility without squash.
+        // VI: Dừng các animation đang chạy và đặt ngay về trạng thái hiện/ẩn đích, không còn nhún.
         private void OnDisable()
         {
-            if (motionTest != null)
-                StopCoroutine(motionTest);
-            motionTest = null;
-            if (Application.IsPlaying(gameObject))
-                SetImmediate(!startRetracted);
+            bounce = null;
+            fade = null;
+            squash = 0f;
+            appear = shown ? 1f : 0f;
+            ApplyPose();
         }
 
-        // EN: Tests a full cycle only on an empty tray; repeated calls restart the test.
-        // VI: Chạy thử chu kỳ đầy đủ chỉ khi khay trống; gọi lại sẽ bắt đầu lượt thử mới.
-        [ContextMenu("Test/Kéo ra rồi thu vào")]
-        public void TestMotion()
+        // EN: Pops the bag in from its bottom with a small overshoot; does nothing when it is already shown.
+        // VI: Cho túi mọc lên từ đáy với nhịp vượt nhẹ; không làm gì nếu túi đã hiện.
+        [ContextMenu("Test/Hiện túi")]
+        public void Show()
         {
-            if (!Application.isPlaying || !isActiveAndEnabled || drawer == null)
+            if (shown)
+                return;
+            shown = true;
+            StartFade(true);
+        }
+
+        // EN: Shrinks the bag down to its bottom and hides it; does nothing when it is already hidden.
+        // VI: Thu túi xuống về phía đáy rồi ẩn; không làm gì nếu túi đã ẩn.
+        [ContextMenu("Test/Ẩn túi")]
+        public void Hide()
+        {
+            if (!shown)
+                return;
+            shown = false;
+            StartFade(false);
+        }
+
+        // EN: Hides the bag at once (used when a level is reset).
+        // VI: Ẩn túi ngay lập tức (dùng khi đặt lại màn chơi).
+        public void HideImmediate()
+        {
+            CaptureRest();
+            if (fade != null)
+                StopCoroutine(fade);
+            fade = null;
+            shown = false;
+            appear = 0f;
+            ApplyPose();
+        }
+
+        // EN: Starts the show or hide animation from the current visibility (works outside Play Mode by snapping).
+        // VI: Bắt đầu animation hiện hoặc ẩn từ mức hiện tại (ngoài Play Mode thì đặt ngay).
+        private void StartFade(bool show)
+        {
+            CaptureRest();
+            if (fade != null)
+                StopCoroutine(fade);
+            fade = null;
+            if (!isActiveAndEnabled || !Application.isPlaying)
             {
-                Debug.LogWarning("[FoodHoldingTray] Cần vào Play Mode và bật khay đã gán Drawer để chạy thử.", this);
+                appear = show ? 1f : 0f;
+                ApplyPose();
                 return;
             }
-            if (HasStoredFood())
+            fade = StartCoroutine(show ? PlayShow() : PlayHide());
+        }
+
+        // EN: Grows from the current size to full size with an ease-out-back curve.
+        // VI: Lớn dần từ kích thước hiện tại tới đầy đủ theo đường cong vượt nhẹ rồi về.
+        private IEnumerator PlayShow()
+        {
+            float from = appear;
+            for (float elapsed = 0f; elapsed < showDuration; elapsed += Time.deltaTime)
             {
-                Debug.LogWarning("[FoodHoldingTray] Khay còn food nên không chạy thử thu vào.", this);
-                return;
-            }
-            if (motionTest != null)
-                StopCoroutine(motionTest);
-            SetImmediate(false);
-            motionTest = StartCoroutine(RunMotionTest());
-        }
-
-        // EN: Waits for test movement with scaled time, leaving the tray open if food arrives during the test.
-        // VI: Chờ chuyển động thử theo thời gian game, giữ khay mở nếu food được thêm trong lượt thử.
-        private IEnumerator RunMotionTest()
-        {
-            RequestSlide(true);
-            while (State != DrawerState.Extended)
-                yield return null;
-            yield return new WaitForSeconds(Mathf.Max(0f, testHoldDuration));
-            RequestSlide(false);
-            while (State != DrawerState.Retracted && !HasStoredFood())
-                yield return null;
-            motionTest = null;
-        }
-
-        // EN: Extends the drawer from its current position; repeated requests do not restart it.
-        // VI: Kéo khay ra từ vị trí hiện tại; yêu cầu lặp không khởi động lại chuyển động.
-        [ContextMenu("Kéo khay ra")]
-        public void Extend()
-        {
-            RequestSlide(true);
-        }
-
-        // EN: Retracts the drawer from its current position without changing its contents.
-        // VI: Thu khay vào từ vị trí hiện tại mà không thay đổi food bên trong.
-        [ContextMenu("Thu gọn khay")]
-        public void Retract()
-        {
-            RequestSlide(false);
-        }
-
-        // EN: Handles previews and runtime reversal, forcing the drawer open while it contains food.
-        // VI: Xử lý xem trước và đảo chiều lúc chơi, buộc khay kéo ra khi còn food bên trong.
-        private void RequestSlide(bool open)
-        {
-            open = open || HasStoredFood();
-            if (!Application.isPlaying)
-            {
-                SetImmediate(open);
-                return;
-            }
-            if (!isActiveAndEnabled || drawer == null)
-                return;
-            if (open ? State == DrawerState.Extended || State == DrawerState.Extending
-                     : State == DrawerState.Retracted || State == DrawerState.Retracting)
-                return;
-            if (slide != null)
-                StopCoroutine(slide);
-            slide = StartCoroutine(SlideTo(open));
-        }
-
-        // EN: Slides the drawer to its endpoint using scaled time and preserves smooth direction changes.
-        // VI: Trượt khay tới vị trí cuối bằng thời gian game và giữ đổi chiều liên tục.
-        private IEnumerator SlideTo(bool open)
-        {
-            State = open ? DrawerState.Extending : DrawerState.Retracting;
-            float from = extension;
-            float target = open ? 1f : 0f;
-            float duration = Mathf.Max(0.01f, slideDuration * Mathf.Abs(target - from));
-            for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
-            {
-                ApplyExtension(Mathf.Lerp(from, target, Mathf.SmoothStep(0f, 1f, elapsed / duration)));
+                appear = Mathf.LerpUnclamped(from, 1f, EaseOutBack(elapsed / showDuration));
+                ApplyPose();
                 yield return null;
             }
-            ApplyExtension(target);
-            State = open ? DrawerState.Extended : DrawerState.Retracted;
-            slide = null;
+            appear = 1f;
+            ApplyPose();
+            fade = null;
         }
 
-        // EN: Sets the drawer endpoint immediately while keeping nonempty storage extended.
-        // VI: Đặt ngay vị trí cuối của khay, giữ kho còn food ở trạng thái kéo ra.
-        public void SetImmediate(bool open)
+        // EN: Shrinks from the current size to zero with an ease-in curve.
+        // VI: Nhỏ dần từ kích thước hiện tại về không theo đường cong tăng tốc.
+        private IEnumerator PlayHide()
         {
-            open = open || HasStoredFood();
-            if (slide != null)
-                StopCoroutine(slide);
-            slide = null;
-            ApplyExtension(open ? 1f : 0f);
-            State = open ? DrawerState.Extended : DrawerState.Retracted;
-        }
-
-        // EN: Checks live storage contents before allowing any retraction, including manual test calls.
-        // VI: Kiểm tra food trong kho trước khi cho thu khay, gồm cả lời gọi thử thủ công.
-        private bool HasStoredFood()
-        {
-            FoodHoldingStorage storage = GetComponent<FoodHoldingStorage>();
-            return storage != null && storage.Count > 0;
-        }
-
-        // EN: Moves the drawer without scaling and clips the part inside the stationary wall.
-        // VI: Di chuyển khay không đổi kích thước và che phần nằm trong vách cố định.
-        private void ApplyExtension(float value)
-        {
-            extension = value;
-            if (drawer != null)
+            float from = appear;
+            for (float elapsed = 0f; elapsed < hideDuration; elapsed += Time.deltaTime)
             {
-                drawer.localPosition = extendedPosition + retractOffset * (1f - value);
-                RefreshClipping();
+                float t = elapsed / hideDuration;
+                appear = Mathf.Lerp(from, 0f, t * t);
+                ApplyPose();
+                yield return null;
             }
+            appear = 0f;
+            ApplyPose();
+            fade = null;
         }
 
-        // EN: Restores stationary wall clipping while preserving sorting and unrelated renderer overrides.
-        // VI: Khôi phục cắt theo vách cố định và giữ thứ tự vẽ cùng thuộc tính ghi đè khác của renderer.
-        private void RefreshClipping()
+        // EN: Ease-out-back curve (overshoots slightly past 1 before settling).
+        // VI: Đường cong ease-out-back (vượt nhẹ quá 1 rồi mới dừng).
+        private static float EaseOutBack(float t)
         {
-            if (clippedMaterial == null)
+            const float c1 = 1.70158f;
+            const float c3 = c1 + 1f;
+            float x = Mathf.Clamp01(t) - 1f;
+            return 1f + c3 * x * x * x + c1 * x * x;
+        }
+
+        // EN: Plays a soft squash-and-stretch bounce; rapid calls do not restart a bounce that has just begun.
+        // VI: Nảy nhún mềm kiểu bẹp rồi giãn; gọi liên tục sẽ không khởi động lại nhịp nảy vừa bắt đầu.
+        [ContextMenu("Test/Nảy túi")]
+        public void Bounce()
+        {
+            if (!isActiveAndEnabled)
                 return;
-            if (clipProperties == null)
-                clipProperties = new MaterialPropertyBlock();
-            float top = transform.TransformPoint(new Vector3(0f, wallEdgeY, 0f)).y;
-            foreach (SpriteRenderer renderer in drawer.GetComponentsInChildren<SpriteRenderer>(true))
-            {
-                if (renderer.sharedMaterial != clippedMaterial)
-                    renderer.sharedMaterial = clippedMaterial;
-                if (renderer.maskInteraction != SpriteMaskInteraction.None)
-                    renderer.maskInteraction = SpriteMaskInteraction.None;
-                renderer.GetPropertyBlock(clipProperties);
-                clipProperties.SetFloat("_ClipTop", top);
-                renderer.SetPropertyBlock(clipProperties);
-            }
+            CaptureRest();
+            if (bounce != null && Time.time - bounceStartTime < bounceDuration * 0.4f)
+                return;
+            if (bounce != null)
+                StopCoroutine(bounce);
+            bounceStartTime = Time.time;
+            bounce = StartCoroutine(PlayBounce());
         }
 
-#if UNITY_EDITOR
-        // EN: Wires the movable drawer and clipping material while retaining its authored extended position.
-        // VI: Gán phần khay chuyển động và vật liệu cắt, giữ vị trí kéo ra đã thiết kế.
-        public void Configure(Transform movingDrawer, Material material = null)
+        // EN: Damped wave: squashes first, then stretches slightly, then settles.
+        // VI: Sóng tắt dần: bẹp xuống trước, giãn nhẹ lên, rồi đứng yên.
+        private IEnumerator PlayBounce()
         {
-            drawer = movingDrawer;
-            extendedPosition = movingDrawer.localPosition;
-            clippedMaterial = material;
-            SetImmediate(false);
+            for (float elapsed = 0f; elapsed < bounceDuration; elapsed += Time.deltaTime)
+            {
+                float t = elapsed / bounceDuration;
+                squash = bounceStrength * Mathf.Sin(t * Mathf.PI * 2f) * (1f - t);
+                ApplyPose();
+                yield return null;
+            }
+            squash = 0f;
+            ApplyPose();
+            bounce = null;
         }
-#endif
+
+        // EN: Applies visibility and squash to the body, keeping its bottom edge fixed (positive squash = flatter and wider).
+        // VI: Áp mức hiện/ẩn và độ nhún lên thân túi, giữ cố định mép đáy (nhún dương = thấp và rộng hơn).
+        private void ApplyPose()
+        {
+            if (!hasRest)
+                return;
+            Transform target = Body;
+            float scaleY = appear * (1f - squash);
+            float scaleX = appear * (1f + squash * 0.6f);
+            target.localScale = new Vector3(restScale.x * scaleX, restScale.y * scaleY, restScale.z);
+            target.localPosition = restPosition + Vector3.up * (bottomY * restScale.y * (1f - scaleY));
+        }
+
+        // EN: Stores the rest pose once.
+        // VI: Lưu tư thế nghỉ một lần.
+        private void CaptureRest()
+        {
+            if (hasRest)
+                return;
+            restScale = Body.localScale;
+            restPosition = Body.localPosition;
+            hasRest = true;
+        }
     }
 }

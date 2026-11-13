@@ -1,5 +1,20 @@
 # Project rules
 
+## Mandatory implementation simplicity
+
+- Write focused, readable code that fits the requested scope and the existing project architecture. Do not introduce speculative abstractions, fallback paths, snapshots, backups, rollback, or retry systems without a concrete requirement.
+- Trust the project's runtime guarantees: `ProfileManager.instance` and `PlayerDataManager` exist at their runtime call sites. Access them directly instead of adding null checks or null-conditional access. Edit Mode previews must avoid runtime dependencies.
+- Cache shared manager references in class fields when several methods use them. For `CanvasBuyBooster`, cache `PlayerDataManager` in `OnEnable`; use that same reference for Coin display, purchases, and unsubscribe.
+- Prefer lifecycle callbacks and existing events over per-frame polling. Register Coin listeners and read the initial balance in `OnEnable`, then unsubscribe in `OnDisable`; do not move binding back into `Update`.
+- Keep offline saving simple: apply validated gameplay changes, attempt one save for a purchase, and handle write errors centrally in `SaveService` with a warning. Do not restore old resource/tracking state or cached JSON when saving fails. Preserve business validation such as sufficient funds and full reward capacity.
+- Extract helpers only when they clarify a coherent responsibility. Avoid unnecessary wrappers, repeated lookups, duplicate checks, and unrelated changes. Verify changes in proportion to their impact and report only checks actually run.
+- VI: Viết code gọn, rõ trách nhiệm, đúng phạm vi yêu cầu và kiến trúc hiện có. Không tự thêm abstraction, nhánh dự phòng, snapshot, backup, rollback hoặc retry khi chưa có nhu cầu cụ thể.
+- VI: Tin vào bảo đảm runtime của project: `ProfileManager.instance` và `PlayerDataManager` luôn tồn tại tại nơi gọi. Truy cập trực tiếp, không kiểm tra null hoặc dùng `?.` cho hai manager. Xem trước Edit Mode phải tránh phụ thuộc runtime.
+- VI: Cache manager dùng chung vào field của class. `CanvasBuyBooster` cache `PlayerDataManager` trong `OnEnable`, dùng cùng tham chiếu để hiển thị Coin, mua hàng và gỡ listener.
+- VI: Ưu tiên callback vòng đời và sự kiện hiện có thay vì polling mỗi frame. Đăng ký Coin và đọc số dư ban đầu trong `OnEnable`, gỡ trong `OnDisable`; không đưa binding trở lại `Update`.
+- VI: Lưu offline đơn giản: áp dụng thay đổi gameplay đã kiểm tra, thử lưu một lần khi mua và chỉ xử lý lỗi ghi tập trung bằng cảnh báo trong `SaveService`. Không khôi phục tài nguyên/thống kê hoặc JSON cũ khi lưu lỗi. Vẫn giữ kiểm tra đủ tiền và sức chứa toàn bộ phần thưởng.
+- VI: Chỉ tách helper khi làm rõ trách nhiệm; tránh hàm bọc không cần thiết, tra cứu lặp, kiểm tra trùng và sửa ngoài phạm vi. Kiểm chứng phù hợp mức ảnh hưởng và chỉ báo những kiểm tra thực sự đã chạy.
+
 ## Mandatory waiting-column entrance mapping
 
 - The waiting row has five fixed columns and the top board row has six tiles. Waiting column c enters only top tile c or c+1 (one-based numbering). Prefer the matching queue column, then the left neighbor at an empty top tile; never use a distant column.
@@ -19,6 +34,21 @@
 - Avoid unnecessary fragmentation: do not extract trivial statements or add wrappers that make the flow harder to trace. Use judgment rather than a fixed function length limit.
 - Preserve existing behavior when restructuring code, and follow the mandatory EN/VI comment rule for every new or modified function.
 - Quy tắc bắt buộc: chia hàm theo từng trách nhiệm khi giúp class rõ ràng và dễ theo dõi hơn. Giữ các hàm vòng đời và callback gọn, dùng chúng để điều phối các hàm có tên diễn đạt đúng chức năng. Tách các xử lý độc lập như mặt băng và mặt bụi cây; truyền đầu vào rõ ràng khi phù hợp. Không chia vụn các câu lệnh đơn giản hoặc tạo hàm bọc khiến luồng khó đọc hơn. Khi tách hàm phải giữ hành vi hiện tại và thêm/cập nhật comment EN/VI cho mọi hàm mới hoặc sửa đổi.
+
+## Mandatory member order by MonoBehaviour lifecycle
+
+- Order class members so the file reads in the same order Unity runs it. This is mandatory for every new class and for every existing class that is created or modified.
+- Member order inside a class:
+  1. Nested types and constants, then public properties and events.
+  2. Serialized fields (`[SerializeField]`, public Inspector fields), grouped by purpose, then private runtime state.
+  3. Unity callbacks in execution order: `Awake` → `OnEnable` → `Reset` / `OnValidate` (editor) → `Start` → `FixedUpdate` → `Update` → `LateUpdate` → render/gizmo callbacks (`OnGUI`, `OnDrawGizmos`, `OnDrawGizmosSelected`) → `OnApplicationFocus` / `OnApplicationPause` / `OnApplicationQuit` → `OnDisable` → `OnDestroy`. Collision, trigger and pointer callbacks follow `LateUpdate`.
+  4. Public API in gameplay flow order (for example load → play → revive/decline → replay/next).
+  5. Private helpers and coroutines in the order they are first called, placed after the public methods that use them.
+- When modifying a class whose members are out of order, reorder that class in the same task. Reordering must be pure moves: no behavior changes, keep every EN/VI comment attached to its member, and verify that no lines were lost or altered. Unity serializes fields by name, so moving fields does not lose Inspector values.
+- Do not reorder classes outside the scope of the task or third-party code.
+- VI: Quy tắc bắt buộc: sắp xếp thành viên trong class theo đúng thứ tự Unity chạy, áp dụng cho mọi class mới và mọi class được tạo hoặc sửa.
+- VI: Thứ tự: (1) kiểu lồng, hằng số, property và event công khai; (2) field serialize theo nhóm chức năng, rồi tới biến trạng thái riêng; (3) callback Unity theo thứ tự chạy `Awake` → `OnEnable` → `Reset`/`OnValidate` → `Start` → `FixedUpdate` → `Update` → `LateUpdate` → callback vẽ/gizmo → `OnApplicationFocus`/`OnApplicationPause`/`OnApplicationQuit` → `OnDisable` → `OnDestroy`, callback va chạm/trigger/pointer đặt sau `LateUpdate`; (4) API công khai theo luồng gameplay; (5) hàm private và coroutine theo thứ tự được gọi lần đầu, đặt sau hàm công khai dùng chúng.
+- VI: Khi sửa một class đang sai thứ tự, sắp xếp lại class đó ngay trong cùng nhiệm vụ. Chỉ di chuyển, không đổi hành vi, giữ comment EN/VI đi cùng hàm và kiểm tra không mất hoặc sửa dòng nào. Không sắp xếp class ngoài phạm vi nhiệm vụ hoặc code bên thứ ba.
 
 ## Mandatory bilingual function comments
 

@@ -72,12 +72,13 @@ public class LavaQuestTutorial : SingletonMonoBehaviour<LavaQuestTutorial>
         if (arrowButtonLavaQuestRectTF != null) arrowButtonLavaQuestRectTF.gameObject.SetActive(false);
     }
 
+    // EN: Coordinates Done using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối Done qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void Done()
     {
-        if (LavaQuestManager.Instance != null && LavaQuestManager.Instance.Data != null)
+        if (LavaQuestManager.Instance != null && LavaQuestManager.Instance.IsInitialized)
         {
-            LavaQuestManager.Instance.Data.isDoneTutorial = true;
-            LavaQuestManager.Instance.Save();
+            LavaQuestManager.Instance.CompleteTutorial();
         }
     }
 

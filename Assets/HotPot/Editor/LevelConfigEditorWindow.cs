@@ -11,23 +11,28 @@ namespace FoodPop
     public partial class LevelConfigEditorWindow : EditorWindow
     {
         private const string FoodSpriteFolder = "Assets/HotPot/Art/Sprites/Foods/Sushi/Raw/";
-        private const string NewLevelFolder = "Assets/HotPot/Config";
+        private const string NewLevelFolder = "Assets/HotPot/Config/Resources/" + LevelConfig.ResourceFolder;
         private const string FoodIconConfigPath = "Assets/HotPot/Config/FoodIconConfig.asset";
-        private const string FinalFoodConfigPath = "Assets/HotPot/Config/FinalFoodConfig.asset";
-        private const string FinalSpriteFolder = "Assets/HotPot/Art/Sprites/Foods/Sushi/Final/";
+        private const string DishPrefabFolder = "Assets/HotPot";
         private const float CellWidth = 180f;
         private const float CellHeight = 180f;
         private const float CellGap = 4f;
         private const float BoardIconSize = 44f;
         private const float RowIconSize = 26f;
-        private const float FinalIconSize = 48f;
+        private const float DishPreviewSize = 48f;
         private const HideFlags DraftHideFlags = HideFlags.HideInHierarchy | HideFlags.DontSave;
+
+        private const float LineHeight = 18f;
+        private const float LineStep = 20f;
+
+        [SerializeField] private LevelConfig level;
+        [SerializeField] private LevelConfig sourceLevel;
+        [SerializeField] private string savedDraftJson;
         private static readonly string[] ShapeNames = { "Đĩa đơn", "Đĩa đôi dọc", "Đĩa đôi ngang" };
         private static readonly Color VerticalDoubleColor = new Color(0.85f, 0.35f, 0.19f, 0.95f);
         private static readonly Color HorizontalDoubleColor = new Color(0.11f, 0.62f, 0.46f, 0.95f);
 
         private static readonly FoodType[] FoodValues = (FoodType[])Enum.GetValues(typeof(FoodType));
-        private static readonly FinalFoodType[] FinalFoodValues = (FinalFoodType[])Enum.GetValues(typeof(FinalFoodType));
 
         // Vietnamese names follow enum declaration order, including gaps in the numeric IDs.
         private static readonly string[] VietnameseNames =
@@ -38,61 +43,22 @@ namespace FoodPop
 
         // Display names such as "Salmon (Cá hồi)": original enum name first, Vietnamese in brackets.
         private static readonly string[] FoodNames = BuildFoodNames();
-
-        [SerializeField] private LevelConfig level;
-        [SerializeField] private LevelConfig sourceLevel;
-        [SerializeField] private string savedDraftJson;
         private SerializedObject serialized;
         private Vector2 customerScroll;
         private Vector2 boardScroll;
         private Action pendingAction;
         private int levelNumberInput = 1;
         private readonly Dictionary<FoodType, Texture2D> icons = new Dictionary<FoodType, Texture2D>();
-        private readonly Dictionary<FinalFoodType, Texture2D> finalIcons = new Dictionary<FinalFoodType, Texture2D>();
-        private FinalFoodConfig finalFoodConfig;
-        private string[] finalFoodNames;
+        private List<FinalFoodView> dishPrefabs;
         private GUIStyle okStyle, missingStyle, extraStyle;
         private readonly List<string> boardProblems = new List<string>();
 
-        // EN: Builds display names "EnumName (Vietnamese)" for every FoodType value.
-        // VI: Tạo tên hiển thị dạng "TênEnum (tiếng Việt)" cho mọi giá trị FoodType.
-        private static string[] BuildFoodNames()
-        {
-            string[] names = Enum.GetNames(typeof(FoodType));
-            for (int i = 0; i < names.Length; i++)
-            {
-                if (i < VietnameseNames.Length)
-                    names[i] = $"{names[i]} ({VietnameseNames[i]})";
-            }
-            return names;
-        }
-
-        // EN: Menu entry that opens the designer with the currently selected LevelConfig (if any).
-        // VI: Mục menu mở công cụ thiết kế với LevelConfig đang chọn (nếu có).
-        [MenuItem("Tools/FoodPop/Level Editor")]
-        public static void OpenFromMenu()
-        {
-            Open(Selection.activeObject as LevelConfig);
-        }
-
-        // EN: Opens (or focuses) the designer window and loads the given level.
-        // VI: Mở (hoặc focus) cửa sổ thiết kế và nạp level được truyền vào.
-        public static void Open(LevelConfig target)
-        {
-            LevelConfigEditorWindow window = GetWindow<LevelConfigEditorWindow>("Level Editor");
-            window.minSize = new Vector2(980f, 560f);
-            if (target != null && target != window.sourceLevel)
-                window.SetLevel(target);
-        }
-
-        // EN: Restores an editable isolated draft after reload, migrates older locked drafts and subscribes to Undo/Redo.
-        // VI: Khôi phục bản nháp độc lập có thể chỉnh sau khi tải lại, sửa bản nháp cũ bị khóa và theo dõi Undo/Redo.
+        // EN: Clears icon and dish-prefab caches, restores an editable isolated draft after reload, migrates older locked drafts and subscribes to Undo/Redo.
+        // VI: Xóa cache icon và prefab món, khôi phục bản nháp độc lập có thể chỉnh sau khi tải lại, sửa bản nháp cũ bị khóa và theo dõi Undo/Redo.
         private void OnEnable()
         {
             icons.Clear();
-            finalIcons.Clear();
-            finalFoodConfig = null;
-            finalFoodNames = null;
+            dishPrefabs = null;
             saveChangesMessage = "Level có thay đổi chưa lưu. Bấm Lưu để ghi vào asset, hoặc bỏ thay đổi để giữ dữ liệu đã lưu.";
             if (level != null && EditorUtility.IsPersistent(level))
             {
@@ -104,143 +70,6 @@ namespace FoodPop
             EnsureDraftEditable();
             Undo.undoRedoPerformed += OnDraftUndoRedo;
             RefreshDraftStatus();
-        }
-
-        // EN: Removes the Undo listener while keeping the serialized draft available across script reloads.
-        // VI: Gỡ theo dõi Undo, giữ bản nháp đã tuần tự hóa để khôi phục sau khi tải lại script.
-        private void OnDisable()
-        {
-            Undo.undoRedoPerformed -= OnDraftUndoRedo;
-        }
-
-        // EN: Releases the temporary draft when the window is actually destroyed.
-        // VI: Giải phóng bản nháp tạm khi cửa sổ thực sự bị hủy.
-        private void OnDestroy()
-        {
-            ReleaseDraft();
-        }
-
-        // EN: Follows another selected source asset, asking before discarding an edited draft.
-        // VI: Chuyển theo asset nguồn được chọn, hỏi trước khi bỏ bản nháp đang chỉnh.
-        private void OnSelectionChange()
-        {
-            if (Selection.activeObject is LevelConfig selected && selected != sourceLevel)
-            {
-                SetLevel(selected);
-                Repaint();
-            }
-        }
-
-        // EN: Loads an asset into an isolated draft after confirming any unsaved edits may be discarded.
-        // VI: Nạp asset thành bản nháp độc lập sau khi xác nhận được phép bỏ các chỉnh sửa chưa lưu.
-        private void SetLevel(LevelConfig target, bool discardConfirmed = false)
-        {
-            if (!discardConfirmed && !ConfirmDiscardDraft())
-                return;
-            ReleaseDraft();
-            sourceLevel = target;
-            CreateDraft(target);
-            int number = target != null ? ParseLevelNumber(target.name) : -1;
-            if (number > 0)
-                levelNumberInput = number;
-        }
-
-        // EN: Clones the source into an editable unsaved object, isolating serialized fields and Undo from the asset.
-        // VI: Sao chép nguồn thành đối tượng chưa lưu có thể chỉnh, tách field tuần tự hóa và Undo khỏi asset.
-        private void CreateDraft(LevelConfig target)
-        {
-            if (target != null)
-            {
-                level = Instantiate(target);
-                level.name = target.name;
-                level.hideFlags = DraftHideFlags;
-                serialized = new SerializedObject(level);
-            }
-            savedDraftJson = level != null ? EditorJsonUtility.ToJson(level) : null;
-            RefreshDraftStatus();
-        }
-
-        // EN: Removes NotEditable from restored drafts and normalizes snapshot flags without discarding unsaved field changes.
-        // VI: Bỏ cờ NotEditable của bản nháp khôi phục và chuẩn hóa cờ trong mốc so sánh mà không bỏ chỉnh sửa field chưa lưu.
-        private void EnsureDraftEditable()
-        {
-            if (level == null || EditorUtility.IsPersistent(level))
-                return;
-            level.hideFlags = DraftHideFlags;
-            if (!string.IsNullOrEmpty(savedDraftJson))
-                savedDraftJson = Regex.Replace(savedDraftJson, "\"m_ObjectHideFlags\"\\s*:\\s*\\d+", "\"m_ObjectHideFlags\":" + (int)DraftHideFlags);
-        }
-
-        // EN: Disposes draft serialization and its Undo history without touching the source asset.
-        // VI: Giải phóng dữ liệu tuần tự hóa và lịch sử Undo của bản nháp mà không tác động asset nguồn.
-        private void ReleaseDraft()
-        {
-            pendingAction = null;
-            serialized?.Dispose();
-            serialized = null;
-            if (level != null && !EditorUtility.IsPersistent(level))
-            {
-                Undo.ClearUndo(level);
-                DestroyImmediate(level);
-            }
-            level = null;
-        }
-
-        // EN: Tracks draft changes against its saved snapshot for the window's unsaved indicator and close dialog.
-        // VI: So sánh bản nháp với mốc đã lưu để hiển thị dấu chưa lưu và hộp thoại khi đóng cửa sổ.
-        private void RefreshDraftStatus()
-        {
-            bool changed = level != null && EditorJsonUtility.ToJson(level) != savedDraftJson;
-            if (hasUnsavedChanges != changed)
-            {
-                hasUnsavedChanges = changed;
-                Repaint();
-            }
-        }
-
-        // EN: Refreshes serialized draft fields and repaint after Undo/Redo, including when the draft remains dirty.
-        // VI: Làm mới field tuần tự hóa và vẽ lại sau Undo/Redo, kể cả khi bản nháp vẫn có thay đổi chưa lưu.
-        private void OnDraftUndoRedo()
-        {
-            serialized?.Update();
-            RefreshDraftStatus();
-            Repaint();
-        }
-
-        // EN: Requires an explicit discard choice before reloading or switching away from an edited draft.
-        // VI: Yêu cầu chọn bỏ thay đổi rõ ràng trước khi tải lại hoặc chuyển khỏi bản nháp đang chỉnh.
-        private bool ConfirmDiscardDraft()
-        {
-            RefreshDraftStatus();
-            return !hasUnsavedChanges || EditorUtility.DisplayDialog("Thay đổi chưa lưu",
-                "Bỏ các thay đổi chưa lưu và nạp dữ liệu level? Asset chỉ được cập nhật khi bấm Lưu.", "Bỏ thay đổi", "Tiếp tục chỉnh");
-        }
-
-        // EN: Commits the draft to its source only on an explicit save and saves only that asset.
-        // VI: Chỉ ghi bản nháp vào nguồn khi lưu rõ ràng và chỉ lưu asset đó.
-        private void SaveDraft()
-        {
-            if (sourceLevel == null || level == null)
-                return;
-            serialized?.ApplyModifiedProperties();
-            string sourceName = sourceLevel.name;
-            HideFlags sourceFlags = sourceLevel.hideFlags;
-            EditorUtility.CopySerialized(level, sourceLevel);
-            sourceLevel.name = sourceName;
-            sourceLevel.hideFlags = sourceFlags;
-            EditorUtility.SetDirty(sourceLevel);
-            AssetDatabase.SaveAssetIfDirty(sourceLevel);
-            savedDraftJson = EditorJsonUtility.ToJson(level);
-            RefreshDraftStatus();
-            ShowNotification(new GUIContent("Đã lưu level"));
-        }
-
-        // EN: Handles the window's explicit Save choice when closing with unsaved edits.
-        // VI: Xử lý lựa chọn Lưu rõ ràng khi đóng cửa sổ có chỉnh sửa chưa lưu.
-        public override void SaveChanges()
-        {
-            SaveDraft();
-            base.SaveChanges();
         }
 
         // EN: Edits only the draft, applies deferred actions and updates the unsaved indicator after drawing.
@@ -268,53 +97,180 @@ namespace FoodPop
             RefreshDraftStatus();
         }
 
-        // EN: Executes the deferred structural edit after the layout pass so GUI groups stay balanced.
-        // VI: Thực hiện thao tác cấu trúc đã hoãn sau khi vẽ xong để các nhóm layout luôn cân bằng.
-        private void RunPendingAction()
+        // EN: Removes the Undo listener while keeping the serialized draft available across script reloads.
+        // VI: Gỡ theo dõi Undo, giữ bản nháp đã tuần tự hóa để khôi phục sau khi tải lại script.
+        private void OnDisable()
         {
-            if (pendingAction == null)
+            Undo.undoRedoPerformed -= OnDraftUndoRedo;
+        }
+
+        // EN: Releases the temporary draft when the window is actually destroyed.
+        // VI: Giải phóng bản nháp tạm khi cửa sổ thực sự bị hủy.
+        private void OnDestroy()
+        {
+            ReleaseDraft();
+        }
+
+        // EN: Menu entry that opens the designer with the currently selected LevelConfig (if any).
+        // VI: Mục menu mở công cụ thiết kế với LevelConfig đang chọn (nếu có).
+        [MenuItem("Tools/FoodPop/Level Editor")]
+        public static void OpenFromMenu()
+        {
+            Open(Selection.activeObject as LevelConfig);
+        }
+
+        // EN: Opens (or focuses) the designer window and loads the given level.
+        // VI: Mở (hoặc focus) cửa sổ thiết kế và nạp level được truyền vào.
+        public static void Open(LevelConfig target)
+        {
+            LevelConfigEditorWindow window = GetWindow<LevelConfigEditorWindow>("Level Editor");
+            window.minSize = new Vector2(980f, 560f);
+            if (target != null && target != window.sourceLevel)
+                window.SetLevel(target);
+        }
+
+        // EN: Handles the window's explicit Save choice when closing with unsaved edits.
+        // VI: Xử lý lựa chọn Lưu rõ ràng khi đóng cửa sổ có chỉnh sửa chưa lưu.
+        public override void SaveChanges()
+        {
+            SaveDraft();
+            base.SaveChanges();
+        }
+
+        // EN: Builds display names "EnumName (Vietnamese)" for every FoodType value.
+        // VI: Tạo tên hiển thị dạng "TênEnum (tiếng Việt)" cho mọi giá trị FoodType.
+        private static string[] BuildFoodNames()
+        {
+            string[] names = Enum.GetNames(typeof(FoodType));
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (i < VietnameseNames.Length)
+                    names[i] = $"{names[i]} ({VietnameseNames[i]})";
+            }
+            return names;
+        }
+
+        // EN: Loads an asset into an isolated draft after confirming any unsaved edits may be discarded.
+        // VI: Nạp asset thành bản nháp độc lập sau khi xác nhận được phép bỏ các chỉnh sửa chưa lưu.
+        private void SetLevel(LevelConfig target, bool discardConfirmed = false)
+        {
+            if (!discardConfirmed && !ConfirmDiscardDraft())
                 return;
-            Action action = pendingAction;
+            ReleaseDraft();
+            sourceLevel = target;
+            CreateDraft(target);
+            int number = target != null ? ParseLevelNumber(target.name) : -1;
+            if (number > 0)
+                levelNumberInput = number;
+        }
+
+        // EN: Requires an explicit discard choice before reloading or switching away from an edited draft.
+        // VI: Yêu cầu chọn bỏ thay đổi rõ ràng trước khi tải lại hoặc chuyển khỏi bản nháp đang chỉnh.
+        private bool ConfirmDiscardDraft()
+        {
+            RefreshDraftStatus();
+            return !hasUnsavedChanges || EditorUtility.DisplayDialog("Thay đổi chưa lưu",
+                "Bỏ các thay đổi chưa lưu và nạp dữ liệu level? Asset chỉ được cập nhật khi bấm Lưu.", "Bỏ thay đổi", "Tiếp tục chỉnh");
+        }
+
+        // EN: Tracks draft changes against its saved snapshot for the window's unsaved indicator and close dialog.
+        // VI: So sánh bản nháp với mốc đã lưu để hiển thị dấu chưa lưu và hộp thoại khi đóng cửa sổ.
+        private void RefreshDraftStatus()
+        {
+            bool changed = level != null && EditorJsonUtility.ToJson(level) != savedDraftJson;
+            if (hasUnsavedChanges != changed)
+            {
+                hasUnsavedChanges = changed;
+                Repaint();
+            }
+        }
+
+        // EN: Disposes draft serialization and its Undo history without touching the source asset.
+        // VI: Giải phóng dữ liệu tuần tự hóa và lịch sử Undo của bản nháp mà không tác động asset nguồn.
+        private void ReleaseDraft()
+        {
             pendingAction = null;
-            serialized.Update();
-            action();
-            serialized.ApplyModifiedProperties();
-            serialized.Update();
+            serialized?.Dispose();
+            serialized = null;
+            if (level != null && !EditorUtility.IsPersistent(level))
+            {
+                Undo.ClearUndo(level);
+                DestroyImmediate(level);
+            }
+            level = null;
+        }
+
+        // EN: Clones the source into an editable unsaved object, isolating serialized fields and Undo from the asset.
+        // VI: Sao chép nguồn thành đối tượng chưa lưu có thể chỉnh, tách field tuần tự hóa và Undo khỏi asset.
+        private void CreateDraft(LevelConfig target)
+        {
+            if (target != null)
+            {
+                level = Instantiate(target);
+                level.name = target.name;
+                level.hideFlags = DraftHideFlags;
+                serialized = new SerializedObject(level);
+            }
+            savedDraftJson = level != null ? EditorJsonUtility.ToJson(level) : null;
+            RefreshDraftStatus();
+        }
+
+        // EN: Reads the trailing number of an asset name (LevelConfig_07 -> 7); returns -1 when there is none.
+        // VI: Đọc số ở cuối tên asset (LevelConfig_07 -> 7); trả về -1 nếu không có.
+        private static int ParseLevelNumber(string assetName)
+        {
+            Match match = Regex.Match(assetName ?? string.Empty, @"(\d+)$");
+            return match.Success && int.TryParse(match.Groups[1].Value, out int number) ? number : -1;
+        }
+
+        // EN: Removes NotEditable from restored drafts and normalizes snapshot flags without discarding unsaved field changes.
+        // VI: Bỏ cờ NotEditable của bản nháp khôi phục và chuẩn hóa cờ trong mốc so sánh mà không bỏ chỉnh sửa field chưa lưu.
+        private void EnsureDraftEditable()
+        {
+            if (level == null || EditorUtility.IsPersistent(level))
+                return;
+            level.hideFlags = DraftHideFlags;
+            if (!string.IsNullOrEmpty(savedDraftJson))
+                savedDraftJson = Regex.Replace(savedDraftJson, "\"m_ObjectHideFlags\"\\s*:\\s*\\d+", "\"m_ObjectHideFlags\":" + (int)DraftHideFlags);
+        }
+
+        // EN: Refreshes serialized draft fields and repaint after Undo/Redo, including when the draft remains dirty.
+        // VI: Làm mới field tuần tự hóa và vẽ lại sau Undo/Redo, kể cả khi bản nháp vẫn có thay đổi chưa lưu.
+        private void OnDraftUndoRedo()
+        {
+            serialized?.Update();
+            RefreshDraftStatus();
             Repaint();
         }
 
-        // EN: Uses 40 percent of the available panel area for customers, with independent scrolling for wider cards.
-        // VI: Dành 40 phần trăm vùng panel cho khách hàng, có cuộn riêng để xem thẻ rộng hơn.
-        private void DrawCustomerPanel()
+        // EN: Commits the draft to its source only on an explicit save and saves only that asset.
+        // VI: Chỉ ghi bản nháp vào nguồn khi lưu rõ ràng và chỉ lưu asset đó.
+        private void SaveDraft()
         {
-            EditorGUILayout.BeginVertical(GUILayout.Width(Mathf.Max(0f, position.width - 12f) * 0.4f));
-            customerScroll = EditorGUILayout.BeginScrollView(customerScroll);
-            DrawQueues();
-            EditorGUILayout.EndScrollView();
-            EditorGUILayout.EndVertical();
+            if (sourceLevel == null || level == null)
+                return;
+            serialized?.ApplyModifiedProperties();
+            string sourceName = sourceLevel.name;
+            HideFlags sourceFlags = sourceLevel.hideFlags;
+            EditorUtility.CopySerialized(level, sourceLevel);
+            sourceLevel.name = sourceName;
+            sourceLevel.hideFlags = sourceFlags;
+            EditorUtility.SetDirty(sourceLevel);
+            AssetDatabase.SaveAssetIfDirty(sourceLevel);
+            savedDraftJson = EditorJsonUtility.ToJson(level);
+            RefreshDraftStatus();
+            ShowNotification(new GUIContent("Đã lưu level"));
         }
 
-        // EN: Uses the remaining 60 percent for the raw ingredient board and validation, with independent scrolling.
-        // VI: Dành 60 phần trăm còn lại cho bảng nguyên liệu thô và kiểm tra nguyên liệu, có cuộn riêng.
-        private void DrawBoardPanel()
+        // EN: Creates the coloured label styles used by the validation table.
+        // VI: Tạo các style chữ có màu dùng cho bảng kiểm tra.
+        private void EnsureStyles()
         {
-            EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
-            boardScroll = EditorGUILayout.BeginScrollView(boardScroll);
-            DrawBoard();
-            EditorGUILayout.Space(14f);
-            DrawValidation();
-            EditorGUILayout.Space(10f);
-            EditorGUILayout.EndScrollView();
-            EditorGUILayout.EndVertical();
-        }
-
-        // EN: Thin vertical line separating the two columns.
-        // VI: Đường kẻ dọc mỏng ngăn cách hai cột.
-        private static void DrawPanelDivider()
-        {
-            Rect rect = GUILayoutUtility.GetRect(1f, 1f, GUILayout.Width(1f), GUILayout.ExpandHeight(true));
-            EditorGUI.DrawRect(rect, new Color(0f, 0f, 0f, 0.35f));
-            GUILayout.Space(6f);
+            if (okStyle != null)
+                return;
+            okStyle = new GUIStyle(EditorStyles.boldLabel) { normal = { textColor = new Color(0.35f, 0.75f, 0.35f) } };
+            missingStyle = new GUIStyle(EditorStyles.boldLabel) { normal = { textColor = new Color(0.9f, 0.35f, 0.3f) } };
+            extraStyle = new GUIStyle(EditorStyles.boldLabel) { normal = { textColor = new Color(0.9f, 0.7f, 0.2f) } };
         }
 
         // EN: Selects source assets while editing drafts, with explicit reload and save actions.
@@ -336,6 +292,8 @@ namespace FoodPop
                     pendingAction = () => SetLevel(sourceLevel);
                 if (GUILayout.Button("Lưu", EditorStyles.toolbarButton, GUILayout.Width(50f)))
                     pendingAction = SaveDraft;
+                if (GUILayout.Button(new GUIContent("UpdateFoodPrefab", "Quét lại prefab món và gán cho mọi nhóm nguyên liệu prefab có danh sách nguyên liệu khớp"), EditorStyles.toolbarButton, GUILayout.Width(120f)))
+                    pendingAction = UpdateFoodPrefabs;
             }
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
@@ -360,22 +318,6 @@ namespace FoodPop
                     GoToNeighbourLevel(1);
             }
             GUILayout.Space(8f);
-        }
-
-        // EN: Loads the LevelConfig whose name ends with the given number; offers to create it when missing.
-        // VI: Nạp LevelConfig có tên kết thúc bằng số level đã nhập; nếu chưa có thì hỏi có tạo mới không.
-        private void LoadLevelNumber(int number)
-        {
-            GUI.FocusControl(null);
-            LevelConfig found = FindLevel(number);
-            if (found != null)
-            {
-                SetLevel(found);
-                EditorGUIUtility.PingObject(found);
-                return;
-            }
-            if (EditorUtility.DisplayDialog("Chưa có level", $"Không tìm thấy level {number}. Tạo mới {LevelAssetName(number)}?", "Tạo mới", "Huỷ"))
-                CreateLevelNumber(number);
         }
 
         // EN: Moves to the previous (-1) or next (+1) existing level by number; at the end, offers to create the next one.
@@ -408,18 +350,6 @@ namespace FoodPop
                 CreateLevelNumber(current + 1);
         }
 
-        // EN: Returns the LevelConfig whose name ends with the given number, or null.
-        // VI: Trả về LevelConfig có tên kết thúc bằng số đã cho, hoặc null.
-        private static LevelConfig FindLevel(int number)
-        {
-            foreach (LevelConfig candidate in GetNumberedLevels())
-            {
-                if (ParseLevelNumber(candidate.name) == number)
-                    return candidate;
-            }
-            return null;
-        }
-
         // EN: Finds every LevelConfig asset with a number at the end of its name, sorted by that number.
         // VI: Tìm mọi asset LevelConfig có số ở cuối tên, sắp xếp theo số đó.
         private static List<LevelConfig> GetNumberedLevels()
@@ -435,29 +365,22 @@ namespace FoodPop
             return levels;
         }
 
-        // EN: Reads the trailing number of an asset name (LevelConfig_07 -> 7); returns -1 when there is none.
-        // VI: Đọc số ở cuối tên asset (LevelConfig_07 -> 7); trả về -1 nếu không có.
-        private static int ParseLevelNumber(string assetName)
-        {
-            Match match = Regex.Match(assetName ?? string.Empty, @"(\d+)$");
-            return match.Success && int.TryParse(match.Groups[1].Value, out int number) ? number : -1;
-        }
-
-        // EN: Standard asset name for a level number (two digits minimum), e.g. LevelConfig_03.
-        // VI: Tên asset chuẩn theo số level (tối thiểu hai chữ số), ví dụ LevelConfig_03.
+        // EN: Standard asset name for a level number, shared with runtime Resources loading (LevelConfig.AssetName).
+        // VI: Tên asset chuẩn theo số level, dùng chung với việc nạp Resources lúc chạy (LevelConfig.AssetName).
         private static string LevelAssetName(int number)
         {
-            return $"LevelConfig_{number:00}";
+            return LevelConfig.AssetName(number);
         }
 
-        // EN: Confirms discarding edits, creates only the new numbered asset and opens its draft.
-        // VI: Xác nhận bỏ chỉnh sửa, chỉ tạo asset mới theo số và mở bản nháp của nó.
+        // EN: Confirms discarding edits, creates only the new numbered asset in Resources/Levels with a matching levelNumber and opens its draft.
+        // VI: Xác nhận bỏ chỉnh sửa, chỉ tạo asset mới theo số trong Resources/Levels với levelNumber khớp số và mở bản nháp của nó.
         private void CreateLevelNumber(int number)
         {
             if (!ConfirmDiscardDraft())
                 return;
             string path = AssetDatabase.GenerateUniqueAssetPath($"{NewLevelFolder}/{LevelAssetName(number)}.asset");
             LevelConfig asset = CreateInstance<LevelConfig>();
+            asset.levelNumber = number;
             asset.ResizeBoard();
             AssetDatabase.CreateAsset(asset, path);
             AssetDatabase.SaveAssetIfDirty(asset);
@@ -465,8 +388,46 @@ namespace FoodPop
             EditorGUIUtility.PingObject(asset);
         }
 
-        // EN: Confirms discarding edits before creating an empty asset and editing its isolated draft.
-        // VI: Xác nhận bỏ chỉnh sửa trước khi tạo asset trống và chỉnh bản nháp độc lập của nó.
+        // EN: Applies the new board size to the asset (with Undo).
+        // VI: Áp dụng kích thước bảng mới vào asset (có Undo).
+        private void ResizeBoard()
+        {
+            serialized.ApplyModifiedProperties();
+            Undo.RecordObject(level, "Đổi kích thước bảng");
+            level.ResizeBoard();
+            EditorUtility.SetDirty(level);
+        }
+
+        // EN: Loads the LevelConfig whose name ends with the given number; offers to create it when missing.
+        // VI: Nạp LevelConfig có tên kết thúc bằng số level đã nhập; nếu chưa có thì hỏi có tạo mới không.
+        private void LoadLevelNumber(int number)
+        {
+            GUI.FocusControl(null);
+            LevelConfig found = FindLevel(number);
+            if (found != null)
+            {
+                SetLevel(found);
+                EditorGUIUtility.PingObject(found);
+                return;
+            }
+            if (EditorUtility.DisplayDialog("Chưa có level", $"Không tìm thấy level {number}. Tạo mới {LevelAssetName(number)}?", "Tạo mới", "Huỷ"))
+                CreateLevelNumber(number);
+        }
+
+        // EN: Returns the LevelConfig whose name ends with the given number, or null.
+        // VI: Trả về LevelConfig có tên kết thúc bằng số đã cho, hoặc null.
+        private static LevelConfig FindLevel(int number)
+        {
+            foreach (LevelConfig candidate in GetNumberedLevels())
+            {
+                if (ParseLevelNumber(candidate.name) == number)
+                    return candidate;
+            }
+            return null;
+        }
+
+        // EN: Confirms discarding edits before creating an empty asset (default folder Resources/Levels), taking levelNumber from the file name, and editing its isolated draft.
+        // VI: Xác nhận bỏ chỉnh sửa trước khi tạo asset trống (thư mục mặc định Resources/Levels), lấy levelNumber theo số trong tên file, rồi chỉnh bản nháp độc lập của nó.
         private void CreateLevel()
         {
             if (!ConfirmDiscardDraft())
@@ -475,6 +436,7 @@ namespace FoodPop
             if (string.IsNullOrEmpty(path))
                 return;
             LevelConfig asset = CreateInstance<LevelConfig>();
+            asset.levelNumber = Mathf.Max(1, ParseLevelNumber(System.IO.Path.GetFileNameWithoutExtension(path)));
             asset.ResizeBoard();
             AssetDatabase.CreateAsset(asset, path);
             AssetDatabase.SaveAssetIfDirty(asset);
@@ -482,12 +444,88 @@ namespace FoodPop
             Selection.activeObject = asset;
         }
 
+        // EN: Rescans dish prefabs and re-links every ingredient group of every customer queue in the draft to the prefab with the same ingredient list (or clears it), then reports how many groups matched; the asset changes only after Save.
+        // VI: Quét lại prefab món và nối lại mọi nhóm nguyên liệu của mọi hàng khách trong bản nháp với prefab có cùng danh sách nguyên liệu (hoặc xoá nếu không có), rồi báo số nhóm khớp; asset chỉ đổi sau khi bấm Lưu.
+        private void UpdateFoodPrefabs()
+        {
+            dishPrefabs = null;
+            int matched = 0;
+            List<string> missing = new List<string>();
+            foreach (string queuePath in new[] { "customerQueue", "leftQueue", "rightQueue" })
+            {
+                SerializedProperty queue = serialized.FindProperty(queuePath);
+                if (queue == null || !queue.isArray)
+                    continue;
+                for (int c = 0; c < queue.arraySize; c++)
+                {
+                    SerializedProperty groups = queue.GetArrayElementAtIndex(c).FindPropertyRelative("ingredientOrders");
+                    for (int g = 0; groups != null && g < groups.arraySize; g++)
+                    {
+                        SerializedProperty group = groups.GetArrayElementAtIndex(g);
+                        LinkMatchingDish(group.FindPropertyRelative("ingredients"));
+                        if (group.FindPropertyRelative("dish").objectReferenceValue != null)
+                            matched++;
+                        else
+                            missing.Add($"{queuePath} · khách {c + 1} · nhóm {g + 1}");
+                    }
+                }
+            }
+            string message = $"Đã gán prefab món cho {matched} nhóm.";
+            if (missing.Count > 0)
+                message += $"\n{missing.Count} nhóm chưa có prefab khớp:\n" + string.Join("\n", missing.GetRange(0, Mathf.Min(15, missing.Count))) + (missing.Count > 15 ? "\n…" : string.Empty);
+            message += "\n\nBấm Lưu để ghi vào asset.";
+            EditorUtility.DisplayDialog("UpdateFoodPrefab", message, "OK");
+        }
+
+        // EN: Sets the group's dish to the first scanned prefab whose ingredient list equals the group's (any order), or clears it when none matches.
+        // VI: Gán món của nhóm bằng prefab quét được đầu tiên có danh sách nguyên liệu bằng của nhóm (thứ tự bất kỳ), hoặc xóa khi không có prefab khớp.
+        private void LinkMatchingDish(SerializedProperty values)
+        {
+            List<FoodType> ingredients = new List<FoodType>(values.arraySize);
+            for (int i = 0; i < values.arraySize; i++) ingredients.Add((FoodType)values.GetArrayElementAtIndex(i).intValue);
+            FinalFoodView match = null;
+            foreach (FinalFoodView prefab in GetDishPrefabs())
+                if (prefab.Matches(ingredients)) { match = prefab; break; }
+            string groupPath = values.propertyPath.Substring(0, values.propertyPath.LastIndexOf('.'));
+            serialized.FindProperty(groupPath + ".dish").objectReferenceValue = match;
+        }
+
+        // EN: Returns (and caches) every prefab under Assets/HotPot whose root has FinalFoodView, sorted by name; the cache resets when the project changes.
+        // VI: Trả về (và cache) mọi prefab trong Assets/HotPot có FinalFoodView ở gốc, sắp theo tên; cache được xóa khi project thay đổi.
+        private List<FinalFoodView> GetDishPrefabs()
+        {
+            if (dishPrefabs != null)
+                return dishPrefabs;
+            dishPrefabs = new List<FinalFoodView>();
+            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { DishPrefabFolder }))
+            {
+                GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+                FinalFoodView view = asset != null ? asset.GetComponent<FinalFoodView>() : null;
+                if (view != null)
+                    dishPrefabs.Add(view);
+            }
+            dishPrefabs.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            return dishPrefabs;
+        }
+
+        // EN: Uses 40 percent of the available panel area for customers, with independent scrolling for wider cards.
+        // VI: Dành 40 phần trăm vùng panel cho khách hàng, có cuộn riêng để xem thẻ rộng hơn.
+        private void DrawCustomerPanel()
+        {
+            EditorGUILayout.BeginVertical(GUILayout.Width(Mathf.Max(0f, position.width - 12f) * 0.4f));
+            customerScroll = EditorGUILayout.BeginScrollView(customerScroll);
+            DrawQueues();
+            EditorGUILayout.EndScrollView();
+            EditorGUILayout.EndVertical();
+        }
+
         // ---------------------------------------------------------------- Customers
 
-        // EN: Edits one shared queue and offers undoable migration of legacy customers.
-        // VI: Sửa một hàng chung và cho chuyển khách cũ với khả năng hoàn tác.
+        // EN: Edits the draft's authored difficulty and shared queue; changes reach the source asset only through Save.
+        // VI: Chỉnh độ khó và hàng khách chung trên bản nháp; thay đổi chỉ vào asset nguồn khi bấm Lưu.
         private void DrawQueues()
         {
+            EditorGUILayout.PropertyField(serialized.FindProperty("difficultyMode"), new GUIContent("Difficulty Mode"));
             DrawSectionTitle("Khách hàng ở quầy order");
             if (!level.useUnifiedCustomerQueue && level.customerQueue.Count == 0)
             {
@@ -500,6 +538,16 @@ namespace FoodPop
                 serialized.Update();
             }
             DrawQueue("customerQueue", "Hàng khách chung · hai chỗ phục vụ");
+        }
+
+        // ---------------------------------------------------------------- Helpers
+
+        // EN: Draws a bold section title with spacing.
+        // VI: Vẽ tiêu đề mục in đậm kèm khoảng cách.
+        private static void DrawSectionTitle(string title)
+        {
+            EditorGUILayout.Space(4f);
+            EditorGUILayout.LabelField(title, EditorStyles.largeLabel);
         }
 
         // EN: Draws customer cards in serving order with a 390-pixel minimum table width, 50 percent wider than the previous 260 pixels.
@@ -521,7 +569,6 @@ namespace FoodPop
         private void DrawCustomer(SerializedProperty queue, string queuePath, int index)
         {
             SerializedProperty customer = queue.GetArrayElementAtIndex(index);
-            EnsureIngredientGroups(customer);
             SerializedProperty groups = customer.FindPropertyRelative("ingredientOrders");
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.BeginHorizontal();
@@ -547,30 +594,15 @@ namespace FoodPop
             EditorGUILayout.EndVertical();
         }
 
-        // EN: Copies old recipe ingredients into explicit groups on the isolated draft, preserving existing explicit lists.
-        // VI: Sao chép công thức cũ thành nhóm rõ ràng trên bản nháp riêng, giữ danh sách nguyên liệu đã có.
-        private void EnsureIngredientGroups(SerializedProperty customer)
+        // EN: Removes an array element (a customer or one of their dishes).
+        // VI: Xoá một phần tử mảng (một khách hoặc một món của khách).
+        private void DeleteElement(string arrayPath, int index)
         {
-            SerializedProperty enabled = customer.FindPropertyRelative("useIngredientOrders");
-            SerializedProperty groups = customer.FindPropertyRelative("ingredientOrders");
-            if (!enabled.boolValue && groups.arraySize == 0)
-            {
-                SerializedProperty legacy = customer.FindPropertyRelative("finalFoods");
-                FinalFoodConfig config = GetFinalFoodConfig();
-                groups.arraySize = legacy.arraySize;
-                for (int i = 0; i < legacy.arraySize; i++)
-                {
-                    SerializedProperty values = groups.GetArrayElementAtIndex(i).FindPropertyRelative("ingredients");
-                    IReadOnlyList<FoodType> recipe = config != null ? config.GetIngredients((FinalFoodType)legacy.GetArrayElementAtIndex(i).intValue) : null;
-                    values.arraySize = recipe?.Count ?? 0;
-                    for (int j = 0; j < values.arraySize; j++) values.GetArrayElementAtIndex(j).intValue = (int)recipe[j];
-                }
-            }
-            enabled.boolValue = true;
+            serialized.FindProperty(arrayPath).DeleteArrayElementAtIndex(index);
         }
 
-        // EN: Shows selected ingredient icons and optional matching dish information, with a foldout picker.
-        // VI: Hiện icon nguyên liệu đã chọn và thông tin món khớp tùy chọn, kèm bộ chọn thu gọn.
+        // EN: Shows the group's dish prefab (preview + picker that copies the prefab's ingredients) and its ingredient icons, with a foldout ingredient picker.
+        // VI: Hiện prefab món của nhóm (ảnh xem trước + bộ chọn chép nguyên liệu của prefab) và icon nguyên liệu, kèm bộ chọn nguyên liệu thu gọn.
         private void DrawIngredientGroup(SerializedProperty groups, int index)
         {
             SerializedProperty group = groups.GetArrayElementAtIndex(index);
@@ -587,17 +619,16 @@ namespace FoodPop
                 pendingAction = () => DeleteElement(groupsPath, index);
             }
             EditorGUILayout.EndHorizontal();
+            DrawGroupDish(group);
             EditorGUILayout.BeginHorizontal();
             foreach (FoodType type in selectedFoods) DrawIcon(type, RowIconSize);
             EditorGUILayout.EndHorizontal();
-            FinalFoodConfig.FinalFoodRecipe match = GetFinalFoodConfig()?.FindMatchingRecipe(selectedFoods);
-            EditorGUILayout.LabelField(match != null ? match.displayName : selectedFoods.Count == 0 ? "Chưa chọn nguyên liệu." : "Tổ hợp nguyên liệu tùy chọn", EditorStyles.miniLabel);
             if (group.isExpanded)
                 for (int i = 1; i < FoodValues.Length; i++)
                 {
                     FoodType type = FoodValues[i];
                     bool selected = selectedFoods.Contains(type);
-                    using (new EditorGUI.DisabledScope(!selected && selectedFoods.Count >= FinalFoodConfig.MaxIngredients))
+                    using (new EditorGUI.DisabledScope(!selected && selectedFoods.Count >= IngredientOrder.MaxIngredients))
                     {
                         bool next = EditorGUILayout.ToggleLeft(FoodNames[i], selected);
                         if (next != selected) pendingAction = () => SetIngredientSelection(path, type, next);
@@ -606,61 +637,126 @@ namespace FoodPop
             EditorGUILayout.EndVertical();
         }
 
-        // EN: Adds or removes one ingredient while preserving the order of all other selected entries.
-        // VI: Thêm hoặc bỏ một nguyên liệu, giữ thứ tự các mục đã chọn còn lại.
-        private void SetIngredientSelection(string path, FoodType type, bool selected)
+        // EN: Draws the group's dish: a prefab preview and a dropdown of every scanned dish prefab; picking one copies its ingredients into the group.
+        // VI: Vẽ món của nhóm: ảnh xem trước prefab và danh sách chọn mọi prefab món quét được; chọn một prefab sẽ chép nguyên liệu của nó vào nhóm.
+        private void DrawGroupDish(SerializedProperty group)
         {
-            SerializedProperty values = serialized.FindProperty(path);
-            for (int i = values.arraySize - 1; i >= 0; i--)
-                if (values.GetArrayElementAtIndex(i).intValue == (int)type)
-                {
-                    if (!selected) values.DeleteArrayElementAtIndex(i);
-                    return;
-                }
-            if (selected)
-            {
-                values.InsertArrayElementAtIndex(values.arraySize);
-                values.GetArrayElementAtIndex(values.arraySize - 1).intValue = (int)type;
-            }
-        }
-
-        // EN: Draws one ordered dish: its picture (click to pick from a picture grid), the name picker, its ingredient icons and a remove button.
-        // VI: Vẽ một món được order: ảnh món (bấm để chọn món từ bảng hình), ô chọn theo tên, icon nguyên liệu và nút xoá.
-        private void DrawDishRow(SerializedProperty finalFood, string dishesPath, int index)
-        {
+            FinalFoodView dish = group.FindPropertyRelative("dish").objectReferenceValue as FinalFoodView;
+            string groupPath = group.propertyPath;
             EditorGUILayout.BeginHorizontal();
-            Rect iconRect = DrawFinalIcon((FinalFoodType)finalFood.intValue, FinalIconSize);
-            if (GUI.Button(iconRect, new GUIContent(string.Empty, "Bấm để chọn món theo hình"), GUIStyle.none))
-                OpenDishPicker(iconRect, finalFood.propertyPath, (FinalFoodType)finalFood.intValue);
-            EditorGUIUtility.AddCursorRect(iconRect, MouseCursor.Link);
+            Rect preview = GUILayoutUtility.GetRect(DishPreviewSize, DishPreviewSize, GUILayout.Width(DishPreviewSize), GUILayout.Height(DishPreviewSize));
+            Texture2D texture = dish != null ? AssetPreview.GetAssetPreview(dish.gameObject) : null;
+            if (texture != null)
+                GUI.DrawTexture(preview, texture, ScaleMode.ScaleToFit);
+            else
+                GUI.Box(preview, GUIContent.none);
+            if (dish != null && texture == null && AssetPreview.IsLoadingAssetPreview(dish.GetInstanceID()))
+                Repaint();
             EditorGUILayout.BeginVertical();
-            EditorGUILayout.BeginHorizontal();
-            DrawDishDropdown(finalFood.propertyPath, (FinalFoodType)finalFood.intValue);
-            if (GUILayout.Button("x", EditorStyles.miniButton, GUILayout.Width(22f)))
-                pendingAction = () => DeleteElement(dishesPath, index);
-            EditorGUILayout.EndHorizontal();
-            DrawRecipeIngredients((FinalFoodType)finalFood.intValue);
+            if (EditorGUILayout.DropdownButton(new GUIContent(dish != null ? dish.name : "Chọn món từ prefab…"), FocusType.Passive))
+            {
+                GenericMenu menu = new GenericMenu();
+                foreach (FinalFoodView prefab in GetDishPrefabs())
+                {
+                    FinalFoodView option = prefab;
+                    menu.AddItem(new GUIContent($"{prefab.name}  ({string.Join(" + ", prefab.GetIngredients())})"), prefab == dish, () => { pendingAction = () => ApplyDishPrefab(groupPath, option); Repaint(); });
+                }
+                if (menu.GetItemCount() == 0)
+                    menu.AddDisabledItem(new GUIContent($"Không có prefab FinalFoodView trong {DishPrefabFolder}"));
+                menu.ShowAsContext();
+            }
+            EditorGUILayout.LabelField(dish != null ? "Prefab món khớp nguyên liệu" : "Chưa có prefab món khớp nguyên liệu (thẻ order không có hình)", EditorStyles.miniLabel);
             EditorGUILayout.EndVertical();
             EditorGUILayout.EndHorizontal();
         }
 
-        // EN: Draws the ingredient icons of a final dish in one row, or a hint when the recipe is missing.
-        // VI: Vẽ icon các nguyên liệu của món hoàn chỉnh trên một hàng, hoặc ghi chú khi thiếu công thức.
-        private void DrawRecipeIngredients(FinalFoodType finalFood)
+        // EN: Copies the prefab's ingredients (recipe order) into the group and links the prefab as its dish.
+        // VI: Chép nguyên liệu của prefab (theo thứ tự công thức) vào nhóm và nối prefab làm món của nhóm.
+        private void ApplyDishPrefab(string groupPath, FinalFoodView prefab)
         {
-            FinalFoodConfig config = GetFinalFoodConfig();
-            IReadOnlyList<FoodType> ingredients = config != null ? config.GetIngredients(finalFood) : null;
-            if (ingredients == null || ingredients.Count == 0)
+            SerializedProperty values = serialized.FindProperty(groupPath + ".ingredients");
+            List<FoodType> ingredients = prefab.GetIngredients();
+            values.arraySize = ingredients.Count;
+            for (int i = 0; i < ingredients.Count; i++) values.GetArrayElementAtIndex(i).intValue = (int)ingredients[i];
+            serialized.FindProperty(groupPath + ".dish").objectReferenceValue = prefab;
+        }
+
+        // EN: Reserves a square, draws the food icon or placeholder, and returns its area for state markers.
+        // VI: Dành ô vuông, vẽ icon hoặc ô giữ chỗ và trả vùng hiển thị để đặt dấu trạng thái.
+        private Rect DrawIcon(FoodType type, float size)
+        {
+            Rect rect = GUILayoutUtility.GetRect(size, size, GUILayout.Width(size), GUILayout.Height(size));
+            Texture2D icon = GetIcon(type);
+            if (icon != null)
+                GUI.DrawTexture(rect, icon, ScaleMode.ScaleToFit);
+            else
+                EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 0.25f));
+            return rect;
+        }
+
+        // EN: Returns (and caches) the icon texture of a food: from FoodIconConfig first, otherwise from Art/Sprites/Foods by file name.
+        // VI: Trả về (và cache) texture icon của nguyên liệu: ưu tiên lấy từ FoodIconConfig, nếu không có thì lấy theo tên file trong Art/Sprites/Foods.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
+        private Texture2D GetIcon(FoodType type)
+        {
+            if (type == FoodType.None)
+                return null;
+            if (!icons.TryGetValue(type, out Texture2D icon))
             {
-                EditorGUILayout.LabelField(config == null ? "Chưa có FinalFoodConfig." : "Chưa chọn món hoặc món chưa có công thức.", EditorStyles.miniLabel);
-                return;
+                FoodIconConfig config = IngameConfig.Instance.FoodIcons;
+                Sprite sprite = config != null ? config.GetIcon(type) : null;
+                icon = sprite != null ? sprite.texture : null;
+                if (icon == null)
+                {
+                    string fileName = Regex.Replace(type.ToString(), "(?<!^)([A-Z])", "-$1").ToLowerInvariant();
+                    icon = AssetDatabase.LoadAssetAtPath<Texture2D>(FoodSpriteFolder + fileName + ".png");
+                }
+                icons[type] = icon;
             }
-            EditorGUILayout.BeginHorizontal();
-            foreach (FoodType ingredient in ingredients)
-                DrawIcon(ingredient, RowIconSize);
-            GUILayout.Label($"{ingredients.Count} món", EditorStyles.miniLabel);
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.EndHorizontal();
+            return icon;
+        }
+
+        // EN: Follows another selected source asset, asking before discarding an edited draft.
+        // VI: Chuyển theo asset nguồn được chọn, hỏi trước khi bỏ bản nháp đang chỉnh.
+        private void OnSelectionChange()
+        {
+            if (Selection.activeObject is LevelConfig selected && selected != sourceLevel)
+            {
+                SetLevel(selected);
+                Repaint();
+            }
+        }
+
+        // EN: Adds or removes one ingredient while preserving the order of all other selected entries, then re-links the group to the dish prefab with the same ingredient list.
+        // VI: Thêm hoặc bỏ một nguyên liệu, giữ thứ tự các mục đã chọn còn lại, rồi nối lại nhóm với prefab món có cùng danh sách nguyên liệu.
+        private void SetIngredientSelection(string path, FoodType type, bool selected)
+        {
+            SerializedProperty values = serialized.FindProperty(path);
+            int existing = -1;
+            for (int i = values.arraySize - 1; i >= 0 && existing < 0; i--)
+                if (values.GetArrayElementAtIndex(i).intValue == (int)type)
+                    existing = i;
+            if (existing >= 0 && !selected)
+                values.DeleteArrayElementAtIndex(existing);
+            else if (existing < 0 && selected)
+            {
+                values.InsertArrayElementAtIndex(values.arraySize);
+                values.GetArrayElementAtIndex(values.arraySize - 1).intValue = (int)type;
+            }
+            LinkMatchingDish(values);
+        }
+
+        // EN: Appends an empty ingredient group (no dish prefab) to the current customer's order.
+        // VI: Thêm nhóm nguyên liệu trống (chưa có prefab món) vào order của khách.
+        private void AddDish(string dishesPath)
+        {
+            SerializedProperty groups = serialized.FindProperty(dishesPath);
+            groups.InsertArrayElementAtIndex(groups.arraySize);
+            SerializedProperty group = groups.GetArrayElementAtIndex(groups.arraySize - 1);
+            group.FindPropertyRelative("ingredients").ClearArray();
+            group.FindPropertyRelative("dish").objectReferenceValue = null;
+            group.isExpanded = true;
         }
 
         // EN: Adds a Normal customer with a default 30-second special-customer time and an empty ingredient group.
@@ -670,31 +766,34 @@ namespace FoodPop
             SerializedProperty queue = serialized.FindProperty(queuePath);
             queue.InsertArrayElementAtIndex(queue.arraySize);
             SerializedProperty customer = queue.GetArrayElementAtIndex(queue.arraySize - 1);
-            customer.FindPropertyRelative("useIngredientOrders").boolValue = true;
             customer.FindPropertyRelative("customerType").intValue = (int)CustomerType.Normal;
             customer.FindPropertyRelative("timeServe").floatValue = 30f;
-            customer.FindPropertyRelative("finalFoods").ClearArray();
             SerializedProperty groups = customer.FindPropertyRelative("ingredientOrders");
             groups.ClearArray();
             AddDish(groups.propertyPath);
         }
 
-        // EN: Appends an empty ingredient group to the current customer's explicit order.
-        // VI: Thêm nhóm nguyên liệu trống vào danh sách order trực tiếp của khách.
-        private void AddDish(string dishesPath)
+        // EN: Thin vertical line separating the two columns.
+        // VI: Đường kẻ dọc mỏng ngăn cách hai cột.
+        private static void DrawPanelDivider()
         {
-            SerializedProperty groups = serialized.FindProperty(dishesPath);
-            groups.InsertArrayElementAtIndex(groups.arraySize);
-            SerializedProperty group = groups.GetArrayElementAtIndex(groups.arraySize - 1);
-            group.FindPropertyRelative("ingredients").ClearArray();
-            group.isExpanded = true;
+            Rect rect = GUILayoutUtility.GetRect(1f, 1f, GUILayout.Width(1f), GUILayout.ExpandHeight(true));
+            EditorGUI.DrawRect(rect, new Color(0f, 0f, 0f, 0.35f));
+            GUILayout.Space(6f);
         }
 
-        // EN: Removes an array element (a customer or one of their dishes).
-        // VI: Xoá một phần tử mảng (một khách hoặc một món của khách).
-        private void DeleteElement(string arrayPath, int index)
+        // EN: Uses the remaining 60 percent for the raw ingredient board and validation, with independent scrolling.
+        // VI: Dành 60 phần trăm còn lại cho bảng nguyên liệu thô và kiểm tra nguyên liệu, có cuộn riêng.
+        private void DrawBoardPanel()
         {
-            serialized.FindProperty(arrayPath).DeleteArrayElementAtIndex(index);
+            EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
+            boardScroll = EditorGUILayout.BeginScrollView(boardScroll);
+            DrawBoard();
+            EditorGUILayout.Space(14f);
+            DrawValidation();
+            EditorGUILayout.Space(10f);
+            EditorGUILayout.EndScrollView();
+            EditorGUILayout.EndVertical();
         }
 
         // ---------------------------------------------------------------- Board
@@ -817,6 +916,16 @@ namespace FoodPop
                 DrawSecondPanel(second, cell);
         }
 
+        // EN: Draws a rectangle border of the given thickness.
+        // VI: Vẽ đường viền hình chữ nhật với độ dày đã cho.
+        private static void DrawOutline(Rect rect, Color color, float thickness)
+        {
+            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMin, rect.width, thickness), color);
+            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMax - thickness, rect.width, thickness), color);
+            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMin, thickness, rect.height), color);
+            EditorGUI.DrawRect(new Rect(rect.xMax - thickness, rect.yMin, thickness, rect.height), color);
+        }
+
         // EN: Arranges the vertical dish as a shape header, two equally sized ingredient cards and shared lid/ice controls.
         // VI: Sắp xếp đĩa dọc thành ô chọn kiểu, hai thẻ nguyên liệu cùng kích thước và tùy chọn nắp/băng dùng chung.
         private void DrawVerticalDish(Rect area, int column, int row, SerializedProperty cell)
@@ -833,108 +942,6 @@ namespace FoodPop
             DrawVerticalSharedSettings(new Rect(area.x, area.yMax - footerHeight, area.width, footerHeight), cell);
         }
 
-        // EN: Draws an identical compact ingredient card for either half with an icon, explicit quantity label and full-width food selector.
-        // VI: Vẽ thẻ nguyên liệu gọn giống nhau cho mỗi nửa, gồm icon, nhãn số lượng rõ ràng và ô chọn nguyên liệu rộng toàn thẻ.
-        private void DrawVerticalPortion(Rect area, SerializedProperty cell, bool second)
-        {
-            GUI.Box(area, GUIContent.none, EditorStyles.helpBox);
-            Rect content = new Rect(area.x + 6f, area.y + 7f, area.width - 12f, area.height - 14f);
-            SerializedProperty type = cell.FindPropertyRelative(second ? "secondFoodType" : "foodType");
-            SerializedProperty count = cell.FindPropertyRelative(second ? "secondCount" : "requiredCount");
-            bool frozen = cell.FindPropertyRelative("isFrozen").boolValue;
-            DrawPartIcon(new Rect(content.x, content.y, BoardIconSize, BoardIconSize), (FoodType)type.intValue,
-                frozen ? cell.FindPropertyRelative("blockValue").intValue : 0, cell.FindPropertyRelative("isHidden").boolValue);
-            float textX = content.x + BoardIconSize + 8f;
-            float textWidth = content.xMax - textX;
-            GUI.Label(new Rect(textX, content.y + 2f, textWidth, LineHeight), second ? "PHẦN 2" : "PHẦN 1", EditorStyles.miniBoldLabel);
-            float oldLabelWidth = EditorGUIUtility.labelWidth;
-            EditorGUIUtility.labelWidth = 54f;
-            count.intValue = Mathf.Max(1, EditorGUI.IntField(new Rect(textX, content.y + 24f, textWidth, LineHeight), "Số lượng", count.intValue));
-            EditorGUIUtility.labelWidth = oldLabelWidth;
-            type.enumValueIndex = EditorGUI.Popup(new Rect(content.x, content.yMax - LineHeight, content.width, LineHeight), type.enumValueIndex, FoodNames);
-        }
-
-        // EN: Groups the settings affecting both halves below the ingredient cards and reserves space for the ice value.
-        // VI: Gom các tùy chọn tác động cả hai nửa xuống dưới các thẻ nguyên liệu và dành chỗ cho giá trị băng.
-        private static void DrawVerticalSharedSettings(Rect area, SerializedProperty cell)
-        {
-            if (Event.current.type == EventType.Repaint)
-                EditorGUI.DrawRect(new Rect(area.x, area.y, area.width, 1f), new Color(1f, 1f, 1f, 0.15f));
-            float y = area.y + 6f;
-            GUI.Label(NextLine(area, ref y), "ÁP DỤNG CẢ ĐĨA", EditorStyles.miniBoldLabel);
-            float oldLabelWidth = EditorGUIUtility.labelWidth;
-            EditorGUIUtility.labelWidth = area.width - 22f;
-            EditorGUI.PropertyField(NextLine(area, ref y), cell.FindPropertyRelative("isHidden"), new GUIContent("Ẩn cả đĩa"));
-            SerializedProperty frozen = cell.FindPropertyRelative("isFrozen");
-            EditorGUI.PropertyField(NextLine(area, ref y), frozen, new GUIContent("Đóng băng"));
-            if (frozen.boolValue)
-            {
-                EditorGUIUtility.labelWidth = 80f;
-                SerializedProperty block = cell.FindPropertyRelative("blockValue");
-                block.intValue = Mathf.Max(1, EditorGUI.IntField(NextLine(area, ref y), "Giá trị băng", block.intValue));
-            }
-            EditorGUIUtility.labelWidth = oldLabelWidth;
-        }
-
-        private const float LineHeight = 18f;
-        private const float LineStep = 20f;
-
-        // EN: Returns the next control line inside a panel and advances the vertical cursor.
-        // VI: Trả về dòng điều khiển kế tiếp trong khung và đẩy con trỏ dọc xuống.
-        private static Rect NextLine(Rect area, ref float y)
-        {
-            Rect line = new Rect(area.x, y, area.width, LineHeight);
-            y += LineStep;
-            return line;
-        }
-
-        // EN: First panel of a dish, drawn with explicit rects: icon with hidden/frozen marks, shape popup, part 1 ingredient and quantity, lid and ice settings.
-        // VI: Khung đầu của đĩa, vẽ bằng vùng cố định: icon kèm dấu ẩn/đóng băng, ô chọn kiểu đĩa, nguyên liệu và số lượng phần 1, tùy chọn nắp và băng.
-        private void DrawMainPanel(Rect area, int column, int row, SerializedProperty cell, bool isDouble)
-        {
-            SerializedProperty frozen = cell.FindPropertyRelative("isFrozen");
-            SerializedProperty block = cell.FindPropertyRelative("blockValue");
-            SerializedProperty hidden = cell.FindPropertyRelative("isHidden");
-            float y = DrawPartIcon(area, (FoodType)cell.FindPropertyRelative("foodType").intValue, frozen.boolValue ? block.intValue : 0, hidden.boolValue);
-            DrawShapePopup(NextLine(area, ref y), column, row, cell.FindPropertyRelative("dishShape"));
-            DrawPortionFields(area, ref y, cell.FindPropertyRelative("foodType"), cell.FindPropertyRelative("requiredCount"));
-            float oldLabelWidth = EditorGUIUtility.labelWidth;
-            EditorGUIUtility.labelWidth = Mathf.Max(60f, area.width - 30f);
-            EditorGUI.PropertyField(NextLine(area, ref y), hidden, new GUIContent(isDouble ? "Ẩn cả đĩa" : "Ẩn nguyên liệu"));
-            EditorGUI.PropertyField(NextLine(area, ref y), frozen, new GUIContent("Đóng băng"));
-            EditorGUIUtility.labelWidth = Mathf.Max(60f, area.width * 0.55f);
-            if (frozen.boolValue)
-                block.intValue = Mathf.Max(1, EditorGUI.IntField(NextLine(area, ref y), new GUIContent("Giá trị băng"), block.intValue));
-            EditorGUIUtility.labelWidth = oldLabelWidth;
-        }
-
-        // EN: Second panel of a double dish, drawn with explicit rects: part 2 icon (with the shared hidden/frozen marks), a caption in the shape popup's line, part 2 ingredient and quantity.
-        // VI: Khung sau của đĩa đôi, vẽ bằng vùng cố định: icon phần 2 (kèm dấu ẩn/đóng băng dùng chung), nhãn ở dòng ô chọn kiểu đĩa, nguyên liệu và số lượng phần 2.
-        private void DrawSecondPanel(Rect area, SerializedProperty cell)
-        {
-            bool frozen = cell.FindPropertyRelative("isFrozen").boolValue;
-            float y = DrawPartIcon(area, (FoodType)cell.FindPropertyRelative("secondFoodType").intValue, frozen ? cell.FindPropertyRelative("blockValue").intValue : 0, cell.FindPropertyRelative("isHidden").boolValue);
-            GUI.Label(NextLine(area, ref y), "Phần 2", EditorStyles.miniBoldLabel);
-            DrawPortionFields(area, ref y, cell.FindPropertyRelative("secondFoodType"), cell.FindPropertyRelative("secondCount"));
-        }
-
-        // EN: Draws an ingredient icon centred at the top of the panel with the frozen (blockValue > 0) and hidden marks; returns the y just below it.
-        // VI: Vẽ icon nguyên liệu căn giữa ở đầu khung, phủ dấu đóng băng (blockValue > 0) và dấu ẩn; trả về toạ độ y ngay bên dưới icon.
-        private float DrawPartIcon(Rect area, FoodType type, int blockValue, bool hidden)
-        {
-            Rect iconRect = new Rect(area.center.x - BoardIconSize * 0.5f, area.y, BoardIconSize, BoardIconSize);
-            Texture2D icon = GetIcon(type);
-            if (icon != null)
-                GUI.DrawTexture(iconRect, icon, ScaleMode.ScaleToFit);
-            else
-                EditorGUI.DrawRect(iconRect, new Color(0.5f, 0.5f, 0.5f, 0.25f));
-            if (blockValue > 0)
-                DrawFrozenMark(iconRect, blockValue);
-            if (hidden)
-                DrawHiddenMark(iconRect);
-            return iconRect.yMax + 4f;
-        }
-
         // EN: Draws the dish shape popup in the given line; a change is deferred to ChangeDishShape, which checks the placement and clears the newly covered cell.
         // VI: Vẽ ô chọn kiểu đĩa trên dòng đã cho; khi đổi sẽ hoãn sang ChangeDishShape để kiểm tra vị trí và xoá ô bị chiếm mới.
         private void DrawShapePopup(Rect line, int column, int row, SerializedProperty shape)
@@ -942,55 +949,6 @@ namespace FoodPop
             int picked = EditorGUI.Popup(line, shape.enumValueIndex, ShapeNames);
             if (picked != shape.enumValueIndex)
                 pendingAction = () => ChangeDishShape(column, row, (DishShape)picked);
-        }
-
-        // EN: Draws one portion's ingredient popup and quantity field on the next two lines of the panel.
-        // VI: Vẽ ô chọn nguyên liệu và ô số lượng của một phần trên hai dòng kế tiếp của khung.
-        private static void DrawPortionFields(Rect area, ref float y, SerializedProperty type, SerializedProperty count)
-        {
-            type.enumValueIndex = EditorGUI.Popup(NextLine(area, ref y), type.enumValueIndex, FoodNames);
-            count.intValue = Mathf.Max(1, EditorGUI.IntField(NextLine(area, ref y), count.intValue));
-        }
-
-        // EN: Draws a rectangle border of the given thickness.
-        // VI: Vẽ đường viền hình chữ nhật với độ dày đã cho.
-        private static void DrawOutline(Rect rect, Color color, float thickness)
-        {
-            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMin, rect.width, thickness), color);
-            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMax - thickness, rect.width, thickness), color);
-            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMin, thickness, rect.height), color);
-            EditorGUI.DrawRect(new Rect(rect.xMax - thickness, rect.yMin, thickness, rect.height), color);
-        }
-
-        // EN: Lists double-footprint and link-chain errors before a draft is saved or played.
-        // VI: Liệt kê lỗi vùng chiếm đĩa đôi và chuỗi nối trước khi lưu hoặc chơi bản nháp.
-        private void DrawBoardProblems()
-        {
-            boardProblems.Clear();
-            level.CollectBoardProblems(boardProblems);
-            level.CollectDishLinkProblems(boardProblems);
-            foreach (string problem in boardProblems)
-                EditorGUILayout.HelpBox(problem, MessageType.Warning);
-            if (HasDoubleDish())
-                EditorGUILayout.HelpBox("Đĩa đôi lấy cả hai phần trong một lần chạm và cần đủ chỗ trên băng chuyền. Đĩa ngang chỉ dồn khi cả hai ô phía trên trống, chỉ chọn thường khi đứng đầu cả hai cột. Shuffle giữ đĩa đôi đứng yên.", MessageType.Info);
-        }
-
-        // EN: True when any board cell (not covered by another double) is a double dish.
-        // VI: True khi có ô nào trên bảng (không bị đĩa đôi khác chiếm) là đĩa đôi.
-        private bool HasDoubleDish()
-        {
-            for (int c = 0; c < level.ingredientBoard.Count; c++)
-            {
-                List<OrderFood> foods = level.ingredientBoard[c]?.foods;
-                if (foods == null)
-                    continue;
-                for (int r = 0; r < foods.Count; r++)
-                {
-                    if (foods[r] != null && foods[r].IsDouble && !level.IsCoveredCell(c, r))
-                        return true;
-                }
-            }
-            return false;
         }
 
         // EN: Changes a cell's dish shape (with Undo). A double dish needs a cell below (vertical) or to the right (horizontal) that no other double covers; that cell is cleared, after confirmation when it holds data.
@@ -1032,27 +990,206 @@ namespace FoodPop
                 $"Ô cột {coveredColumn + 1} hàng {coveredRow + 1} sẽ bị xoá để nhường chỗ cho đĩa đôi. Tiếp tục?", "Xoá và đặt", "Huỷ");
         }
 
-        // EN: Clears one cell back to an empty single dish (with Undo).
-        // VI: Đặt lại một ô thành đĩa đơn trống (có Undo).
-        private void ClearCell(int column, int row)
+        // EN: Draws an identical compact ingredient card for either half with an icon, explicit quantity label and full-width food selector.
+        // VI: Vẽ thẻ nguyên liệu gọn giống nhau cho mỗi nửa, gồm icon, nhãn số lượng rõ ràng và ô chọn nguyên liệu rộng toàn thẻ.
+        private void DrawVerticalPortion(Rect area, SerializedProperty cell, bool second)
         {
-            serialized.ApplyModifiedProperties();
-            OrderFood cell = level.GetCell(column, row);
-            if (cell == null)
-                return;
-            Undo.RecordObject(level, "Xoá dữ liệu ô");
-            cell.Clear();
-            EditorUtility.SetDirty(level);
+            GUI.Box(area, GUIContent.none, EditorStyles.helpBox);
+            Rect content = new Rect(area.x + 6f, area.y + 7f, area.width - 12f, area.height - 14f);
+            SerializedProperty type = cell.FindPropertyRelative(second ? "secondFoodType" : "foodType");
+            SerializedProperty count = cell.FindPropertyRelative(second ? "secondCount" : "requiredCount");
+            bool frozen = cell.FindPropertyRelative("isFrozen").boolValue;
+            DrawPartIcon(new Rect(content.x, content.y, BoardIconSize, BoardIconSize), (FoodType)type.intValue,
+                frozen ? cell.FindPropertyRelative("blockValue").intValue : 0, cell.FindPropertyRelative("isHidden").boolValue);
+            float textX = content.x + BoardIconSize + 8f;
+            float textWidth = content.xMax - textX;
+            GUI.Label(new Rect(textX, content.y + 2f, textWidth, LineHeight), second ? "PHẦN 2" : "PHẦN 1", EditorStyles.miniBoldLabel);
+            float oldLabelWidth = EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = 54f;
+            count.intValue = Mathf.Max(1, EditorGUI.IntField(new Rect(textX, content.y + 24f, textWidth, LineHeight), "Số lượng", count.intValue));
+            EditorGUIUtility.labelWidth = oldLabelWidth;
+            type.enumValueIndex = EditorGUI.Popup(new Rect(content.x, content.yMax - LineHeight, content.width, LineHeight), type.enumValueIndex, FoodNames);
         }
 
-        // EN: Applies the new board size to the asset (with Undo).
-        // VI: Áp dụng kích thước bảng mới vào asset (có Undo).
-        private void ResizeBoard()
+        // EN: Draws an ingredient icon centred at the top of the panel with the frozen (blockValue > 0) and hidden marks; returns the y just below it.
+        // VI: Vẽ icon nguyên liệu căn giữa ở đầu khung, phủ dấu đóng băng (blockValue > 0) và dấu ẩn; trả về toạ độ y ngay bên dưới icon.
+        private float DrawPartIcon(Rect area, FoodType type, int blockValue, bool hidden)
+        {
+            Rect iconRect = new Rect(area.center.x - BoardIconSize * 0.5f, area.y, BoardIconSize, BoardIconSize);
+            Texture2D icon = GetIcon(type);
+            if (icon != null)
+                GUI.DrawTexture(iconRect, icon, ScaleMode.ScaleToFit);
+            else
+                EditorGUI.DrawRect(iconRect, new Color(0.5f, 0.5f, 0.5f, 0.25f));
+            if (blockValue > 0)
+                DrawFrozenMark(iconRect, blockValue);
+            if (hidden)
+                DrawHiddenMark(iconRect);
+            return iconRect.yMax + 4f;
+        }
+
+        // EN: Marks a frozen ingredient: an icy blue tint over the icon with the block value in the corner.
+        // VI: Đánh dấu nguyên liệu đóng băng: phủ màu xanh băng lên icon và ghi giá trị khối băng ở góc.
+        private static void DrawFrozenMark(Rect rect, int blockValue)
+        {
+            EditorGUI.DrawRect(rect, new Color(0.55f, 0.85f, 1f, 0.45f));
+            GUIStyle style = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.LowerRight,
+                fontSize = Mathf.RoundToInt(rect.height * 0.35f)
+            };
+            style.normal.textColor = Color.white;
+            GUI.Label(rect, blockValue.ToString(), style);
+        }
+
+        // EN: Marks a hidden ingredient: dims its icon and draws a large "?" on top, like the lid shown in game.
+        // VI: Đánh dấu nguyên liệu bị ẩn: làm tối icon và vẽ dấu "?" lớn đè lên, giống nắp che trong game.
+        private static void DrawHiddenMark(Rect rect)
+        {
+            EditorGUI.DrawRect(rect, new Color(0f, 0f, 0f, 0.55f));
+            GUIStyle style = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(rect.height * 0.6f)
+            };
+            style.normal.textColor = new Color(1f, 0.85f, 0.2f);
+            GUI.Label(rect, "?", style);
+        }
+
+        // EN: Groups the settings affecting both halves below the ingredient cards and reserves space for the ice value.
+        // VI: Gom các tùy chọn tác động cả hai nửa xuống dưới các thẻ nguyên liệu và dành chỗ cho giá trị băng.
+        private static void DrawVerticalSharedSettings(Rect area, SerializedProperty cell)
+        {
+            if (Event.current.type == EventType.Repaint)
+                EditorGUI.DrawRect(new Rect(area.x, area.y, area.width, 1f), new Color(1f, 1f, 1f, 0.15f));
+            float y = area.y + 6f;
+            GUI.Label(NextLine(area, ref y), "ÁP DỤNG CẢ ĐĨA", EditorStyles.miniBoldLabel);
+            float oldLabelWidth = EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = area.width - 22f;
+            EditorGUI.PropertyField(NextLine(area, ref y), cell.FindPropertyRelative("isHidden"), new GUIContent("Ẩn cả đĩa"));
+            SerializedProperty frozen = cell.FindPropertyRelative("isFrozen");
+            EditorGUI.PropertyField(NextLine(area, ref y), frozen, new GUIContent("Đóng băng"));
+            if (frozen.boolValue)
+            {
+                EditorGUIUtility.labelWidth = 80f;
+                SerializedProperty block = cell.FindPropertyRelative("blockValue");
+                block.intValue = Mathf.Max(1, EditorGUI.IntField(NextLine(area, ref y), "Giá trị băng", block.intValue));
+            }
+            EditorGUIUtility.labelWidth = oldLabelWidth;
+        }
+
+        // EN: Returns the next control line inside a panel and advances the vertical cursor.
+        // VI: Trả về dòng điều khiển kế tiếp trong khung và đẩy con trỏ dọc xuống.
+        private static Rect NextLine(Rect area, ref float y)
+        {
+            Rect line = new Rect(area.x, y, area.width, LineHeight);
+            y += LineStep;
+            return line;
+        }
+
+        // EN: First panel of a dish, drawn with explicit rects: icon with hidden/frozen marks, shape popup, part 1 ingredient and quantity, lid and ice settings.
+        // VI: Khung đầu của đĩa, vẽ bằng vùng cố định: icon kèm dấu ẩn/đóng băng, ô chọn kiểu đĩa, nguyên liệu và số lượng phần 1, tùy chọn nắp và băng.
+        private void DrawMainPanel(Rect area, int column, int row, SerializedProperty cell, bool isDouble)
+        {
+            SerializedProperty frozen = cell.FindPropertyRelative("isFrozen");
+            SerializedProperty block = cell.FindPropertyRelative("blockValue");
+            SerializedProperty hidden = cell.FindPropertyRelative("isHidden");
+            float y = DrawPartIcon(area, (FoodType)cell.FindPropertyRelative("foodType").intValue, frozen.boolValue ? block.intValue : 0, hidden.boolValue);
+            DrawShapePopup(NextLine(area, ref y), column, row, cell.FindPropertyRelative("dishShape"));
+            DrawPortionFields(area, ref y, cell.FindPropertyRelative("foodType"), cell.FindPropertyRelative("requiredCount"));
+            float oldLabelWidth = EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = Mathf.Max(60f, area.width - 30f);
+            EditorGUI.PropertyField(NextLine(area, ref y), hidden, new GUIContent(isDouble ? "Ẩn cả đĩa" : "Ẩn nguyên liệu"));
+            EditorGUI.PropertyField(NextLine(area, ref y), frozen, new GUIContent("Đóng băng"));
+            EditorGUIUtility.labelWidth = Mathf.Max(60f, area.width * 0.55f);
+            if (frozen.boolValue)
+                block.intValue = Mathf.Max(1, EditorGUI.IntField(NextLine(area, ref y), new GUIContent("Giá trị băng"), block.intValue));
+            EditorGUIUtility.labelWidth = oldLabelWidth;
+        }
+
+        // EN: Draws one portion's ingredient popup and quantity field on the next two lines of the panel.
+        // VI: Vẽ ô chọn nguyên liệu và ô số lượng của một phần trên hai dòng kế tiếp của khung.
+        private static void DrawPortionFields(Rect area, ref float y, SerializedProperty type, SerializedProperty count)
+        {
+            type.enumValueIndex = EditorGUI.Popup(NextLine(area, ref y), type.enumValueIndex, FoodNames);
+            count.intValue = Mathf.Max(1, EditorGUI.IntField(NextLine(area, ref y), count.intValue));
+        }
+
+        // EN: Second panel of a double dish, drawn with explicit rects: part 2 icon (with the shared hidden/frozen marks), a caption in the shape popup's line, part 2 ingredient and quantity.
+        // VI: Khung sau của đĩa đôi, vẽ bằng vùng cố định: icon phần 2 (kèm dấu ẩn/đóng băng dùng chung), nhãn ở dòng ô chọn kiểu đĩa, nguyên liệu và số lượng phần 2.
+        private void DrawSecondPanel(Rect area, SerializedProperty cell)
+        {
+            bool frozen = cell.FindPropertyRelative("isFrozen").boolValue;
+            float y = DrawPartIcon(area, (FoodType)cell.FindPropertyRelative("secondFoodType").intValue, frozen ? cell.FindPropertyRelative("blockValue").intValue : 0, cell.FindPropertyRelative("isHidden").boolValue);
+            GUI.Label(NextLine(area, ref y), "Phần 2", EditorStyles.miniBoldLabel);
+            DrawPortionFields(area, ref y, cell.FindPropertyRelative("secondFoodType"), cell.FindPropertyRelative("secondCount"));
+        }
+
+        // EN: Lists double-footprint and link-chain errors before a draft is saved or played.
+        // VI: Liệt kê lỗi vùng chiếm đĩa đôi và chuỗi nối trước khi lưu hoặc chơi bản nháp.
+        private void DrawBoardProblems()
+        {
+            boardProblems.Clear();
+            level.CollectBoardProblems(boardProblems);
+            level.CollectDishLinkProblems(boardProblems);
+            foreach (string problem in boardProblems)
+                EditorGUILayout.HelpBox(problem, MessageType.Warning);
+            if (HasDoubleDish())
+                EditorGUILayout.HelpBox("Đĩa đôi lấy cả hai phần trong một lần chạm và cần đủ chỗ trên băng chuyền. Đĩa ngang chỉ dồn khi cả hai ô phía trên trống, chỉ chọn thường khi đứng đầu cả hai cột. Shuffle giữ đĩa đôi đứng yên.", MessageType.Info);
+        }
+
+        // EN: True when any board cell (not covered by another double) is a double dish.
+        // VI: True khi có ô nào trên bảng (không bị đĩa đôi khác chiếm) là đĩa đôi.
+        private bool HasDoubleDish()
+        {
+            for (int c = 0; c < level.ingredientBoard.Count; c++)
+            {
+                List<OrderFood> foods = level.ingredientBoard[c]?.foods;
+                if (foods == null)
+                    continue;
+                for (int r = 0; r < foods.Count; r++)
+                {
+                    if (foods[r] != null && foods[r].IsDouble && !level.IsCoveredCell(c, r))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        // EN: Refills singles and both halves of doubles from order totals on the isolated draft, preserving double layouts and shared states.
+        // VI: Điền lại đĩa đơn và cả hai nửa đĩa đôi theo tổng order trên bản nháp độc lập, giữ bố cục và trạng thái chung của đĩa đôi.
+        private void FillBoardFromOrders()
         {
             serialized.ApplyModifiedProperties();
-            Undo.RecordObject(level, "Đổi kích thước bảng");
-            level.ResizeBoard();
-            EditorUtility.SetDirty(level);
+            bool filled = LevelBoardOrderFiller.TryFill(level, CountOrderedFoods(), out string message);
+            if (!string.IsNullOrEmpty(message))
+                EditorUtility.DisplayDialog(filled ? "Đã điền bảng" : "Không điền được bảng", message, "OK");
+        }
+
+        // EN: Sums the ingredient requirements of every customer in the shared queue.
+        // VI: Cộng nguyên liệu order của mọi khách trong hàng chung.
+        private int[] CountOrderedFoods()
+        {
+            int[] totals = new int[FoodNames.Length];
+            AddOrderTotals(level.GetCustomerQueue(), totals);
+            return totals;
+        }
+
+        // EN: Counts every ingredient of every order group, retaining quantities.
+        // VI: Đếm mọi nguyên liệu của mọi nhóm order, giữ nguyên số lượng.
+        private static void AddOrderTotals(List<CustomerOrder> queue, int[] totals)
+        {
+            if (queue == null) return;
+            foreach (CustomerOrder order in queue)
+            {
+                if (order?.ingredientOrders == null) continue;
+                foreach (IngredientOrder group in order.ingredientOrders)
+                    foreach (FoodType ingredient in group.ingredients)
+                    {
+                        int type = Array.IndexOf(FoodValues, ingredient);
+                        if (type > 0 && type < totals.Length) totals[type]++;
+                    }
+            }
         }
 
         // EN: Clears board dishes and link chains together, with Undo on the isolated draft.
@@ -1068,16 +1205,6 @@ namespace FoodPop
                     cell.Clear();
             }
             EditorUtility.SetDirty(level);
-        }
-
-        // EN: Refills singles and both halves of doubles from order totals on the isolated draft, preserving double layouts and shared states.
-        // VI: Điền lại đĩa đơn và cả hai nửa đĩa đôi theo tổng order trên bản nháp độc lập, giữ bố cục và trạng thái chung của đĩa đôi.
-        private void FillBoardFromOrders()
-        {
-            serialized.ApplyModifiedProperties();
-            bool filled = LevelBoardOrderFiller.TryFill(level, CountOrderedFoods(), out string message);
-            if (!string.IsNullOrEmpty(message))
-                EditorUtility.DisplayDialog(filled ? "Đã điền bảng" : "Không điền được bảng", message, "OK");
         }
 
         // ---------------------------------------------------------------- Validation
@@ -1110,6 +1237,16 @@ namespace FoodPop
                 EditorGUILayout.LabelField("Chưa có order hay nguyên liệu nào.", EditorStyles.miniLabel);
         }
 
+        // EN: Sums board foods by enum index while resolving their stable numeric IDs.
+        // VI: Cộng nguyên liệu bảng theo chỉ số enum và tra đúng ID số cố định.
+        private int[] CountBoardFoods()
+        {
+            int[] totals = new int[FoodNames.Length];
+            for (int type = 1; type < totals.Length; type++)
+                totals[type] = level.GetBoardCount(FoodValues[type]);
+            return totals;
+        }
+
         // EN: Draws validation by enum index, resolving the actual ingredient ID for its icon.
         // VI: Vẽ kiểm tra theo chỉ số enum, dùng ID nguyên liệu thực để hiển thị icon.
         private void DrawValidationRow(int type, int needed, int onBoard)
@@ -1128,546 +1265,39 @@ namespace FoodPop
             EditorGUILayout.EndHorizontal();
         }
 
-        // EN: Sums recipe requirements from the shared queue or legacy fallback.
-        // VI: Cộng nguyên liệu order từ hàng chung hoặc dữ liệu cũ.
-        private int[] CountOrderedFoods()
+        // EN: Executes the deferred structural edit after the layout pass so GUI groups stay balanced.
+        // VI: Thực hiện thao tác cấu trúc đã hoãn sau khi vẽ xong để các nhóm layout luôn cân bằng.
+        private void RunPendingAction()
         {
-            int[] totals = new int[FoodNames.Length];
-            FinalFoodConfig config = GetFinalFoodConfig();
-            AddOrderTotals(level.GetCustomerQueue(), config, totals);
-            return totals;
-        }
-
-        // EN: Counts explicit order ingredients, retaining quantities and supporting legacy recipe conversion.
-        // VI: Đếm nguyên liệu order trực tiếp, giữ số lượng và hỗ trợ tra công thức cũ.
-        private static void AddOrderTotals(List<CustomerOrder> queue, FinalFoodConfig config, int[] totals)
-        {
-            if (queue == null) return;
-            foreach (CustomerOrder order in queue)
-            {
-                if (order == null) continue;
-                foreach (IngredientOrder group in order.GetIngredientOrders(config))
-                    foreach (FoodType ingredient in group.ingredients)
-                    {
-                        int type = Array.IndexOf(FoodValues, ingredient);
-                        if (type > 0 && type < totals.Length) totals[type]++;
-                    }
-            }
-        }
-
-        // EN: Sums board foods by enum index while resolving their stable numeric IDs.
-        // VI: Cộng nguyên liệu bảng theo chỉ số enum và tra đúng ID số cố định.
-        private int[] CountBoardFoods()
-        {
-            int[] totals = new int[FoodNames.Length];
-            for (int type = 1; type < totals.Length; type++)
-                totals[type] = level.GetBoardCount(FoodValues[type]);
-            return totals;
-        }
-
-        // ---------------------------------------------------------------- Helpers
-
-        // EN: Draws a bold section title with spacing.
-        // VI: Vẽ tiêu đề mục in đậm kèm khoảng cách.
-        private static void DrawSectionTitle(string title)
-        {
-            EditorGUILayout.Space(4f);
-            EditorGUILayout.LabelField(title, EditorStyles.largeLabel);
-        }
-
-        // EN: Reserves a square, draws the food icon or placeholder, and returns its area for state markers.
-        // VI: Dành ô vuông, vẽ icon hoặc ô giữ chỗ và trả vùng hiển thị để đặt dấu trạng thái.
-        private Rect DrawIcon(FoodType type, float size)
-        {
-            Rect rect = GUILayoutUtility.GetRect(size, size, GUILayout.Width(size), GUILayout.Height(size));
-            Texture2D icon = GetIcon(type);
-            if (icon != null)
-                GUI.DrawTexture(rect, icon, ScaleMode.ScaleToFit);
-            else
-                EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 0.25f));
-            return rect;
-        }
-
-        // EN: Marks a frozen ingredient: an icy blue tint over the icon with the block value in the corner.
-        // VI: Đánh dấu nguyên liệu đóng băng: phủ màu xanh băng lên icon và ghi giá trị khối băng ở góc.
-        private static void DrawFrozenMark(Rect rect, int blockValue)
-        {
-            EditorGUI.DrawRect(rect, new Color(0.55f, 0.85f, 1f, 0.45f));
-            GUIStyle style = new GUIStyle(EditorStyles.boldLabel)
-            {
-                alignment = TextAnchor.LowerRight,
-                fontSize = Mathf.RoundToInt(rect.height * 0.35f)
-            };
-            style.normal.textColor = Color.white;
-            GUI.Label(rect, blockValue.ToString(), style);
-        }
-
-        // EN: Marks a hidden ingredient: dims its icon and draws a large "?" on top, like the lid shown in game.
-        // VI: Đánh dấu nguyên liệu bị ẩn: làm tối icon và vẽ dấu "?" lớn đè lên, giống nắp che trong game.
-        private static void DrawHiddenMark(Rect rect)
-        {
-            EditorGUI.DrawRect(rect, new Color(0f, 0f, 0f, 0.55f));
-            GUIStyle style = new GUIStyle(EditorStyles.boldLabel)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.RoundToInt(rect.height * 0.6f)
-            };
-            style.normal.textColor = new Color(1f, 0.85f, 0.2f);
-            GUI.Label(rect, "?", style);
-        }
-
-        // EN: Returns (and caches) the icon texture of a food: from FoodIconConfig first, otherwise from Art/Sprites/Foods by file name.
-        // VI: Trả về (và cache) texture icon của nguyên liệu: ưu tiên lấy từ FoodIconConfig, nếu không có thì lấy theo tên file trong Art/Sprites/Foods.
-        private Texture2D GetIcon(FoodType type)
-        {
-            if (type == FoodType.None)
-                return null;
-            if (!icons.TryGetValue(type, out Texture2D icon))
-            {
-                FoodIconConfig config = AssetDatabase.LoadAssetAtPath<FoodIconConfig>(FoodIconConfigPath);
-                Sprite sprite = config != null ? config.GetIcon(type) : null;
-                icon = sprite != null ? sprite.texture : null;
-                if (icon == null)
-                {
-                    string fileName = Regex.Replace(type.ToString(), "(?<!^)([A-Z])", "-$1").ToLowerInvariant();
-                    icon = AssetDatabase.LoadAssetAtPath<Texture2D>(FoodSpriteFolder + fileName + ".png");
-                }
-                icons[type] = icon;
-            }
-            return icon;
-        }
-
-        // EN: Returns (and caches) the FinalFoodConfig asset, or null when it does not exist yet.
-        // VI: Trả về (và cache) asset FinalFoodConfig, hoặc null nếu chưa có.
-        private FinalFoodConfig GetFinalFoodConfig()
-        {
-            if (finalFoodConfig == null)
-                finalFoodConfig = AssetDatabase.LoadAssetAtPath<FinalFoodConfig>(FinalFoodConfigPath);
-            return finalFoodConfig;
-        }
-
-        // EN: Builds popup names "EnumName (display name)" for every final dish, using the config's display names when available.
-        // VI: Tạo tên cho ô chọn dạng "TênEnum (tên hiển thị)" cho mọi món hoàn chỉnh, dùng tên hiển thị trong config nếu có.
-        private string[] GetFinalFoodNames()
-        {
-            if (finalFoodNames != null)
-                return finalFoodNames;
-            FinalFoodConfig config = GetFinalFoodConfig();
-            finalFoodNames = new string[FinalFoodValues.Length];
-            for (int i = 0; i < FinalFoodValues.Length; i++)
-            {
-                FinalFoodConfig.FinalFoodRecipe recipe = config != null ? config.GetRecipe(FinalFoodValues[i]) : null;
-                string name = FinalFoodValues[i].ToString();
-                finalFoodNames[i] = recipe != null && !string.IsNullOrEmpty(recipe.displayName) ? $"{name} ({recipe.displayName})" : name;
-            }
-            return finalFoodNames;
-        }
-
-        // EN: Reserves a square, draws the final dish picture (or a placeholder) with a frame, and returns its area.
-        // VI: Dành ô vuông, vẽ ảnh món hoàn chỉnh (hoặc ô giữ chỗ) kèm khung, và trả về vùng hiển thị.
-        private Rect DrawFinalIcon(FinalFoodType type, float size)
-        {
-            Rect rect = GUILayoutUtility.GetRect(size, size, GUILayout.Width(size), GUILayout.Height(size));
-            EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 0.18f));
-            Texture2D icon = GetFinalTexture(type);
-            if (icon != null)
-                GUI.DrawTexture(rect, icon, ScaleMode.ScaleToFit);
-            return rect;
-        }
-
-        // EN: Returns (and caches) the picture of a final dish: the config sprite first, otherwise the file Final/<count>/<slug>-nigiri.png derived from the enum name.
-        // VI: Trả về (và cache) ảnh món hoàn chỉnh: ưu tiên sprite trong config, nếu không có thì lấy file Final/<số món>/<slug>-nigiri.png suy ra từ tên enum.
-        private Texture2D GetFinalTexture(FinalFoodType type)
-        {
-            if (type == FinalFoodType.None)
-                return null;
-            if (finalIcons.TryGetValue(type, out Texture2D icon))
-                return icon;
-            FinalFoodConfig config = GetFinalFoodConfig();
-            Sprite sprite = config != null ? config.GetSprite(type) : null;
-            icon = sprite != null ? sprite.texture : null;
-            if (icon == null)
-            {
-                Match match = Regex.Match(type.ToString(), @"^([A-Za-z]+)Nigiri(\d)$");
-                if (match.Success)
-                    icon = AssetDatabase.LoadAssetAtPath<Texture2D>($"{FinalSpriteFolder}{match.Groups[2].Value}/{match.Groups[1].Value.ToLowerInvariant()}-nigiri.png");
-            }
-            finalIcons[type] = icon;
-            return icon;
-        }
-
-        // EN: Returns the display name of a final dish from the config, or its enum name when none is set.
-        // VI: Trả về tên hiển thị của món hoàn chỉnh trong config, hoặc tên enum nếu chưa đặt.
-        private string GetDishDisplayName(FinalFoodType type)
-        {
-            FinalFoodConfig config = GetFinalFoodConfig();
-            FinalFoodConfig.FinalFoodRecipe recipe = config != null ? config.GetRecipe(type) : null;
-            return recipe != null && !string.IsNullOrEmpty(recipe.displayName) ? recipe.displayName : type.ToString();
-        }
-
-        // EN: Text the dish list searches in: enum name, display name and ingredient names (tooltip content).
-        // VI: Chuỗi dùng để tìm món trong danh sách: tên enum, tên hiển thị và tên nguyên liệu (nội dung tooltip).
-        private string GetDishSearchText(FinalFoodType type)
-        {
-            return $"{type} {GetDishTooltip(type)}";
-        }
-
-        // EN: Builds a short tooltip for a final dish: its display name and ingredient list.
-        // VI: Tạo tooltip ngắn cho món hoàn chỉnh: tên hiển thị và danh sách nguyên liệu.
-        private string GetDishTooltip(FinalFoodType type)
-        {
-            FinalFoodConfig config = GetFinalFoodConfig();
-            FinalFoodConfig.FinalFoodRecipe recipe = config != null ? config.GetRecipe(type) : null;
-            if (recipe == null)
-                return type.ToString();
-            List<string> parts = new List<string>();
-            foreach (FoodType ingredient in recipe.ingredients)
-            {
-                int index = Array.IndexOf(FoodValues, ingredient);
-                parts.Add(index >= 0 && index < VietnameseNames.Length ? VietnameseNames[index] : ingredient.ToString());
-            }
-            string name = string.IsNullOrEmpty(recipe.displayName) ? type.ToString() : recipe.displayName;
-            return $"{name}\n{string.Join(" + ", parts)}";
-        }
-
-        // EN: Opens the picture grid under the clicked dish; picking a cell writes the dish into the given property with Undo.
-        // VI: Mở bảng hình ngay dưới món được bấm; chọn một ô sẽ ghi món vào property đã cho (có Undo).
-        private void OpenDishPicker(Rect anchor, string propertyPath, FinalFoodType current)
-        {
-            PopupWindow.Show(anchor, new FinalFoodPickerPopup(this, current, WriteDishTo(propertyPath)));
-        }
-
-        // EN: Draws a dropdown button showing the current dish picture and name; it opens a searchable list where every dish has its picture and ingredient icons.
-        // VI: Vẽ nút dropdown hiện ảnh và tên món đang chọn; bấm sẽ mở danh sách có ô tìm kiếm, mỗi món kèm ảnh và icon nguyên liệu.
-        private void DrawDishDropdown(string propertyPath, FinalFoodType current)
-        {
-            int index = Mathf.Max(0, Array.IndexOf(FinalFoodValues, current));
-            GUIContent label = new GUIContent(GetFinalFoodNames()[index], GetFinalTexture(current), GetDishTooltip(current));
-            Rect rect = GUILayoutUtility.GetRect(label, EditorStyles.popup, GUILayout.MinWidth(150f), GUILayout.Height(22f));
-            Vector2 oldIconSize = EditorGUIUtility.GetIconSize();
-            EditorGUIUtility.SetIconSize(new Vector2(18f, 18f));
-            bool open = EditorGUI.DropdownButton(rect, label, FocusType.Keyboard, EditorStyles.popup);
-            EditorGUIUtility.SetIconSize(oldIconSize);
-            if (open)
-                PopupWindow.Show(rect, new FinalFoodListPopup(this, current, rect.width, WriteDishTo(propertyPath)));
-        }
-
-        // EN: Returns a callback that writes a picked dish into the property at the given path (with Undo) and repaints the window.
-        // VI: Trả về hàm gọi lại ghi món được chọn vào property tại đường dẫn đã cho (có Undo) và vẽ lại cửa sổ.
-        private Action<FinalFoodType> WriteDishTo(string propertyPath)
-        {
-            return picked =>
-            {
-                if (serialized == null)
-                    return;
-                serialized.Update();
-                SerializedProperty property = serialized.FindProperty(propertyPath);
-                if (property == null)
-                    return;
-                property.intValue = (int)picked;
-                serialized.ApplyModifiedProperties();
-                Repaint();
-            };
-        }
-
-        // EN: Searchable dropdown list of every final dish: grouped by dish line, each row shows the picture, name, enum ID and ingredient icons.
-        // VI: Danh sách dropdown có tìm kiếm của mọi món hoàn chỉnh: nhóm theo dòng món, mỗi dòng hiện ảnh, tên, ID enum và icon nguyên liệu.
-        private sealed class FinalFoodListPopup : PopupWindowContent
-        {
-            private const float RowHeight = 46f;
-            private const float HeaderHeight = 20f;
-            private const float Thumb = 40f;
-            private const float IngredientIcon = 18f;
-
-            private readonly LevelConfigEditorWindow owner;
-            private readonly FinalFoodType current;
-            private readonly float width;
-            private readonly Action<FinalFoodType> onPick;
-            private string search = string.Empty;
-            private Vector2 scroll;
-            private bool scrolledToCurrent;
-            private bool focusSearch = true;
-
-            // EN: Stores the owner window, the current dish, the popup width and the pick callback.
-            // VI: Lưu cửa sổ gốc, món đang chọn, độ rộng bảng và hàm gọi lại khi chọn.
-            public FinalFoodListPopup(LevelConfigEditorWindow owner, FinalFoodType current, float width, Action<FinalFoodType> onPick)
-            {
-                this.owner = owner;
-                this.current = current;
-                this.width = Mathf.Max(width, 380f);
-                this.onPick = onPick;
-            }
-
-            // EN: Popup size: at least as wide as the dropdown button, tall enough for about nine rows.
-            // VI: Kích thước bảng: rộng ít nhất bằng nút dropdown, cao khoảng chín dòng.
-            public override Vector2 GetWindowSize()
-            {
-                return new Vector2(width, 460f);
-            }
-
-            // EN: Draws the search field and the filtered list; Enter picks the first match, Escape closes.
-            // VI: Vẽ ô tìm kiếm và danh sách đã lọc; Enter chọn món đầu tiên khớp, Escape để đóng.
-            public override void OnGUI(Rect rect)
-            {
-                List<FinalFoodType> matches = CollectMatches();
-                if (HandleKeys(matches))
-                    return;
-                DrawSearchField();
-                scroll = GUILayout.BeginScrollView(scroll);
-                int lastLine = -1;
-                float y = 0f;
-                float currentY = -1f;
-                foreach (FinalFoodType type in matches)
-                {
-                    int line = (int)type / 10;
-                    if (line != lastLine && string.IsNullOrEmpty(search))
-                    {
-                        GUILayout.Label(Regex.Replace(type.ToString(), @"Nigiri\d$", string.Empty), EditorStyles.boldLabel, GUILayout.Height(HeaderHeight));
-                        y += HeaderHeight + 2f;
-                    }
-                    lastLine = line;
-                    if (type == current)
-                        currentY = y;
-                    DrawRow(type);
-                    y += RowHeight + 2f;
-                }
-                if (matches.Count == 0)
-                    GUILayout.Label("Không có món nào khớp.", EditorStyles.centeredGreyMiniLabel);
-                GUILayout.EndScrollView();
-                ScrollToCurrentOnce(currentY);
-            }
-
-            // EN: Draws the search box and focuses it when the popup opens.
-            // VI: Vẽ ô tìm kiếm và đặt con trỏ vào đó khi bảng vừa mở.
-            private void DrawSearchField()
-            {
-                GUI.SetNextControlName("FinalFoodSearch");
-                search = EditorGUILayout.TextField(search, EditorStyles.toolbarSearchField);
-                if (!focusSearch)
-                    return;
-                focusSearch = false;
-                EditorGUI.FocusTextInControl("FinalFoodSearch");
-            }
-
-            // EN: Enter picks the first match and Escape closes the popup; returns true when the popup was closed.
-            // VI: Enter chọn món khớp đầu tiên, Escape đóng bảng; trả về true khi bảng đã đóng.
-            private bool HandleKeys(List<FinalFoodType> matches)
-            {
-                Event e = Event.current;
-                if (e.type != EventType.KeyDown)
-                    return false;
-                if ((e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) && matches.Count > 0)
-                {
-                    Pick(matches[0]);
-                    return true;
-                }
-                if (e.keyCode == KeyCode.Escape)
-                {
-                    editorWindow.Close();
-                    return true;
-                }
-                return false;
-            }
-
-            // EN: Scrolls once so the current dish is visible when the list opens unfiltered.
-            // VI: Cuộn một lần để món đang chọn hiện ra khi danh sách mở mà chưa lọc.
-            private void ScrollToCurrentOnce(float currentY)
-            {
-                if (scrolledToCurrent || Event.current.type != EventType.Repaint)
-                    return;
-                scrolledToCurrent = true;
-                if (currentY > 0f)
-                {
-                    scroll.y = Mathf.Max(0f, currentY - RowHeight * 2f);
-                    editorWindow.Repaint();
-                }
-            }
-
-            // EN: Lists the dishes whose enum name, display name or ingredient names contain the search text (case-insensitive).
-            // VI: Liệt kê các món có tên enum, tên hiển thị hoặc tên nguyên liệu chứa chuỗi tìm kiếm (không phân biệt hoa thường).
-            private List<FinalFoodType> CollectMatches()
-            {
-                List<FinalFoodType> result = new List<FinalFoodType>();
-                string query = search.Trim();
-                foreach (FinalFoodType type in FinalFoodValues)
-                {
-                    if (type == FinalFoodType.None)
-                        continue;
-                    if (query.Length == 0 || owner.GetDishSearchText(type).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
-                        result.Add(type);
-                }
-                return result;
-            }
-
-            // EN: Draws one dish row (highlight, picture, name, enum ID, ingredient icons) and picks it on click.
-            // VI: Vẽ một dòng món (tô sáng, ảnh, tên, ID enum, icon nguyên liệu) và chọn món khi bấm.
-            private void DrawRow(FinalFoodType type)
-            {
-                Rect row = GUILayoutUtility.GetRect(width - 24f, RowHeight, GUILayout.ExpandWidth(true));
-                GUILayout.Space(2f);
-                bool hover = row.Contains(Event.current.mousePosition);
-                if (type == current)
-                    EditorGUI.DrawRect(row, new Color(0.25f, 0.6f, 1f, 0.35f));
-                else if (hover)
-                    EditorGUI.DrawRect(row, new Color(1f, 1f, 1f, 0.1f));
-
-                Rect thumb = new Rect(row.x + 4f, row.y + (RowHeight - Thumb) * 0.5f, Thumb, Thumb);
-                Texture2D texture = owner.GetFinalTexture(type);
-                if (texture != null)
-                    GUI.DrawTexture(thumb, texture, ScaleMode.ScaleToFit);
-                else
-                    EditorGUI.DrawRect(thumb, new Color(0.5f, 0.5f, 0.5f, 0.25f));
-
-                float textX = thumb.xMax + 8f;
-                GUI.Label(new Rect(textX, row.y + 3f, row.xMax - textX, 18f), owner.GetDishDisplayName(type), EditorStyles.boldLabel);
-                GUI.Label(new Rect(textX, row.y + 21f, 120f, 16f), type.ToString(), EditorStyles.miniLabel);
-                DrawIngredientIcons(new Rect(textX + 120f, row.y + 22f, row.xMax - textX - 120f, IngredientIcon), type);
-
-                if (GUI.Button(row, GUIContent.none, GUIStyle.none))
-                    Pick(type);
-                if (hover)
-                    editorWindow.Repaint();
-            }
-
-            // EN: Draws the dish's ingredient icons in a row inside the given area.
-            // VI: Vẽ icon nguyên liệu của món thành một hàng trong vùng đã cho.
-            private void DrawIngredientIcons(Rect area, FinalFoodType type)
-            {
-                FinalFoodConfig config = owner.GetFinalFoodConfig();
-                IReadOnlyList<FoodType> ingredients = config != null ? config.GetIngredients(type) : null;
-                if (ingredients == null)
-                    return;
-                float x = area.x;
-                foreach (FoodType ingredient in ingredients)
-                {
-                    if (x + IngredientIcon > area.xMax)
-                        break;
-                    Texture2D icon = owner.GetIcon(ingredient);
-                    if (icon != null)
-                        GUI.DrawTexture(new Rect(x, area.y, IngredientIcon, IngredientIcon), icon, ScaleMode.ScaleToFit);
-                    x += IngredientIcon + 2f;
-                }
-            }
-
-            // EN: Sends the picked dish to the owner, closes the popup and stops the current GUI pass.
-            // VI: Gửi món được chọn cho cửa sổ gốc, đóng bảng và dừng lượt vẽ GUI hiện tại.
-            private void Pick(FinalFoodType type)
-            {
-                onPick?.Invoke(type);
-                editorWindow.Close();
-                GUIUtility.ExitGUI();
-            }
-        }
-
-        // EN: Popup grid of every final dish picture: one row per dish line, one column per ingredient count (2-6); hover shows name and ingredients.
-        // VI: Bảng hình mọi món hoàn chỉnh: mỗi hàng một dòng món, mỗi cột một số nguyên liệu (2-6); rê chuột để xem tên và nguyên liệu.
-        private sealed class FinalFoodPickerPopup : PopupWindowContent
-        {
-            private const float Cell = 64f;
-            private const float LabelWidth = 76f;
-            private const float Header = 22f;
-            private const int MinTier = FinalFoodConfig.MinIngredients;
-            private const int MaxTier = FinalFoodConfig.MaxIngredients;
-
-            private readonly LevelConfigEditorWindow owner;
-            private readonly FinalFoodType current;
-            private readonly Action<FinalFoodType> onPick;
-            private readonly List<int> lines = new List<int>();
-            private Vector2 scroll;
-
-            // EN: Stores the owner window (for pictures and tooltips), the current dish and the pick callback, and lists the dish lines found in the enum.
-            // VI: Lưu cửa sổ gốc (để lấy ảnh và tooltip), món hiện tại và hàm gọi lại khi chọn, và liệt kê các dòng món có trong enum.
-            public FinalFoodPickerPopup(LevelConfigEditorWindow owner, FinalFoodType current, Action<FinalFoodType> onPick)
-            {
-                this.owner = owner;
-                this.current = current;
-                this.onPick = onPick;
-                foreach (FinalFoodType type in FinalFoodValues)
-                {
-                    int line = (int)type / 10;
-                    if (type != FinalFoodType.None && !lines.Contains(line))
-                        lines.Add(line);
-                }
-            }
-
-            // EN: Size of the grid: label column plus one column per tier, header plus one row per dish line (capped to stay on screen).
-            // VI: Kích thước bảng: cột tên cộng mỗi cấp một cột, dòng tiêu đề cộng mỗi dòng món một hàng (giới hạn để không tràn màn hình).
-            public override Vector2 GetWindowSize()
-            {
-                float width = LabelWidth + (MaxTier - MinTier + 1) * (Cell + 4f) + 24f;
-                float height = Header + lines.Count * (Cell + 4f) + 12f;
-                return new Vector2(width, Mathf.Min(height, 620f));
-            }
-
-            // EN: Draws the tier header and one row of picture buttons per dish line; clicking a picture picks it and closes the popup.
-            // VI: Vẽ tiêu đề số nguyên liệu và mỗi dòng món một hàng nút ảnh; bấm vào ảnh để chọn và đóng bảng.
-            public override void OnGUI(Rect rect)
-            {
-                scroll = GUILayout.BeginScrollView(scroll);
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(LabelWidth);
-                for (int tier = MinTier; tier <= MaxTier; tier++)
-                    GUILayout.Label($"{tier} món", EditorStyles.centeredGreyMiniLabel, GUILayout.Width(Cell + 4f));
-                GUILayout.EndHorizontal();
-                foreach (int line in lines)
-                    DrawLine(line);
-                GUILayout.EndScrollView();
-            }
-
-            // EN: Draws a dish line using its first defined recipe name, then a button for every available ingredient count.
-            // VI: Vẽ dòng món theo tên công thức đầu tiên đã định nghĩa, rồi thêm nút cho mỗi số nguyên liệu hiện có.
-            private void DrawLine(int line)
-            {
-                GUILayout.BeginHorizontal();
-                FinalFoodType first = (FinalFoodType)(line * 10 + MinTier);
-                for (int tier = MinTier; tier <= MaxTier; tier++)
-                    if (Enum.IsDefined(typeof(FinalFoodType), (FinalFoodType)(line * 10 + tier)))
-                    {
-                        first = (FinalFoodType)(line * 10 + tier);
-                        break;
-                    }
-                string label = Enum.IsDefined(typeof(FinalFoodType), first) ? Regex.Replace(first.ToString(), @"Nigiri\d$", string.Empty) : line.ToString();
-                GUILayout.Label(label, EditorStyles.boldLabel, GUILayout.Width(LabelWidth), GUILayout.Height(Cell));
-                for (int tier = MinTier; tier <= MaxTier; tier++)
-                {
-                    FinalFoodType type = (FinalFoodType)(line * 10 + tier);
-                    Rect cell = GUILayoutUtility.GetRect(Cell, Cell, GUILayout.Width(Cell), GUILayout.Height(Cell));
-                    GUILayout.Space(4f);
-                    if (Enum.IsDefined(typeof(FinalFoodType), type))
-                        DrawCell(cell, type);
-                }
-                GUILayout.EndHorizontal();
-            }
-
-            // EN: Draws one picture cell, highlighting the current dish, and picks it on click.
-            // VI: Vẽ một ô ảnh, tô sáng món đang chọn, và chọn món khi bấm.
-            private void DrawCell(Rect cell, FinalFoodType type)
-            {
-                bool selected = type == current;
-                bool hover = cell.Contains(Event.current.mousePosition);
-                EditorGUI.DrawRect(cell, selected ? new Color(0.25f, 0.6f, 1f, 0.45f) : hover ? new Color(1f, 1f, 1f, 0.12f) : new Color(0.5f, 0.5f, 0.5f, 0.15f));
-                Texture2D texture = owner.GetFinalTexture(type);
-                if (texture != null)
-                    GUI.DrawTexture(new Rect(cell.x + 2f, cell.y + 2f, cell.width - 4f, cell.height - 4f), texture, ScaleMode.ScaleToFit);
-                if (GUI.Button(cell, new GUIContent(string.Empty, owner.GetDishTooltip(type)), GUIStyle.none))
-                {
-                    onPick?.Invoke(type);
-                    editorWindow.Close();
-                }
-                if (hover)
-                    editorWindow.Repaint();
-            }
-        }
-
-        // EN: Creates the coloured label styles used by the validation table.
-        // VI: Tạo các style chữ có màu dùng cho bảng kiểm tra.
-        private void EnsureStyles()
-        {
-            if (okStyle != null)
+            if (pendingAction == null)
                 return;
-            okStyle = new GUIStyle(EditorStyles.boldLabel) { normal = { textColor = new Color(0.35f, 0.75f, 0.35f) } };
-            missingStyle = new GUIStyle(EditorStyles.boldLabel) { normal = { textColor = new Color(0.9f, 0.35f, 0.3f) } };
-            extraStyle = new GUIStyle(EditorStyles.boldLabel) { normal = { textColor = new Color(0.9f, 0.7f, 0.2f) } };
+            Action action = pendingAction;
+            pendingAction = null;
+            serialized.Update();
+            action();
+            serialized.ApplyModifiedProperties();
+            serialized.Update();
+            Repaint();
+        }
+
+        // EN: Drops the dish-prefab cache so prefabs added, removed or edited in the project show up in the picker.
+        // VI: Xóa cache prefab món để prefab vừa thêm, xóa hoặc sửa trong project hiện trong bộ chọn.
+        private void OnProjectChange()
+        {
+            dishPrefabs = null;
+        }
+
+        // EN: Clears one cell back to an empty single dish (with Undo).
+        // VI: Đặt lại một ô thành đĩa đơn trống (có Undo).
+        private void ClearCell(int column, int row)
+        {
+            serialized.ApplyModifiedProperties();
+            OrderFood cell = level.GetCell(column, row);
+            if (cell == null)
+                return;
+            Undo.RecordObject(level, "Xoá dữ liệu ô");
+            cell.Clear();
+            EditorUtility.SetDirty(level);
         }
     }
 }

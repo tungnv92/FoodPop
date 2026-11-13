@@ -13,14 +13,15 @@ public class TowerRiseInfo : Popup
 
     bool isShowingAnim;
     Coroutine showingRoutine;
+    // EN: Opens the view using manager queries and commands instead of mutable save models.
+    // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
     public override void Open(object args = null)
     {
         base.Open(args);
         AnimShow();
         if (continueTmp != null) continueTmp.SetActive(false);
 
-        TowerRiseManager.Instance.Data.isShowedInfo = true;
-        TowerRiseManager.Instance.Save();
+        TowerRiseManager.Instance.MarkInfoShown();
     }
 
     public void AnimShow()

@@ -22,7 +22,9 @@ namespace GamePackages
         /// Init 
         /// </summary>
         /// <param name="context"></param>
-        public GameFeatureContext(ProfileManager context)
+        // EN: Wires feature managers to private profile data supplied only during internal initialization.
+        // VI: Gắn manager tính năng với dữ liệu hồ sơ riêng được truyền trong khởi tạo nội bộ.
+        internal GameFeatureContext(ProfileManager context, PlayerData data, SaveService saveService)
         {
             DailyGiftManager.DailyGiftGlobalConfig = context.DailyGiftRewardConfig;
             DailyRewardManager.DailyRewardGlobalConfig = context.DailyRewardGlobalConfig;
@@ -32,16 +34,16 @@ namespace GamePackages
             TowerRiseManager.TowerRiseConfig = context.TowerRiseConfig;
 
             RegistryFeatureContext();
-            RegistryExtraFeatureContext(context);
+            RegistryExtraFeatureContext(context, saveService);
 
-            DailyGiftManager.SetContext(context.PlayerData.DailyGiftData);
-            DailyRewardManager.SetContext(context.PlayerData.DailyRewardData);
-            RecordManager.SetContext(context.PlayerData.RecordTrackingData);
-            HeartManager.SetContext(context.PlayerData.HeartData);
-            WinStreakManager.SetContext(context.PlayerData.WinStreakData);
-            LavaQuestManager.SetContext(context.PlayerData.LavaQuestData);
-            MissionControlManager.SetContext(context.PlayerData.MissionControlData);
-            TowerRiseManager.SetContext(context.PlayerData.TowerRiseData);
+            DailyGiftManager.SetContext(data.DailyGiftData);
+            DailyRewardManager.SetContext(data.DailyRewardData);
+            RecordManager.SetContext(data.RecordTrackingData);
+            HeartManager.SetContext(data.HeartData);
+            WinStreakManager.SetContext(data.WinStreakData);
+            LavaQuestManager.SetContext(data.LavaQuestData);
+            MissionControlManager.SetContext(data.MissionControlData);
+            TowerRiseManager.SetContext(data.TowerRiseData);
         }
         /// <summary>
         /// Registry All Feature
@@ -67,10 +69,12 @@ namespace GamePackages
         /// Registry Extra Context (Time, Data)
         /// </summary>
         /// <param name="context"></param>
-        void RegistryExtraFeatureContext(ProfileManager context)
+        // EN: Injects the supplied save service and shared managers without reading a public player model.
+        // VI: Gắn dịch vụ lưu được truyền vào cùng manager dùng chung mà không đọc model người chơi public.
+        void RegistryExtraFeatureContext(ProfileManager context, SaveService saveService)
         {
             l_FeatureTime.ForEach(x => x.SetTimeManager(context.TimeManager));
-            l_FeatureSave.ForEach(x => x.SetSaveService(context.SaveService));
+            l_FeatureSave.ForEach(x => x.SetSaveService(saveService));
             l_FeaturePlayerData.ForEach(x => x.SetPlayerDataManager(context.PlayerDataManager));
         }
         /// <summary>

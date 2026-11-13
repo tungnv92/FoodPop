@@ -28,6 +28,8 @@ public class TowerRiseProgress : MonoBehaviour
         lineProgress.fillOrigin = (int)Image.OriginVertical.Bottom;
     }
 
+    // EN: Coordinates Refresh using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối Refresh qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void Refresh()
     {
         if (Manager == null) return;
@@ -41,7 +43,7 @@ public class TowerRiseProgress : MonoBehaviour
         }
 
         if (Manager.ShouldPlayEventWinAnim() || Manager.ShouldPlayEventFailAnim())
-            ApplyVisualFromTotalProgress(Manager.towerRiseData.lastMilestone);
+            ApplyVisualFromTotalProgress(Manager.LastViewedProgress);
         else
             ApplyVisualFromTotalProgress(Manager.GetTotalCurrentWins());
     }
@@ -191,11 +193,13 @@ public class TowerRiseProgress : MonoBehaviour
         return count;
     }
 
+    // EN: Coordinates ShouldSnapProgressToTop using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ShouldSnapProgressToTop qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     bool ShouldSnapProgressToTop(float totalProgress)
     {
-        if (Manager?.towerRiseData == null || totalProgress < 0f) return false;
-        return Manager.towerRiseData.totalMilestone > 0
-            && totalProgress >= Manager.towerRiseData.totalMilestone;
+        if (Manager?.IsInitialized != true || totalProgress < 0f) return false;
+        return Manager.TotalProgress > 0
+            && totalProgress >= Manager.TotalProgress;
     }
 
     float ResolveProgressWorldY(int milestoneIndex, float step, float totalProgress = -1f)

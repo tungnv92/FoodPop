@@ -9,16 +9,38 @@ namespace FoodPop
     // VI: Quản lý mọi nút booster (trong BoosterSquare): đọc thao tác chạm lên icon, kiểm tra có dùng được không và chạy logic chơi cùng hiệu ứng của booster. Khóa thao tác trên board khi booster đang chạy hiệu ứng.
     public class BoosterController : MonoBehaviour
     {
+        // EN: Pickup rejection when every column has at most one row; only the icon shakes, no short message is shown.
+        // VI: Lý do từ chối Pickup khi mọi cột chỉ còn tối đa 1 hàng; chỉ lắc icon, không hiện thông báo ngắn.
+        private const string PickupNeedsTwoRows = "cần ít nhất một cột còn từ 2 hàng trở lên";
+
+        // EN: Clean rejection when the belt has no food; TryActivate shows the BeltEmpty short message for it.
+        // VI: Lý do từ chối Clean khi băng chuyền không có food; TryActivate hiện thông báo ngắn BeltEmpty cho lý do này.
+        private const string CleanBeltEmpty = "băng chuyền đang trống";
+
+        // EN: Rejection when no board is assigned (setup error); only logged, never shown to the player.
+        // VI: Lý do từ chối khi chưa gán board (lỗi thiết lập); chỉ ghi log, không hiện cho người chơi.
+        private const string BoardNotAssigned = "chưa gán board";
+
+        // EN: Scene instance, if any.
+        // VI: Bản trong scene, nếu có.
+        public static BoosterController Instance => instance;
+
+        // EN: True while a booster is running its effect.
+        // VI: True khi một booster đang chạy hiệu ứng.
+        public bool IsRunning => running;
+
+        private Camera inputCamera => Camera.main;
+
         [Tooltip("Board nguyên liệu mà các booster tác động.")]
         [SerializeField] private FoodBoardManager board;
-        [Tooltip("Camera dùng đổi vị trí chạm sang world; để trống dùng Camera.main.")]
-        [SerializeField] private Camera inputCamera;
         [Tooltip("Các nút booster do controller quản lý.")]
         [SerializeField] private List<Booster> boosters = new List<Booster>();
         [Tooltip("Object chứa các nút booster, bị ẩn khi đang chọn đĩa bằng PickupHand; để trống thì ẩn từng nút booster.")]
         [SerializeField] private GameObject boosterRoot;
         [Tooltip("Kho giữ món nhận food sau khi dùng booster dọn băng chuyền.")]
         [SerializeField] private FoodHoldingStorage holdingStorage;
+        [Tooltip("Điều khiển level, dùng số level hiện tại để khóa hoặc mở booster; để trống thì tự tìm trong scene.")]
+        [SerializeField] private LevelController levelController;
 
         private static BoosterController instance;
         private bool running;
@@ -48,14 +70,153 @@ namespace FoodPop
         private bool collectionInputWasLocked;
         private readonly List<SpriteRenderer> collectionFlyers = new List<SpriteRenderer>();
         private readonly List<ParticleEffect> collectionTrails = new List<ParticleEffect>();
+        private Booster trialBooster;
+        private System.Action trialTapped;
 
-        // EN: Scene instance, if any.
-        // VI: Bản trong scene, nếu có.
-        public static BoosterController Instance => instance;
+        // EN: Clears the static instance when entering Play Mode with domain reload disabled.
+        // VI: Xóa instance tĩnh khi vào Play Mode lúc tắt tải lại miền mã.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetInstance()
+        {
+            instance = null;
+        }
 
-        // EN: True while a booster is running its effect.
-        // VI: True khi một booster đang chạy hiệu ứng.
-        public bool IsRunning => running;
+        // EN: Registers the scene instance and fills any reference left empty in the Inspector.
+        // VI: Đăng ký bản trong scene và tự gán các tham chiếu còn trống trong Inspector.
+        private void Awake()
+        {
+            instance = this;
+            ResolveReferences();
+        }
+
+        // EN: Restores singleton registration after script reload so storage can observe booster ownership, follows level loads and applies the current level's booster locks.
+        // VI: Khôi phục đăng ký singleton sau tải lại script để kho nhận biết booster đang giữ quyền điều khiển, theo dõi lúc nạp level và áp khóa booster theo level hiện tại.
+        private void OnEnable()
+        {
+            instance = this;
+            if (levelController == null)
+                return;
+            levelController.LevelLoaded += OnLevelLoaded;
+            if (levelController.CurrentLevel != null)
+                RefreshBoosterLocks(levelController.CurrentLevel.levelNumber);
+        }
+
+        // EN: During a guided trial only the trial booster reacts (even while the game is paused); otherwise handles booster selection and taps only while gameplay time is running.
+        // VI: Trong lượt dùng thử có hướng dẫn chỉ booster được thử phản hồi (kể cả khi game đang tạm dừng); ngoài ra chỉ xử lý chọn và chạm booster khi thời gian gameplay đang chạy.
+        private void Update()
+        {
+            if (trialBooster != null)
+            {
+                UpdateTrial();
+                return;
+            }
+            if (Time.timeScale <= 0f) return;
+            if (pickupSelecting != null)
+            {
+                UpdatePickupSelection();
+                return;
+            }
+            if (!TryGetPointerDown(out Vector2 worldPoint))
+                return;
+            foreach (Booster booster in boosters)
+            {
+                if (booster != null && booster.Contains(worldPoint))
+                {
+                    TryActivate(booster);
+                    return;
+                }
+            }
+        }
+
+        // EN: Stops following level loads and releases Clean and Pickup-owned animation and input state when disabled.
+        // VI: Ngừng theo dõi lúc nạp level và giải phóng hoạt cảnh cùng trạng thái input của Clean và Pickup khi bị tắt.
+        private void OnDisable()
+        {
+            if (levelController != null)
+                levelController.LevelLoaded -= OnLevelLoaded;
+            CancelCleanCollection();
+            CancelPickupForReplay();
+        }
+
+        // EN: Unregisters the scene instance.
+        // VI: Hủy đăng ký bản trong scene.
+        private void OnDestroy()
+        {
+            if (instance == this)
+                instance = null;
+        }
+
+        // EN: Only shakes a locked booster (no purchase, no message), requests purchases when empty and starts eligible boosters only after payment succeeds; Pickup commits at the validated pick boundary. Player-facing rejections (Clean on an empty belt, Pickup reasons) show their BoosterConfig short message.
+        // VI: Booster còn khóa chỉ lắc (không mua, không thông báo); yêu cầu mua khi hết lượt và chỉ chạy booster hợp lệ sau khi thanh toán thành công; Pickup chốt tại bước lấy đã kiểm tra. Các lý do từ chối hiện cho người chơi (Clean khi băng trống, lý do của Pickup) dùng thông báo ngắn trong BoosterConfig.
+        public bool TryActivate(Booster booster)
+        {
+            if (Time.timeScale <= 0f) return false;
+            if (booster != null && booster.IsLocked)
+            {
+                booster.PlayDenied();
+                Debug.Log($"[BoosterController] {booster.Type} còn khóa, mở ở level {IngameConfig.Instance.Boosters.GetUnlockLevel(booster.Type)}.", booster);
+                return false;
+            }
+            if (booster != null && !running && !booster.HasAmount)
+            {
+                booster.RequestBuy();
+                return false;
+            }
+            string reason = booster == null ? "không có booster"
+                : running ? ShortDes(BoosterConfig.ShortDesType.BoosterRunning)
+                : CanUse(booster);
+            if (reason != null)
+            {
+                if (booster != null)
+                {
+                    booster.PlayDenied();
+                    if (booster is CleanBrushBooster && reason == CleanBeltEmpty)
+                        UIManager.Instance?.ShowShortMessage(ShortDes(BoosterConfig.ShortDesType.BeltEmpty));
+                    else if (booster is PickupHandBooster && reason != PickupNeedsTwoRows && reason != BoardNotAssigned)
+                        UIManager.Instance?.ShowShortMessage(reason);
+                    Debug.Log($"[BoosterController] Không dùng được {booster.Type}: {reason}.", booster);
+                }
+                return false;
+            }
+            switch (booster)
+            {
+                case ShuffleBooster shuffle:
+                    if (!shuffle.Consume()) return false;
+                    StartCoroutine(RunLocked(Shuffle(shuffle)));
+                    return true;
+                case PickupHandBooster pickup:
+                    BeginPickupSelection(pickup);
+                    return true;
+                case AutoCompleteBooster autoComplete:
+                    if (!autoComplete.Consume()) return false;
+                    StartCoroutine(RunLocked(AutoComplete(autoComplete)));
+                    return true;
+                case CleanBrushBooster cleanBrush:
+                    if (!cleanBrush.Consume()) return false;
+                    cleanPending = true;
+                    StartCoroutine(RunLocked(CleanBrush(cleanBrush)));
+                    return true;
+                default:
+                    Debug.LogWarning($"[BoosterController] Booster {booster.Type} chưa có logic.", booster);
+                    return false;
+            }
+        }
+
+        // EN: Restricts input to one booster for the unlock intro's guided trial; tapped runs once when the player taps it (other taps are ignored, even while paused).
+        // VI: Giới hạn thao tác vào một booster cho lượt dùng thử có hướng dẫn của màn giới thiệu mở khóa; tapped chạy một lần khi người chơi chạm booster đó (các chạm khác bị bỏ qua, kể cả khi đang tạm dừng).
+        public void BeginTrial(Booster booster, System.Action tapped)
+        {
+            trialBooster = booster;
+            trialTapped = tapped;
+        }
+
+        // EN: Leaves trial mode without calling the tap callback.
+        // VI: Thoát chế độ dùng thử mà không gọi callback chạm.
+        public void EndTrial()
+        {
+            trialBooster = null;
+            trialTapped = null;
+        }
 
         // EN: Checks whether revive can reuse Clean's configured effects and storage without starting a booster.
         // VI: Kiểm tra hồi sinh có thể dùng lại hiệu ứng và kho của Clean mà chưa bắt đầu booster.
@@ -67,15 +228,6 @@ namespace FoodPop
                 ChefManager.Instance.HasFoodOnBelt() && FindFirstObjectByType<ConveyorChefMovement>() != null;
         }
 
-        // EN: Uses the existing Clean component even when its button is hidden, preserving its effects and tuning.
-        // VI: Dùng component Clean hiện có kể cả khi nút bị ẩn, giữ nguyên hiệu ứng và thông số.
-        private CleanBrushBooster FindCleanSettings()
-        {
-            foreach (Booster booster in boosters)
-                if (booster is CleanBrushBooster clean) return clean;
-            return GetComponentInChildren<CleanBrushBooster>(true);
-        }
-
         // EN: Starts the normal locked Clean collection for revive without consuming or tapping a booster button.
         // VI: Bắt đầu lượt thu Clean khóa thao tác để hồi sinh mà không tiêu hao hoặc bấm nút booster.
         public bool TryCleanForRevive(System.Action<bool> completed)
@@ -85,53 +237,6 @@ namespace FoodPop
             cleanPending = true;
             StartCoroutine(RunReviveClean(settings, completed));
             return true;
-        }
-
-        // EN: Reports completion only after Clean has released its pause and input locks and freed conveyor space.
-        // VI: Báo hoàn tất sau khi Clean nhả tạm dừng, khóa thao tác và giải phóng chỗ trên băng chuyền.
-        private IEnumerator RunReviveClean(CleanBrushBooster settings, System.Action<bool> completed)
-        {
-            yield return RunLocked(CleanBrush(settings));
-            ChefManager chef = ChefManager.Instance;
-            completed?.Invoke(chef != null && chef.CountEmptySlots() > 0);
-        }
-
-        // EN: Clears the static instance when entering Play Mode with domain reload disabled.
-        // VI: Xóa instance tĩnh khi vào Play Mode lúc tắt tải lại miền mã.
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetInstance()
-        {
-            instance = null;
-        }
-
-        // EN: Registers the scene instance.
-        // VI: Đăng ký bản trong scene.
-        private void Awake()
-        {
-            instance = this;
-        }
-
-        // EN: Restores singleton registration after script reload so storage can observe booster ownership.
-        // VI: Khôi phục đăng ký singleton sau tải lại script để kho nhận biết booster đang giữ quyền điều khiển.
-        private void OnEnable()
-        {
-            instance = this;
-        }
-
-        // EN: Unregisters the scene instance.
-        // VI: Hủy đăng ký bản trong scene.
-        private void OnDestroy()
-        {
-            if (instance == this)
-                instance = null;
-        }
-
-        // EN: Releases Clean and Pickup-owned animation and input state when disabled.
-        // VI: Giải phóng hoạt cảnh cùng trạng thái input của Clean và Pickup khi bị tắt.
-        private void OnDisable()
-        {
-            CancelCleanCollection();
-            CancelPickupForReplay();
         }
 
         // EN: Cancels pending collection flights on replay or disable and restores stored portions and pause ownership.
@@ -157,78 +262,73 @@ namespace FoodPop
             SetBoosterRootVisible(true);
         }
 
-        // EN: Handles booster selection and taps only while gameplay time is running.
-        // VI: Xử lý chọn và chạm booster chỉ khi thời gian gameplay đang chạy.
-        private void Update()
+        // EN: Fills empty references straight from the scene: the board singleton, the LevelController, every Booster under this object (inactive ones included) and the child named "Root" that holds the booster buttons.
+        // VI: Tự gán tham chiếu còn trống từ scene: singleton board, LevelController, mọi Booster nằm dưới object này (kể cả đang tắt) và object con tên "Root" chứa các nút booster.
+        private void ResolveReferences()
         {
-            if (Time.timeScale <= 0f) return;
-            if (pickupSelecting != null)
+            if (board == null)
+                board = FoodBoardManager.Instance;
+            if (levelController == null)
+                levelController = FindFirstObjectByType<LevelController>();
+            if (boosters == null || boosters.Count == 0 || boosters.Contains(null))
+                boosters = new List<Booster>(GetComponentsInChildren<Booster>(true));
+            if (boosterRoot == null)
             {
-                UpdatePickupSelection();
-                return;
+                Transform root = transform.Find("Root");
+                if (root != null)
+                    boosterRoot = root.gameObject;
             }
-            if (!TryGetPointerDown(out Vector2 worldPoint))
-                return;
+        }
+
+        // EN: Level-load callback: updates every booster's lock for the new level number.
+        // VI: Callback khi nạp level: cập nhật khóa của mọi booster theo số level mới.
+        private void OnLevelLoaded(LevelConfig config)
+        {
+            RefreshBoosterLocks(config.levelNumber);
+        }
+
+        // EN: Locks or unlocks every booster button for the given level number.
+        // VI: Khóa hoặc mở khóa mọi nút booster theo số level đã cho.
+        private void RefreshBoosterLocks(int level)
+        {
             foreach (Booster booster in boosters)
-            {
-                if (booster != null && booster.Contains(worldPoint))
-                {
-                    TryActivate(booster);
-                    return;
-                }
-            }
-        }
-
-        // EN: Runs eligible boosters and shows short messages for Pickup rejection or an empty Clean belt.
-        // VI: Chạy booster đủ điều kiện và hiện thông báo ngắn khi Pickup bị từ chối hoặc Clean gặp băng trống.
-        public bool TryActivate(Booster booster)
-        {
-            if (Time.timeScale <= 0f) return false;
-            string reason = booster == null ? "không có booster"
-                : running ? "đang có booster khác chạy"
-                : CanUse(booster);
-            if (reason != null)
-            {
                 if (booster != null)
-                {
-                    booster.PlayDenied();
-                    if (booster is CleanBrushBooster && reason == "băng chuyền đang trống")
-                        UIManager.Instance?.ShowShortMessage("Băng chuyền đang trống");
-                    else if (booster is PickupHandBooster)
-                        UIManager.Instance?.ShowShortMessage(reason);
-                    Debug.Log($"[BoosterController] Không dùng được {booster.Type}: {reason}.", booster);
-                }
-                return false;
-            }
-            switch (booster)
-            {
-                case ShuffleBooster shuffle:
-                    StartCoroutine(RunLocked(Shuffle(shuffle)));
-                    return true;
-                case PickupHandBooster pickup:
-                    BeginPickupSelection(pickup);
-                    return true;
-                case AutoCompleteBooster autoComplete:
-                    StartCoroutine(RunLocked(AutoComplete(autoComplete)));
-                    return true;
-                case CleanBrushBooster cleanBrush:
-                    cleanPending = true;
-                    StartCoroutine(RunLocked(CleanBrush(cleanBrush)));
-                    return true;
-                default:
-                    Debug.LogWarning($"[BoosterController] Booster {booster.Type} chưa có logic.", booster);
-                    return false;
-            }
+                    booster.RefreshLock(level);
         }
 
-        // EN: Returns null when the booster can do something right now, otherwise the reason it cannot (shown in the log).
-        // VI: Trả về null khi booster dùng được ngay lúc này, ngược lại trả về lý do không dùng được (ghi ra log).
+        // EN: Player-facing short message text from BoosterConfig.
+        // VI: Nội dung thông báo ngắn cho người chơi lấy từ BoosterConfig.
+        private static string ShortDes(BoosterConfig.ShortDesType type)
+        {
+            return IngameConfig.Instance.Boosters.GetShortDes(type);
+        }
+
+        // EN: Uses the existing Clean component even when its button is hidden, preserving its effects and tuning.
+        // VI: Dùng component Clean hiện có kể cả khi nút bị ẩn, giữ nguyên hiệu ứng và thông số.
+        private CleanBrushBooster FindCleanSettings()
+        {
+            foreach (Booster booster in boosters)
+                if (booster is CleanBrushBooster clean) return clean;
+            return GetComponentInChildren<CleanBrushBooster>(true);
+        }
+
+        // EN: Reports completion only after Clean has released its pause and input locks and freed conveyor space.
+        // VI: Báo hoàn tất sau khi Clean nhả tạm dừng, khóa thao tác và giải phóng chỗ trên băng chuyền.
+        private IEnumerator RunReviveClean(CleanBrushBooster settings, System.Action<bool> completed)
+        {
+            yield return RunLocked(CleanBrush(settings));
+            ChefManager chef = ChefManager.Instance;
+            completed?.Invoke(chef != null && chef.CountEmptySlots() > 0);
+        }
+
+        // EN: Returns null when the booster can do something right now, otherwise the reason it cannot (always logged; the busy-board and Pickup reasons are BoosterConfig short messages because Pickup shows them to the player, a missing board is log-only).
+        // VI: Trả về null khi booster dùng được ngay lúc này, ngược lại trả về lý do không dùng được (luôn ghi log; lý do board đang bận và lý do Pickup là thông báo ngắn trong BoosterConfig vì Pickup hiện chúng cho người chơi, thiếu board chỉ ghi log).
         private string CanUse(Booster booster)
         {
             if (board == null)
-                return "chưa gán board";
+                return BoardNotAssigned;
             if (board.IsAnimating)
-                return "board đang trượt cột hoặc mở nắp";
+                return ShortDes(BoosterConfig.ShortDesType.BoardBusy);
             switch (booster)
             {
                 case ShuffleBooster _:
@@ -239,10 +339,10 @@ namespace FoodPop
                     return CanPickup(pickup.maxVisibleRows);
                 case CleanBrushBooster _:
                     if (holdingStorage == null || !holdingStorage.IsReady)
-                        return "chưa có khay giữ món sẵn sàng";
+                        return "chưa có túi giữ món sẵn sàng";
                     if (holdingStorage.IsReturning)
-                        return "khay đang trả món lên băng chuyền";
-                    return ChefManager.Instance != null && ChefManager.Instance.HasFoodOnBelt() ? null : "băng chuyền đang trống";
+                        return "túi đang trả món lên băng chuyền";
+                    return ChefManager.Instance != null && ChefManager.Instance.HasFoodOnBelt() ? null : CleanBeltEmpty;
                 case AutoCompleteBooster _:
                     return CustomerManager.Instance != null && CustomerManager.Instance.HasAutoCompleteTarget() ? null : "không có món nào cần hoàn thành";
                 default:
@@ -298,10 +398,12 @@ namespace FoodPop
 
         // ---------------------------------------------------------------- PickupHand
 
-        // EN: Checks visible groups and reports ice or capacity using the same rules as selection.
-        // VI: Kiểm tra nhóm trong vùng chọn và báo băng hoặc sức chứa theo cùng quy tắc lựa chọn.
+        // EN: Requires at least one column with two or more rows (when every column has a single row the player can already pick any dish normally), then checks visible groups and reports ice or capacity using the same rules as selection; the fallback "nothing to pick" text comes from BoosterConfig.
+        // VI: Yêu cầu có ít nhất một cột còn từ 2 hàng trở lên (khi mọi cột chỉ còn 1 hàng thì người chơi đã lấy được mọi đĩa như bình thường), sau đó kiểm tra nhóm trong vùng chọn và báo băng hoặc sức chứa theo cùng quy tắc lựa chọn; câu "không có gì để lấy" dự phòng lấy từ BoosterConfig.
         private string CanPickup(int maxRows)
         {
+            if (GetBoardMaxRows() < 2)
+                return PickupNeedsTwoRows;
             string blocked = null, capacity = null;
             int freeSlots = CountFreeSlots();
             for (int c = 0; c < board.ColumnCount; c++)
@@ -318,7 +420,7 @@ namespace FoodPop
                     else blocked = reason;
                 }
             }
-            return capacity ?? blocked ?? "Không có nguyên liệu để lấy";
+            return capacity ?? blocked ?? ShortDes(BoosterConfig.ShortDesType.NoPlateToPick);
         }
 
         // EN: Number of empty conveyor slots now (0 when there is no chef manager).
@@ -352,6 +454,17 @@ namespace FoodPop
             RefreshPickupTargets(true);
         }
 
+        // EN: Waits for a tap on the trial booster and hands it to the trial callback once.
+        // VI: Chờ chạm vào booster đang được thử và chuyển cho callback dùng thử một lần.
+        private void UpdateTrial()
+        {
+            if (!TryGetPointerDown(out Vector2 worldPoint) || !trialBooster.Contains(worldPoint))
+                return;
+            System.Action tapped = trialTapped;
+            EndTrial();
+            tapped?.Invoke();
+        }
+
         // EN: Updates available highlights and routes pointer input to cancellation or whole-group selection.
         // VI: Cập nhật nhóm lấy được và chuyển thao tác chạm sang hủy hoặc chọn cả nhóm.
         private void UpdatePickupSelection()
@@ -369,15 +482,19 @@ namespace FoodPop
             TryPickupDishAt(column, row);
         }
 
-        // EN: Validates every linked member and starts Pickup using the input lock saved before selection.
-        // VI: Kiểm tra mọi thành viên nối và chạy Pickup với khóa input đã lưu trước chế độ chọn.
+        // EN: Validates every linked member (rejections use BoosterConfig short messages; a dish outside the selectable rows only flashes, without a message) and starts Pickup using the input lock saved before selection.
+        // VI: Kiểm tra mọi thành viên nối (lý do từ chối dùng thông báo ngắn trong BoosterConfig; đĩa ngoài vùng hàng được chọn chỉ nháy, không hiện thông báo) và chạy Pickup với khóa input đã lưu trước chế độ chọn.
         public bool TryPickupDishAt(int column, int row)
         {
             if (pickupSelecting == null || column < 0 || column >= board.ColumnCount) return false;
             if (row < 0 || row >= board.GetColumnDishes(column).Count) return false;
             Food dish = board.GetColumnDishes(column)[row];
-            string reason = row >= pickupVisibleRows ? "Nguyên liệu nằm ngoài vùng chọn" :
-                board.GetPickupGroupRejection(dish, CountFreeSlots());
+            if (row >= pickupVisibleRows)
+            {
+                ShowPickupDenied(dish, "đĩa nằm ngoài vùng chọn", false);
+                return false;
+            }
+            string reason = board.GetPickupGroupRejection(dish, CountFreeSlots());
             if (reason != null)
             {
                 ShowPickupDenied(dish, reason);
@@ -390,13 +507,14 @@ namespace FoodPop
             return true;
         }
 
-        // EN: Shows the precise rejection reason and flashes all members of the rejected group.
-        // VI: Hiện đúng lý do từ chối và nháy mọi thành viên trong nhóm bị từ chối.
-        private void ShowPickupDenied(Food dish, string reason)
+        // EN: Flashes all members of the rejected group, logs the reason and shows it as a short message unless showMessage is false.
+        // VI: Nháy mọi thành viên trong nhóm bị từ chối, ghi log lý do và hiện lý do thành thông báo ngắn trừ khi showMessage là false.
+        private void ShowPickupDenied(Food dish, string reason, bool showMessage = true)
         {
             foreach (Food member in board.GetPickMembers(dish))
                 if (member != null) member.Selection?.PlayRejected();
-            UIManager.Instance?.ShowShortMessage(reason);
+            if (showMessage)
+                UIManager.Instance?.ShowShortMessage(reason);
             Debug.Log($"[BoosterController] Pickup: {reason}.", this);
         }
 
@@ -441,8 +559,8 @@ namespace FoodPop
             SetBoosterRootVisible(true);
         }
 
-        // EN: Lifts the entire linked group together and restores all poses when picking fails or is interrupted.
-        // VI: Nhấc đồng thời cả nhóm nối và khôi phục mọi tư thế khi lấy thất bại hoặc bị ngắt.
+        // EN: Lifts the linked group, commits its booster payment after board validation and restores poses if picking or payment fails (showing the board reason as a short message; a failure without a gameplay reason only flashes the dishes and logs).
+        // VI: Nhấc nhóm nối, chốt lượt booster sau kiểm tra board và khôi phục tư thế nếu lấy hoặc thanh toán thất bại (hiện lý do của board thành thông báo ngắn; thất bại không có lý do gameplay thì chỉ nháy đĩa và ghi log).
         private IEnumerator Pickup(PickupHandBooster settings, int column, int row)
         {
             Food dish = board.GetColumnDishes(column)[row];
@@ -458,11 +576,15 @@ namespace FoodPop
             {
                 yield return LiftPickupGroup(settings);
                 if (reveal != null) yield return reveal;
-                if (board.TryPickDishAt(column, row)) pickupPoses.Clear();
+                if (board.TryPickDishAt(column, row, settings.Consume))
+                {
+                    pickupPoses.Clear();
+                }
                 else
                 {
                     RestorePickupPoses();
-                    ShowPickupDenied(dish, board.GetPickupGroupRejection(dish, CountFreeSlots()) ?? "Không thể lấy nguyên liệu lúc này");
+                    string reason = board.GetPickupGroupRejection(dish, CountFreeSlots());
+                    ShowPickupDenied(dish, reason ?? "không thể lấy nguyên liệu lúc này", reason != null);
                 }
                 while (board.IsAnimating) yield return null;
                 Coroutine cameraBack = RestorePickupCamera();
@@ -833,6 +955,8 @@ namespace FoodPop
 
         // EN: Takes an ingredient from belt, holding tray or board, then flies it into the AutoComplete star.
         // VI: Lấy nguyên liệu từ băng, khay giữ món hoặc board rồi cho bay vào sao AutoComplete.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
         private IEnumerator GatherIngredient(AutoCompleteBooster settings, StarState star, FoodType type, int layer, System.Action absorbed)
         {
             ChefManager chef = ChefManager.Instance;
@@ -844,7 +968,7 @@ namespace FoodPop
             {
                 Debug.LogWarning($"[BoosterController] AutoComplete: không tìm thấy {type} trên băng chuyền hay board; kiểm tra lại level.", this);
                 start = star.position;
-                sprite = board.IconConfig != null ? board.IconConfig.GetIcon(type) : null;
+                sprite = IngameConfig.Instance.FoodIcons != null ? IngameConfig.Instance.FoodIcons.GetIcon(type) : null;
             }
             SpriteRenderer flyer = RentFx(sprite, layer, settings.sortingOrder + 3);
             Vector3 lift = Vector3.up * settings.gatherArcHeight;
@@ -895,12 +1019,14 @@ namespace FoodPop
 
         // EN: Creates one prepared-looking sprite per reserved ingredient at the burst point.
         // VI: Tạo một sprite (dạng đã sơ chế) cho mỗi nguyên liệu đã giữ chỗ tại tâm vụ nổ.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
         private List<SpriteRenderer> PopIngredients(AutoCompleteBooster settings, CustomerManager.AutoCompleteJob job, Vector3 point, int layer)
         {
             List<SpriteRenderer> pieces = new List<SpriteRenderer>(job.ingredients.Count);
             foreach (FoodType type in job.ingredients)
             {
-                Sprite sprite = board.IconConfig != null ? board.IconConfig.GetIcon(type, FoodState.Prepared) : null;
+                Sprite sprite = IngameConfig.Instance.FoodIcons != null ? IngameConfig.Instance.FoodIcons.GetIcon(type, FoodState.Prepared) : null;
                 SpriteRenderer piece = RentFx(sprite, layer, settings.sortingOrder + 3);
                 PlaceFx(piece, point, 0.01f, 0f);
                 pieces.Add(piece);
@@ -987,8 +1113,8 @@ namespace FoodPop
 
         // ---------------------------------------------------------------- CleanBrush
 
-        // EN: Pauses belt activity, extends the tray, collects food in staggered flights and retracts after the final landing.
-        // VI: Tạm dừng hoạt động băng, kéo khay ra, thu food bằng chuyến bay nối tiếp rồi thu khay sau lần đáp cuối.
+        // EN: Pauses belt activity, pops the holding bag in and collects food into it in staggered flights, waiting for the final landing; the bag hides again if nothing was collected.
+        // VI: Tạm dừng hoạt động băng, cho túi giữ món bật hiện và thu food vào bằng các chuyến bay nối tiếp, chờ tới lần đáp cuối; túi ẩn lại nếu không thu được gì.
         private IEnumerator CleanBrush(CleanBrushBooster settings)
         {
             ChefManager chef = ChefManager.Instance;
@@ -997,11 +1123,9 @@ namespace FoodPop
             if (chef == null || belt == null || holdingStorage == null || !holdingStorage.IsReady)
                 yield break;
             PauseForCollection(belt, chef, customers);
+            holdingStorage.ShowBag();
             try
             {
-                yield return holdingStorage.MoveDrawer(true);
-                if (!holdingStorage.IsReady)
-                    yield break;
                 int launched = 0, landed = 0;
                 foreach (ConveyorSlot slot in chef.Slots)
                 {
@@ -1023,7 +1147,7 @@ namespace FoodPop
                 foreach (ConveyorSlot slot in chef.Slots)
                     while (slot != null && slot.IsPlateReturning)
                         yield return null;
-                yield return holdingStorage.MoveDrawer(false);
+                holdingStorage.HideIfEmpty();
             }
             finally
             {
@@ -1059,8 +1183,8 @@ namespace FoodPop
             collectionPaused = false;
         }
 
-        // EN: Lifts plate and highlighted food together, then drops the plate while food flies into storage at original size.
-        // VI: Nhấc đĩa và food sáng cùng nhau, rồi thả đĩa xuống khi food bay vào kho ở kích thước gốc.
+        // EN: Lifts plate and highlighted food together, then drops the plate while food flies at original size to the bag mouth and drops in behind the bag's front layer.
+        // VI: Nhấc đĩa và food sáng cùng nhau, rồi thả đĩa xuống khi food bay ở kích thước gốc tới miệng túi và rơi vào sau lớp trước của túi.
         private IEnumerator CollectIntoTray(CleanBrushBooster settings, ConveyorSlot slot, FoodHoldingStorage.Portion portion, Sprite sprite, Vector3 start, int layer, System.Action landed)
         {
             SpriteRenderer flyer = RentFx(sprite, layer, settings.sortingOrder);
@@ -1068,6 +1192,7 @@ namespace FoodPop
             if (settings.collectionHighlight != null) flyer.sharedMaterial = settings.collectionHighlight;
             var highlight = new MaterialPropertyBlock();
             ParticleEffect trail = null;
+            bool arrived = false;
             collectionFlyers.Add(flyer);
             try
             {
@@ -1096,7 +1221,7 @@ namespace FoodPop
                     if (holdingStorage == null)
                         yield break;
                     float t = Mathf.SmoothStep(0f, 1f, elapsed / settings.flyDuration);
-                    Vector3 target = holdingStorage.GetPosition(portion);
+                    Vector3 target = holdingStorage.MouthPosition;
                     Vector3 control = (from + target) * 0.5f + Vector3.up * settings.flyArc;
                     Vector3 position = (1f-t)*(1f-t)*from + 2f*(1f-t)*t*control + t*t*target;
                     flyer.transform.position = position;
@@ -1105,6 +1230,7 @@ namespace FoodPop
                     flyer.transform.rotation = Quaternion.Euler(0f, 0f, -8f * Mathf.Sin(t * Mathf.PI));
                     yield return null;
                 }
+                arrived = true;
             }
             finally
             {
@@ -1116,7 +1242,11 @@ namespace FoodPop
                     flyer.SetPropertyBlock(null);
                 }
                 if (flyer != null && flyer.gameObject.activeSelf) ReleaseFx(flyer);
-                if (holdingStorage != null) holdingStorage.Reveal(portion);
+                if (holdingStorage != null)
+                {
+                    if (arrived) holdingStorage.DropIn(portion);
+                    else holdingStorage.Reveal(portion);
+                }
                 landed();
             }
         }
@@ -1455,17 +1585,5 @@ namespace FoodPop
             return true;
         }
 
-#if UNITY_EDITOR
-        // EN: Editor-only: assigns the board, camera, booster list and the root object that holds the booster buttons (used by the setup tool).
-        // VI: Chỉ dùng trong editor: gán board, camera, danh sách booster và object root chứa các nút booster (công cụ setup gọi).
-        public void Configure(FoodBoardManager boardManager, Camera camera, List<Booster> buttons, GameObject root)
-        {
-            board = boardManager;
-            inputCamera = camera;
-            boosters = buttons;
-            if (root != null)
-                boosterRoot = root;
-        }
-#endif
     }
 }

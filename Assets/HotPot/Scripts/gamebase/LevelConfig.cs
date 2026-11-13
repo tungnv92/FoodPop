@@ -8,8 +8,19 @@ namespace FoodPop
     [CreateAssetMenu(fileName = "LevelConfig", menuName = "Hot Pot/Level Config")]
     public partial class LevelConfig : ScriptableObject
     {
-        [Tooltip("Màn chơi kế tiếp khi thắng; để trống nếu đây là màn cuối.")]
-        public LevelConfig nextLevel;
+        // EN: Folder under a Resources directory that holds every playable level (Assets/HotPot/Config/Resources/Levels).
+        // VI: Thư mục trong Resources chứa mọi level chơi được (Assets/HotPot/Config/Resources/Levels).
+        public const string ResourceFolder = "Levels";
+
+        // EN: Counts customers in the shared queue or legacy fallback.
+        // VI: Đếm khách trong hàng chung hoặc dữ liệu cũ.
+        public int TotalCustomers => GetCustomerQueue().Count;
+
+        [Tooltip("Số màn hiển thị trên thanh giao diện phía trên; phải khớp số trong tên file.")]
+        [Min(1)] public int levelNumber = 1;
+
+        [Tooltip("Độ khó của màn; màn Khó dùng bản cùng số có hậu tố _Easy khi số lần chơi lại từ hai trở lên.")]
+        public DifficultyMode difficultyMode = DifficultyMode.Normal;
 
         [Header("Customers")]
         [Tooltip("Dùng danh sách chung kể cả khi trống.")]
@@ -36,9 +47,31 @@ namespace FoodPop
         [Tooltip("Nhóm 2–3 đĩa nối theo thứ tự A–B–C; mỗi đoạn dây thẳng, tọa độ ô gốc bắt đầu từ 0.")]
         public List<DishLinkConfig> dishLinks = new List<DishLinkConfig>();
 
-        // EN: Counts customers in the shared queue or legacy fallback.
-        // VI: Đếm khách trong hàng chung hoặc dữ liệu cũ.
-        public int TotalCustomers => GetCustomerQueue().Count;
+        // EN: Keeps the board at boardColumns columns of boardRows foods whenever values change in the Inspector.
+        // VI: Giữ bảng luôn có boardColumns cột, mỗi cột boardRows nguyên liệu, mỗi khi đổi giá trị trong Inspector.
+        private void OnValidate()
+        {
+            ResizeBoard();
+        }
+
+        // EN: Standard asset name for a level number (two digits minimum), e.g. LevelConfig_03 or LevelConfig_120.
+        // VI: Tên asset chuẩn theo số level (tối thiểu hai chữ số), ví dụ LevelConfig_03 hoặc LevelConfig_120.
+        public static string AssetName(int number) => $"LevelConfig_{number:00}";
+
+        // EN: Loads only the requested level from Resources/Levels; returns null when that level does not exist.
+        // VI: Chỉ nạp level được yêu cầu từ Resources/Levels; trả về null khi level đó không tồn tại.
+        public static LevelConfig Load(int number) =>
+            number < 1 ? null : Resources.Load<LevelConfig>($"{ResourceFolder}/{AssetName(number)}");
+
+        // EN: Selects an authored Hard level's Easy variant after two retries, keeping the original configuration when the Easy asset is absent.
+        // VI: Chọn biến thể Easy của màn được cấu hình Hard sau hai lần chơi lại, giữ bản gốc khi không có asset Easy.
+        public LevelConfig ForRetry(int retryCount)
+        {
+            if (difficultyMode != DifficultyMode.Hard || retryCount < 2)
+                return this;
+            LevelConfig easy = Resources.Load<LevelConfig>($"{ResourceFolder}/{AssetName(levelNumber)}_Easy");
+            return easy != null ? easy : this;
+        }
 
         // EN: Copies the shared queue, interleaving old left/right data when necessary.
         // VI: Sao chép hàng chung, xen kẽ dữ liệu trái/phải cũ khi cần.
@@ -151,6 +184,26 @@ namespace FoodPop
             }
         }
 
+        // EN: Normalizes dimensions and repairs missing lists or columns before resizing the rectangular board.
+        // VI: Chuẩn hóa kích thước và sửa danh sách hoặc cột bị thiếu trước khi đổi kích thước bảng chữ nhật.
+        public void ResizeBoard()
+        {
+            int columns = boardColumns = Mathf.Max(1, boardColumns);
+            int rows = boardRows = Mathf.Max(1, boardRows);
+            if (ingredientBoard == null)
+                ingredientBoard = new List<BoardColumn>();
+            while (ingredientBoard.Count < columns)
+                ingredientBoard.Add(new BoardColumn());
+            if (ingredientBoard.Count > columns)
+                ingredientBoard.RemoveRange(columns, ingredientBoard.Count - columns);
+            for (int c = 0; c < ingredientBoard.Count; c++)
+            {
+                if (ingredientBoard[c] == null)
+                    ingredientBoard[c] = new BoardColumn();
+                ingredientBoard[c].Resize(rows);
+            }
+        }
+
         // EN: Reports footprint conflicts, unsupported shapes and nonpositive portions before a level is played.
         // VI: Báo xung đột vùng chiếm, kiểu đĩa không hợp lệ và số phần không dương trước khi chơi level.
         private void CollectCellProblems(int column, int row, List<string> problems)
@@ -175,33 +228,6 @@ namespace FoodPop
                 problems.Add($"{name}: đĩa đôi chưa chọn đủ nguyên liệu cho cả hai phần.");
             if (cell.requiredCount <= 0 || cell.secondCount <= 0)
                 problems.Add($"{name}: số lượng mỗi phần của đĩa đôi phải lớn hơn 0.");
-        }
-
-        // EN: Keeps the board at boardColumns columns of boardRows foods whenever values change in the Inspector.
-        // VI: Giữ bảng luôn có boardColumns cột, mỗi cột boardRows nguyên liệu, mỗi khi đổi giá trị trong Inspector.
-        private void OnValidate()
-        {
-            ResizeBoard();
-        }
-
-        // EN: Normalizes dimensions and repairs missing lists or columns before resizing the rectangular board.
-        // VI: Chuẩn hóa kích thước và sửa danh sách hoặc cột bị thiếu trước khi đổi kích thước bảng chữ nhật.
-        public void ResizeBoard()
-        {
-            int columns = boardColumns = Mathf.Max(1, boardColumns);
-            int rows = boardRows = Mathf.Max(1, boardRows);
-            if (ingredientBoard == null)
-                ingredientBoard = new List<BoardColumn>();
-            while (ingredientBoard.Count < columns)
-                ingredientBoard.Add(new BoardColumn());
-            if (ingredientBoard.Count > columns)
-                ingredientBoard.RemoveRange(columns, ingredientBoard.Count - columns);
-            for (int c = 0; c < ingredientBoard.Count; c++)
-            {
-                if (ingredientBoard[c] == null)
-                    ingredientBoard[c] = new BoardColumn();
-                ingredientBoard[c].Resize(rows);
-            }
         }
     }
 

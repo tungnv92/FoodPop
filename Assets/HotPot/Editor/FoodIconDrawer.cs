@@ -9,17 +9,17 @@ namespace FoodPop
         private const float PreviewSize = 64f;
         private const float Padding = 4f;
 
-        // EN: Reserves a type selector, separate preview rows for raw and prepared sprites, rows for the chop sound and chop debris, and room for the chop sound variants list.
-        // VI: Dành chỗ chọn loại, hai hàng xem trước cho sprite thô và đã sơ chế, các hàng cho âm thanh chặt và vụn khi chặt, và chỗ cho danh sách biến thể tiếng chặt.
+        // EN: Reserves sprite previews, sounds, debris and the skip-preparation toggle.
+        // VI: Dành chỗ xem ảnh, âm thanh, vụn và ô "không cần sơ chế" riêng từng nguyên liệu.
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
             float line = EditorGUIUtility.singleLineHeight + Padding;
             float variants = EditorGUI.GetPropertyHeight(property.FindPropertyRelative("chopSoundVariants"), true) + Padding;
-            return EditorGUIUtility.singleLineHeight + (PreviewSize + Padding) * 2f + Padding + line * 2f + variants;
+            return EditorGUIUtility.singleLineHeight + (PreviewSize + Padding) * 2f + Padding + line * 3f + variants;
         }
 
-        // EN: Draws the ingredient type with its preparation group on the first row, then both state previews, the chop sound, its variants and the chop debris, using serialized fields with Undo support.
-        // VI: Vẽ loại nguyên liệu cùng nhóm sơ chế ở hàng đầu, sau đó là ảnh hai trạng thái, tiếng chặt, các biến thể và vụn khi chặt, bằng field serialized có hỗ trợ Undo.
+        // EN: Draws per-ingredient images, sound, debris and the skip-preparation toggle with serialized Undo support.
+        // VI: Vẽ ảnh, âm thanh, vụn và ô "không cần sơ chế" riêng từng nguyên liệu với hỗ trợ Undo.
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             EditorGUI.BeginProperty(position, label, property);
@@ -43,6 +43,8 @@ namespace FoodPop
             EditorGUI.PropertyField(variantsRect, variants, new GUIContent("Biến thể tiếng chặt"), true);
             line.y = variantsRect.yMax + Padding;
             DrawLabeledField(line, property.FindPropertyRelative("chopDebris"), "Vụn khi chặt");
+            line.y += EditorGUIUtility.singleLineHeight + Padding;
+            DrawLabeledField(line, property.FindPropertyRelative("skipPreparation"), "Không cần sơ chế");
 
             EditorGUI.indentLevel = previousIndent;
             EditorGUI.EndProperty();

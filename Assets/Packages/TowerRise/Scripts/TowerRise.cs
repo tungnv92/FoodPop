@@ -73,6 +73,8 @@ public class TowerRise : Popup
     float scrollFollowVelocity;
     Tween openMoveAnimDelayTween;
 
+    // EN: Opens the view using manager queries and commands instead of mutable save models.
+    // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
     public override void Open(object args = null)
     {
         base.Open(args);
@@ -84,10 +86,9 @@ public class TowerRise : Popup
 
         if (Manager == null) return;
 
-        if (Manager.towerRiseData != null && !Manager.towerRiseData.isDoneTutorial)
+        if (Manager.IsInitialized && !Manager.HasCompletedTutorial)
         {
-            Manager.towerRiseData.isDoneTutorial = true;
-            Manager.towerRiseData.SaveData();
+            Manager.CompleteTutorial();
         }
 
         if (Manager.IsEventFinishedPending())
@@ -202,12 +203,14 @@ public class TowerRise : Popup
         Canvas.ForceUpdateCanvases();
     }
 
+    // EN: Coordinates RunContinuousWinAnim using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối RunContinuousWinAnim qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     void RunContinuousWinAnim(bool playTakeoff)
     {
-        if (Manager == null || Manager.towerRiseData == null) return;
+        if (Manager == null || !Manager.IsInitialized) return;
 
-        float fromTotal = Manager.towerRiseData.lastMilestone;
-        float toTotal = Manager.towerRiseData.currentMilestone;
+        float fromTotal = Manager.LastViewedProgress;
+        float toTotal = Manager.CurrentProgress;
 
         if (fromTotal >= toTotal)
         {
@@ -287,13 +290,15 @@ public class TowerRise : Popup
         SyncPlayerToArrow();
     }
 
+    // EN: Coordinates RefreshPlatformProgress using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối RefreshPlatformProgress qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     void RefreshPlatformProgress()
     {
         if (isDoingAnim) return;
 
         if (Manager.ShouldPlayEventWinAnim() || Manager.ShouldPlayEventFailAnim())
         {
-            towerRiseProgress?.ApplyVisualFromTotalProgress(Manager.towerRiseData.lastMilestone);
+            towerRiseProgress?.ApplyVisualFromTotalProgress(Manager.LastViewedProgress);
             return;
         }
 
@@ -368,13 +373,15 @@ public class TowerRise : Popup
         return GetMilestoneFocusRect(platformIndex, step);
     }
 
+    // EN: Coordinates ApplyEventDisplayState using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ApplyEventDisplayState qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     void ApplyEventDisplayState()
     {
-        if (towerRiseProgress == null || Manager == null || Manager.towerRiseData == null) return;
+        if (towerRiseProgress == null || Manager == null || !Manager.IsInitialized) return;
 
         if (Manager.ShouldPlayEventWinAnim() || Manager.ShouldPlayEventFailAnim())
         {
-            towerRiseProgress.ApplyVisualFromTotalProgress(Manager.towerRiseData.lastMilestone);
+            towerRiseProgress.ApplyVisualFromTotalProgress(Manager.LastViewedProgress);
             return;
         }
 
@@ -873,10 +880,12 @@ public class TowerRise : Popup
         FinishWinAnimSequence();
     }
 
+    // EN: Coordinates GetWinAnimClaimableMilestones using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối GetWinAnimClaimableMilestones qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     List<int> GetWinAnimClaimableMilestones()
     {
         var list = new List<int>();
-        if (Manager == null || Manager.towerRiseData == null) return list;
+        if (Manager == null || !Manager.IsInitialized) return list;
 
         int count = Manager.GetMileStoneCount();
         for (int i = 0; i < count; i++)
@@ -897,8 +906,8 @@ public class TowerRise : Popup
         return list;
     }
 
-    // EN: Automatically claims completed milestone rewards and plays the reward presentation animation.
-    // VI: Tự động nhận phần thưởng của các mốc đã hoàn thành và phát hiệu ứng trình diễn phần thưởng.
+    // EN: Marks reached milestones through the manager before presenting their rewards.
+    // VI: Đánh dấu mốc đã đạt qua manager trước khi trình diễn phần thưởng.
     void AutoCollectMilestones(List<int> milestoneIndexes, Action onComplete)
     {
         var allRewards = new List<ResourceGame>();
@@ -909,10 +918,7 @@ public class TowerRise : Popup
             {
                 allRewards.AddRange(info.rewards);
             }
-            if (!Manager.towerRiseData.claimedIndexes.Contains(idx))
-            {
-                Manager.towerRiseData.claimedIndexes.Add(idx);
-            }
+            Manager.MarkMilestoneClaimed(idx);
             if (Manager.IsEventFinishedPending())
             {
                 Manager.OnFinishedMilestoneClaimed(idx);

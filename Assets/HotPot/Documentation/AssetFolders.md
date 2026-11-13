@@ -16,7 +16,7 @@ VI: Mọi nội dung game đặt trong `Assets/HotPot`. Giữ cấu trúc theo t
 | Animation clips, controllers / Hoạt ảnh | `Animations/<feature>` |
 | Prefabs | `Prefabs/<feature>`; gameplay objects / đối tượng gameplay: `Prefabs/Ingame` |
 | Scenes | `Scenes` |
-| Configuration assets / Asset cấu hình | `Config`; default shared config / cấu hình chung mặc định: `Config/Resources/IngameConfig.asset` |
+| Configuration assets / Asset cấu hình | `Config`; default shared config / cấu hình chung mặc định: `Config/Resources/IngameConfig.asset`; levels / level: `Config/Resources/Levels/LevelConfig_NN.asset` |
 | Runtime scripts / Mã lúc chạy | `Scripts/<feature>` |
 | Editor tools / Công cụ editor | `Editor` |
 | Documentation / Tài liệu | `Documentation` |

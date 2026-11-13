@@ -12,18 +12,67 @@ namespace FoodPop
         Rows = 1
     }
 
-    // EN: Designed ingredient layout (an "OrderPreview_x_y" prefab) shown when a dish is tapped: the designer places the dark panel ("Card") and one "Ingredient" renderer per ingredient by hand; at runtime the layout loads this prefab, fills the slots with the raw ingredient icons (arrived ones darkened) and plays its own open/close transition.
-    // VI: Layout nguyên liệu thiết kế sẵn (prefab "OrderPreview_x_y") hiện ra khi chạm món: người thiết kế tự đặt nền tối ("Card") và mỗi nguyên liệu một renderer "Ingredient"; khi chạy, bố cục nạp prefab này, gán icon nguyên liệu raw vào các ô (nguyên liệu đã tới bị tối) và chạy hiệu ứng mở/đóng riêng của nó.
+    // EN: Designed ingredient layout (an "OrderPreview_x_y" prefab) shown when a dish is tapped: the designer places the dark panel ("Card") and one "Ingredient" renderer per ingredient by hand; at runtime the layout loads this prefab, fills the slots with the raw ingredient icons (arrived ones faded) and plays its own open/close transition.
+    // VI: Layout nguyên liệu thiết kế sẵn (prefab "OrderPreview_x_y") hiện ra khi chạm món: người thiết kế tự đặt nền tối ("Card") và mỗi nguyên liệu một renderer "Ingredient"; khi chạy, bố cục nạp prefab này, gán icon nguyên liệu raw vào các ô (nguyên liệu đã tới mờ đi) và chạy hiệu ứng mở/đóng riêng của nó.
     [DisallowMultipleComponent]
     public class IngredientPreviewView : MonoBehaviour
     {
+        // EN: Seconds of the open / close transitions (0 when disabled by the card).
+        // VI: Thời gian hiệu ứng mở / đóng.
+        public float OpenDuration => openDuration;
+        public float CloseDuration => closeDuration;
+
+        // EN: Number of ingredient slots of this layout.
+        // VI: Số ô nguyên liệu của layout.
+        public int SlotCount
+        {
+            get
+            {
+                Prepare();
+                return ordered.Length;
+            }
+        }
+
+        // EN: True while the close transition is running (a new tap reopens from there).
+        // VI: True khi hiệu ứng đóng đang chạy (chạm mới sẽ mở lại từ đó).
+        public bool IsClosing => closing;
+
+        // EN: Area of the layout in its own local space: the panel ("Card") rectangle, or the box around the slots when there is no panel.
+        // VI: Vùng của layout trong không gian local của nó: hình chữ nhật của nền ("Card"), hoặc khung bao các ô khi không có nền.
+        public Rect LocalRect
+        {
+            get
+            {
+                Prepare();
+                if (background != null)
+                {
+                    Transform t = background.transform;
+                    Vector2 size = background.drawMode != SpriteDrawMode.Simple
+                        ? background.size
+                        : background.sprite != null ? (Vector2)background.sprite.bounds.size : Vector2.one;
+                    size = Vector2.Scale(size, new Vector2(Mathf.Abs(t.localScale.x), Mathf.Abs(t.localScale.y)));
+                    Vector2 centre = t.localPosition;
+                    return new Rect(centre - size * 0.5f, size);
+                }
+                if (ordered.Length == 0)
+                    return new Rect(Vector2.zero, Vector2.zero);
+                Vector2 min = basePositions[0], max = basePositions[0];
+                foreach (Vector3 p in basePositions)
+                {
+                    min = Vector2.Min(min, p);
+                    max = Vector2.Max(max, p);
+                }
+                return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+            }
+        }
+
         [Header("Thành phần")]
         [Tooltip("Nền của layout nguyên liệu (object \"Card\").")]
         [SerializeField] private SpriteRenderer background;
         [Tooltip("Các ô nguyên liệu. Thứ tự gán nguyên liệu (đế trước) theo VỊ TRÍ: trên xuống dưới, rồi trái sang phải; thứ tự trong danh sách không quan trọng.")]
         [SerializeField] private List<SpriteRenderer> slots = new List<SpriteRenderer>();
-        [Tooltip("Độ sáng của nguyên liệu đã tới (0 = đen, 1 = gốc).")]
-        [Range(0f, 1f)] [SerializeField] private float doneBrightness = 0.35f;
+        [Tooltip("Độ đục của nguyên liệu đã tới (0 = trong suốt, 1 = hiện rõ).")]
+        [Range(0f, 1f)] [SerializeField] private float doneAlpha = 0.35f;
 
         [Header("Hiệu ứng chuyển")]
         [Tooltip("Kiểu mở: Rows = từng hàng trượt lên và hiện dần (kiểu danh sách); Pop = nguyên liệu nảy ra lần lượt.")]
@@ -54,28 +103,17 @@ namespace FoodPop
         private OrderTweens tweens;
         private OrderTweens Tweens => tweens ?? (tweens = new OrderTweens(this));
 
-        // EN: Seconds of the open / close transitions (0 when disabled by the card).
-        // VI: Thời gian hiệu ứng mở / đóng.
-        public float OpenDuration => openDuration;
-        public float CloseDuration => closeDuration;
-
-        // EN: Number of ingredient slots of this layout.
-        // VI: Số ô nguyên liệu của layout.
-        public int SlotCount
+        // EN: Collects the designed slots and panel when reset.
+        // VI: Gom các ô và nền thiết kế khi đặt lại component.
+        private void Reset()
         {
-            get
-            {
-                Prepare();
-                return ordered.Length;
-            }
+            Collect();
         }
-
-        // EN: True while the close transition is running (a new tap reopens from there).
-        // VI: True khi hiệu ứng đóng đang chạy (chạm mới sẽ mở lại từ đó).
-        public bool IsClosing => closing;
 
         // EN: Fills the slots with the icons (recipe order, base first) and their arrival state, draws above the dish slot (panel +1, icons +2) and, when opening, plays the open transition; when already open, newly arrived ingredients flash.
         // VI: Gán icon vào các ô (thứ tự công thức, đế trước) cùng trạng thái đã tới, vẽ trên ô món (nền +1, icon +2) và khi mở thì chạy hiệu ứng mở; khi đang mở sẵn thì nguyên liệu vừa tới sẽ nháy.
+        // EN: Shows ingredient icons with arrived entries faded while preserving their colours.
+        // VI: Hiện icon nguyên liệu với các ô đã tới mờ đi và giữ nguyên màu.
         public void Show(IReadOnlyList<Sprite> icons, IReadOnlyList<bool> done, SpriteRenderer sortingReference, bool opening, bool animate)
         {
             Prepare();
@@ -108,7 +146,7 @@ namespace FoodPop
                 else if (flash)
                     FlashArrived(i);
                 else if (!Tweens.IsRunning(slot))
-                    slot.color = Tint(isDone, slot.color.a);
+                    slot.color = Tint(isDone, 1f);
             }
             if (opening)
             {
@@ -133,35 +171,6 @@ namespace FoodPop
                 PlayClosePop(duration);
         }
 
-        // EN: Area of the layout in its own local space: the panel ("Card") rectangle, or the box around the slots when there is no panel.
-        // VI: Vùng của layout trong không gian local của nó: hình chữ nhật của nền ("Card"), hoặc khung bao các ô khi không có nền.
-        public Rect LocalRect
-        {
-            get
-            {
-                Prepare();
-                if (background != null)
-                {
-                    Transform t = background.transform;
-                    Vector2 size = background.drawMode != SpriteDrawMode.Simple
-                        ? background.size
-                        : background.sprite != null ? (Vector2)background.sprite.bounds.size : Vector2.one;
-                    size = Vector2.Scale(size, new Vector2(Mathf.Abs(t.localScale.x), Mathf.Abs(t.localScale.y)));
-                    Vector2 centre = t.localPosition;
-                    return new Rect(centre - size * 0.5f, size);
-                }
-                if (ordered.Length == 0)
-                    return new Rect(Vector2.zero, Vector2.zero);
-                Vector2 min = basePositions[0], max = basePositions[0];
-                foreach (Vector3 p in basePositions)
-                {
-                    min = Vector2.Min(min, p);
-                    max = Vector2.Max(max, p);
-                }
-                return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
-            }
-        }
-
         // EN: Collects the slots ("Ingredient…" renderers) and the panel ("Card") when not assigned; used by the editor setup and on Reset.
         // VI: Gom các ô ("Ingredient…") và nền ("Card") khi chưa gán; dùng cho setup trong editor và khi Reset.
         public void Collect()
@@ -178,11 +187,6 @@ namespace FoodPop
                     if (child.name.StartsWith("Ingredient") && child.TryGetComponent(out SpriteRenderer renderer))
                         slots.Add(renderer);
             prepared = false;
-        }
-
-        private void Reset()
-        {
-            Collect();
         }
 
         // EN: Orders the slots by position (top to bottom, then left to right), remembers their designed position/scale and groups them into rows.
@@ -241,10 +245,26 @@ namespace FoodPop
             }
         }
 
+        // EN: Preserves icon colours and multiplies transition alpha by completed opacity.
+        // VI: Giữ màu icon và nhân alpha chuyển cảnh với độ đục khi đã đủ.
         private Color Tint(bool isDone, float alpha)
         {
-            float b = isDone ? doneBrightness : 1f;
-            return new Color(b, b, b, alpha);
+            return new Color(1f, 1f, 1f, alpha * (isDone ? doneAlpha : 1f));
+        }
+
+        // EN: Pops the arrived ingredient and fades its alpha while preserving its colours.
+        // VI: Nảy nguyên liệu vừa tới và giảm alpha trong khi giữ nguyên màu.
+        private void FlashArrived(int i)
+        {
+            SpriteRenderer slot = ordered[i];
+            Vector3 scale = baseScales[i];
+            float target = doneAlpha;
+            Tweens.Run(slot, arrivalFlashDuration, t =>
+            {
+                float alpha = Mathf.Lerp(1f, target, OrderTweens.EaseOut(t));
+                slot.color = new Color(1f, 1f, 1f, alpha);
+                slot.transform.localScale = scale * (1f + 0.25f * Mathf.Sin(t * Mathf.PI));
+            }, () => slot.transform.localScale = scale);
         }
 
         private void PlayOpen(float duration)
@@ -293,6 +313,8 @@ namespace FoodPop
             }
         }
 
+        // EN: Slides rows out and fades their current alpha without applying completed opacity twice.
+        // VI: Trượt các hàng ra và giảm alpha hiện tại, không nhân độ đục đã đủ hai lần.
         private void PlayCloseRows(float duration)
         {
             int rows = Mathf.Max(1, rowCount);
@@ -316,7 +338,7 @@ namespace FoodPop
                     float k = duration > 0f ? Mathf.Clamp01((time - (rows - 1 - rowOf[i]) * delay) / duration) : 1f;
                     float e = OrderTweens.EaseOut(k);
                     ordered[i].transform.localPosition = starts[i] - new Vector3(0f, rowSlideDistance * e, 0f);
-                    ordered[i].color = Tint(doneStates[i], alphas[i] * (1f - e));
+                    ordered[i].color = WithAlpha(ordered[i].color, alphas[i] * (1f - e));
                 }
                 if (background != null)
                 {
@@ -358,19 +380,6 @@ namespace FoodPop
             if (background != null)
                 background.color = backgroundColor;
             gameObject.SetActive(false);
-        }
-
-        private void FlashArrived(int i)
-        {
-            SpriteRenderer slot = ordered[i];
-            Vector3 scale = baseScales[i];
-            float target = doneBrightness;
-            Tweens.Run(slot, arrivalFlashDuration, t =>
-            {
-                float b = Mathf.Lerp(1f, target, OrderTweens.EaseOut(t));
-                slot.color = new Color(b, b, b, 1f);
-                slot.transform.localScale = scale * (1f + 0.25f * Mathf.Sin(t * Mathf.PI));
-            }, () => slot.transform.localScale = scale);
         }
 
         private static Color WithAlpha(Color color, float alpha) => new Color(color.r, color.g, color.b, alpha);

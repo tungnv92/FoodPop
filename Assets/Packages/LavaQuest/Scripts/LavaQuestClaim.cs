@@ -53,19 +53,25 @@ public class LavaQuestClaim : Popup
         //}
     }
 
+    // EN: Coordinates RefreshDescription using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối RefreshDescription qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void RefreshDescription()
     {
-        if (description != null && Manager != null && Manager.Data != null)
+        if (description != null && Manager != null && Manager.IsInitialized)
         {
-            int others = Mathf.Max(0, Manager.Data.completedBotCount);
+            int others = Mathf.Max(0, Manager.CompletedBotCount);
             description.text = $"You are sharing the reward with {others} other winners!";
         }
     }
 
+    // EN: Coordinates RefreshUsers using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối RefreshUsers qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+    // EN: Coordinates RefreshUsers using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối RefreshUsers qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void RefreshUsers()
     {
-        int frameId = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.frame_avatar_id : 0;
-        int avatarId = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.avatar_id : 0;
+        int frameId = ProfileManager.instance.PlayerDataManager.IsInitialized ? ProfileManager.instance.PlayerDataManager.FrameId : 0;
+        int avatarId = ProfileManager.instance.PlayerDataManager.IsInitialized ? ProfileManager.instance.PlayerDataManager.AvatarId : 0;
         if (fakeUsers != null)
         {
             foreach (var fakeUser in fakeUsers)
@@ -90,8 +96,10 @@ public class LavaQuestClaim : Popup
         });
     }
 
-    // EN: Claims the LavaQuest gold reward, plays the coin particle animation, grants coins, and closes the popup.
-    // VI: Nhận phần thưởng vàng LavaQuest, phát hiệu ứng hạt xu, cộng xu và đóng popup.
+    // EN: Coordinates ButtonClaim using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ButtonClaim qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+    // EN: Coordinates ButtonClaim using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ButtonClaim qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void ButtonClaim()
     {
         UIManager.Ins.EnableBlocker(true);
@@ -106,7 +114,7 @@ public class LavaQuestClaim : Popup
             {
                 Manager.GrantReward();
             }
-            else if (ProfileManager.instance != null && ProfileManager.instance.PlayerDataManager != null)
+            else
             {
                 ProfileManager.instance.PlayerDataManager.OnAddCoin(goldAmountClaim, "lava_quest");
                 ProfileManager.instance.SaveData();
@@ -115,7 +123,7 @@ public class LavaQuestClaim : Popup
         coinAnim.OnComplete(() =>
         {
             UIManager.Ins.EnableBlocker(false);
-            int currentLevel = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.currentLevel : 1;
+            int currentLevel = ProfileManager.instance.PlayerDataManager.IsInitialized ? ProfileManager.instance.PlayerDataManager.GetCurrentLevel() : 1;
             //if (ABIAnalyticsManager.Instance != null)
             //{
             //    ABIAnalyticsManager.Instance.LavaQuestComplete(currentLevel, goldAmountClaim);

@@ -55,6 +55,8 @@ public class LavaQuest : Popup
         EnsurePanels();
     }
 
+    // EN: Opens the view using manager queries and commands instead of mutable save models.
+    // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
     public override void Open(object args = null)
     {
         base.Open(args);
@@ -62,10 +64,9 @@ public class LavaQuest : Popup
         isDoingAnim = false;
         if (blockObj != null) blockObj.SetActive(false);
 
-        if (!Manager.Data.isDoneTutorial)
+        if (!Manager.HasCompletedTutorial)
         {
-            Manager.Data.isDoneTutorial = true;
-            Manager.Save();
+            Manager.CompleteTutorial();
         }
         EnsurePanels();
 
@@ -168,9 +169,11 @@ public class LavaQuest : Popup
         RunAnimParticipantsJumpFail();
     }
 
+    // EN: Coordinates SpawnUsers using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối SpawnUsers qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void SpawnUsers(bool isWinMode, bool isFailMode)
     {
-        if (Manager == null || Manager.Data == null) return;
+        if (Manager == null || !Manager.IsInitialized) return;
 
         int currentMilestone = Manager.CurrentMilestone;
         int spawnMileStoneIndex;
@@ -221,9 +224,11 @@ public class LavaQuest : Popup
         });
     }
 
+    // EN: Coordinates RefreshMileStones using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối RefreshMileStones qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void RefreshMileStones(bool isWinMode = false)
     {
-        if (Manager == null || Manager.Data == null || lavaQuestMileStones == null) return;
+        if (Manager == null || !Manager.IsInitialized || lavaQuestMileStones == null) return;
         int currentMileStoneIndex = Manager.CurrentMilestone - 1;
         if (isWinMode)
         {
@@ -241,9 +246,11 @@ public class LavaQuest : Popup
         }
     }
 
+    // EN: Coordinates RunAnimParticipantsJumpWin using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối RunAnimParticipantsJumpWin qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void RunAnimParticipantsJumpWin()
     {
-        if (Manager == null || Manager.Data == null) return;
+        if (Manager == null || !Manager.IsInitialized) return;
         isDoingAnim = true;
         if (buttonContinueObj != null) buttonContinueObj.SetActive(false);
 
@@ -254,9 +261,11 @@ public class LavaQuest : Popup
         });
     }
 
+    // EN: Coordinates RunAnimParticipantsJumpFail using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối RunAnimParticipantsJumpFail qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void RunAnimParticipantsJumpFail()
     {
-        if (Manager == null || Manager.Data == null) return;
+        if (Manager == null || !Manager.IsInitialized) return;
         isDoingAnim = true;
         if (buttonContinueObj != null) buttonContinueObj.SetActive(false);
 
@@ -267,6 +276,10 @@ public class LavaQuest : Popup
         });
     }
 
+    // EN: Coordinates SpawnParicipantsJump using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối SpawnParicipantsJump qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+    // EN: Coordinates SpawnParicipantsJump using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối SpawnParicipantsJump qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     [Button]
     public void SpawnParicipantsJump(int mileStoneIndex)
     {
@@ -298,8 +311,8 @@ public class LavaQuest : Popup
         if (lavaQuestRealUser != null)
         {
             lavaQuestRealUser.gameObject.SetActive(true);
-            int frameId = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.frame_avatar_id : 0;
-            int avatarId = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.avatar_id : 0;
+            int frameId = ProfileManager.instance.PlayerDataManager.IsInitialized ? ProfileManager.instance.PlayerDataManager.FrameId : 0;
+            int avatarId = ProfileManager.instance.PlayerDataManager.IsInitialized ? ProfileManager.instance.PlayerDataManager.AvatarId : 0;
             lavaQuestRealUser.OnInitt(frameId, avatarId);
             if (usersParent != null) lavaQuestRealUser.transform.SetParent(usersParent);
             lavaQuestRealUser.transform.SetAsLastSibling();

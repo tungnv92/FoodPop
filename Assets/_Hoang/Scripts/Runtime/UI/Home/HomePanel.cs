@@ -118,9 +118,11 @@ public class HomePanel : Panel
 
     //    yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.RequireUpdate));
     //}
+    // EN: Animates pending coins and claims them through a manager command that saves both balances together.
+    // VI: Chạy hiệu ứng xu chờ và nhận qua lệnh manager lưu cả hai số dư cùng lúc.
     IEnumerator CollectRemainsCoin()
     {
-        int pendingCoin = ProfileManager.instance.PlayerData.PendingCoinAmount;
+        int pendingCoin = ProfileManager.instance.PlayerDataManager.PendingCoinAmount;
         if (pendingCoin > 0)
         {
             bool animDone = false;
@@ -129,9 +131,7 @@ public class HomePanel : Panel
             RewardAnimator.Init();
             RewardAnimator.Add(0, pendingCoin, onReceiveReward: (() =>
             {
-                ProfileManager.instance.PlayerDataManager.OnAddCoin(pendingCoin, "ingame_win");
-                ProfileManager.instance.PlayerData.PendingCoinAmount = 0;
-                ProfileManager.instance.SaveData();
+                ProfileManager.instance.PlayerDataManager.ClaimPendingCoins("ingame_win");
             }), onAnimCompleted: () =>
             {
                 animDone = true;
@@ -184,32 +184,34 @@ public class HomePanel : Panel
         UIManager.Ins.EnableBlocker(false);
     }
 
+    // EN: Coordinates CheckShowTutLiveOps using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối CheckShowTutLiveOps qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     IEnumerator CheckShowTutLiveOps()
     {
         UIManager.Ins.EnableBlocker(true);
         if (_winStreakHome.CheckShowTut())
         {
             _winStreakHome.ShowTut();
-            yield return new WaitUntil(() => WinStreakManager.Instance.GetData().isShownFirstTut);
+            yield return new WaitUntil(() => WinStreakManager.Instance.HasShownTutorial);
             yield return new WaitForSeconds(2);
             yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.WinStreak));
         }
 
         if (_lavaQuestButton.CheckShowTut())
         {
-            yield return new WaitUntil(() => LavaQuestManager.Ins.Data.isDoneTutorial);
+            yield return new WaitUntil(() => LavaQuestManager.Ins.HasCompletedTutorial);
             yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.LavaQuest));
         }
 
         if (_missionControlButton.CheckShowTut())
         {
-            yield return new WaitUntil(() => MissionControlManager.Ins.Data.isDoneTutorial);
+            yield return new WaitUntil(() => MissionControlManager.Ins.HasCompletedTutorial);
             yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.MissionControl));
         }
 
         if (_towerRiseButton.CheckShowTut())
         {
-            yield return new WaitUntil(() => TowerRiseManager.Ins.Data.isDoneTutorial);
+            yield return new WaitUntil(() => TowerRiseManager.Ins.HasCompletedTutorial);
             yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.TowerRiseIntroduce) && !UIManager.Ins.IsPopupOpen(PopupId.TowerRise));
         }
 

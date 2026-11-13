@@ -58,16 +58,17 @@ public class OutOfSlot : MonoBehaviour
         //_popupRevive.ReviveByAds();
     }
 
+    // EN: Closes the revive prompt only after the full Coin payment succeeds.
+    // VI: Chỉ đóng lời nhắc hồi sinh sau khi thanh toán đủ xu thành công.
     public void ReviveByCoinButton()
     {
-        if (ProfileManager.instance.PlayerDataManager.IsEnoughResource(ResourceType.Coin, _config.RevivePrice))
+        if (_popupRevive.ReviveByCoin())
         {
             _closeAnim.Play(() =>
             {
                 Close();
             });
 
-            _popupRevive.ReviveByCoin();
         }
         else
         {

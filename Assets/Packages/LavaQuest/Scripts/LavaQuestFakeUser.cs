@@ -20,11 +20,13 @@ public class LavaQuestFakeUser : MonoBehaviour
 
     private LavaQuest Quest => LavaQuest.Instance != null ? LavaQuest.Instance : (UIManager.Ins != null ? UIManager.Ins.GetPopup<LavaQuest>(PopupId.LavaQuest) : null);
 
+    // EN: Coordinates OnInitt using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối OnInitt qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void OnInitt(int frameID, int avatarID)
     {
-        if (frame != null && ProfileManager.instance != null)
+        if (frame != null)
             frame.sprite = ProfileManager.instance.GetFrameSprite(frameID);
-        if (avatar != null && ProfileManager.instance != null)
+        if (avatar != null)
             avatar.sprite = ProfileManager.instance.GetAvatarSprite(avatarID);
         if (canvasGroup != null)
             canvasGroup.alpha = 1;
@@ -32,11 +34,13 @@ public class LavaQuestFakeUser : MonoBehaviour
             rectTransform.localRotation = Quaternion.identity;
     }
 
+    // EN: Coordinates RandomFrameAndAvatar using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối RandomFrameAndAvatar qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void RandomFrameAndAvatar()
     {
-        if (frame != null && ProfileManager.instance != null)
+        if (frame != null)
             frame.sprite = ProfileManager.instance.GetRandomFrameSprite();
-        if (avatar != null && ProfileManager.instance != null)
+        if (avatar != null)
             avatar.sprite = ProfileManager.instance.GetRandomAvatarSprite();
     }
 

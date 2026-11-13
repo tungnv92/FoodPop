@@ -63,6 +63,8 @@ public class PopupWinStreak : Popup
     /// Callback invoked when a new day occurs.
     /// If the current round has ended, closes the popup to reset the UI for the new round.
     /// </summary>
+    // EN: Coordinates OnNewDay using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối OnNewDay qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void OnNewDay()
     {
         if (Time.frameCount == _lastNewDayFrame) return;
@@ -72,7 +74,7 @@ public class PopupWinStreak : Popup
 
         bool isRoundEnd = Manager.WasRoundEndedOnNewDay
             || Manager.IsCurrentRoundEnded()
-            || (!string.IsNullOrEmpty(_openedRoundId) && Manager.GetData() != null && Manager.GetData().currentRoundId != _openedRoundId);
+            || (!string.IsNullOrEmpty(_openedRoundId) && Manager.IsInitialized && Manager.SavedRoundId != _openedRoundId);
 
         if (isRoundEnd)
         {
@@ -93,10 +95,12 @@ public class PopupWinStreak : Popup
         Close();
     }
 
+    // EN: Coordinates OnDataChangedHandler using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối OnDataChangedHandler qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     private void OnDataChangedHandler()
     {
         // If data changed because round ended and reset, close popup to reset UI for new round
-        if (Manager != null && Manager.GetData() != null && !string.IsNullOrEmpty(_openedRoundId) && Manager.GetData().currentRoundId != _openedRoundId)
+        if (Manager != null && Manager.IsInitialized && !string.IsNullOrEmpty(_openedRoundId) && Manager.SavedRoundId != _openedRoundId)
         {
             ClosePopupForNewRound();
             return;
@@ -108,20 +112,21 @@ public class PopupWinStreak : Popup
         InitProgress();
     }
 
+    // EN: Opens the view using manager queries and commands instead of mutable save models.
+    // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
     public override void Open(object args = null)
     {
         base.Open();
-        _openedRoundId = Manager != null && Manager.GetData() != null ? Manager.GetData().currentRoundId : string.Empty;
+        _openedRoundId = Manager != null && Manager.IsInitialized ? Manager.SavedRoundId : string.Empty;
         RefreshWinStreak();
         InitWinStreakItems();
         InitContentHeightAndPos();
         InitProgress();
 
-        if (Manager != null && Manager.GetData() != null && !Manager.GetData().isShownFirstInfo)
+        if (Manager != null && Manager.IsInitialized && !Manager.HasShownInfo)
         {
             StartCoroutine(ShowFirstInfoRoutine());
-            Manager.GetData().isShownFirstInfo = true;
-            Manager.Save();
+            Manager.MarkInfoShown();
         }
     }
 

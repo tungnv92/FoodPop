@@ -11,13 +11,15 @@ public class PopupWinStreakInfo : Popup
 
     bool isShowingAnim = false;
     Coroutine showingRoutine;
+    // EN: Opens the view using manager queries and commands instead of mutable save models.
+    // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
     public override void Open(object args)
     {
         base.Open();
         AnimShow();
         if (continueTmp != null) continueTmp.SetActive(false);
 
-        if (WinStreakManager.Instance != null && WinStreakManager.Instance.GetData() != null)
+        if (WinStreakManager.Instance != null && WinStreakManager.Instance.IsInitialized)
         {
 
         }

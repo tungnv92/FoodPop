@@ -26,6 +26,8 @@ public class PopupMoreBooster : Popup
     BoosterType _boostertype;
     //BoosterConfig _boosterConfig;
     int price;
+    // EN: Opens the legacy booster offer using the booster's BoosterConfig price and the current shop quantity.
+    // VI: Mở gói booster cũ với giá của booster trong BoosterConfig và số lượng của cửa hàng hiện tại.
     public override void Open(object args = null)
     {
         if (args == null)
@@ -45,8 +47,8 @@ public class PopupMoreBooster : Popup
         //descTmp.text = _boosterConfig.Boosters[(int)_boostertype].Description.ToString();
 
         amountTmp.text = "x3";
-        //price = _boosterConfig.Boosters[(int)_boostertype].Price;
-        //priceTmp.text = price.ToString();
+        price = IngameConfig.Instance.Boosters.GetPrice(_boostertype);
+        if (priceTmp != null) priceTmp.text = price.ToString();
         base.Open(args);
 
         _boosterPack.Init();
@@ -66,13 +68,14 @@ public class PopupMoreBooster : Popup
     {
         closeAnim.Play(Close);
     }
+    // EN: Grants the legacy three-use offer only when its combined Coin/booster transaction succeeds.
+    // VI: Cấp gói ba lượt của popup cũ chỉ khi giao dịch xu/booster kết hợp thành công.
     public void ClickBuyButton()
     {
-        if (ProfileManager.instance.PlayerDataManager.IsEnoughResource(ResourceType.Coin, price))
+        if (CanvasBuyBooster.TryGetResource(_boostertype, out ResourceType resource) &&
+            PlayerDataManager.TryBuyBooster(resource, 3, price, $"popup_more_booster_{_boostertype}"))
         {
             int amount = 3;
-            ProfileManager.instance.PlayerDataManager.OnRemoveCoin(price, $"popup_more_booster_{_boostertype}");
-            //BoosterController.Instance.AddBooster(_boostertype, amount, $"popup_more_booster_{_boostertype}");
             RewardAnimator rwAnimator = UIManager.Ins.GetPanel().RewardAnimator;
             rwAnimator.Init();
             rwAnimator.Add((int)_boostertype + 2, amount, onAnimCompleted: () =>

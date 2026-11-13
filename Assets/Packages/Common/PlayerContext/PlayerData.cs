@@ -16,6 +16,7 @@ namespace GamePackages
         public string playerName;
         public int avatar_id, frame_avatar_id;
         public bool isSoundOn, isMusicOn, isVibrateOn;
+        public bool isLoseStreakQuit;
         public List<ResourceGame> l_ResourceGame = new();
         public int PendingCoinAmount;
         public DailyGiftData DailyGiftData;
@@ -43,10 +44,10 @@ namespace GamePackages
             playerName = "User" + Random.Range(1000, 9999);
             currentLevel = 1;
             l_ResourceGame.Add(new ResourceGame() { type = ResourceType.Coin, value = 1000 });
-            l_ResourceGame.Add(new ResourceGame() { type = ResourceType.BoosterAddSlot, value = 0 });
+            l_ResourceGame.Add(new ResourceGame() { type = ResourceType.BoosterClean, value = 0 });
             l_ResourceGame.Add(new ResourceGame() { type = ResourceType.BoosterShuffle, value = 0 });
             l_ResourceGame.Add(new ResourceGame() { type = ResourceType.BoosterPickup, value = 0 });
-            l_ResourceGame.Add(new ResourceGame() { type = ResourceType.BoosterSuperBear, value = 0 });
+            l_ResourceGame.Add(new ResourceGame() { type = ResourceType.BoosterAutoComplete, value = 0 });
             isSoundOn = true;
             isMusicOn = true;
             isVibrateOn = true;
@@ -76,10 +77,10 @@ namespace GamePackages
             string sValue = "";
             switch (type)
             {
-                case ResourceType.BoosterAddSlot:
+                case ResourceType.BoosterClean:
                 case ResourceType.BoosterShuffle:
                 case ResourceType.BoosterPickup:
-                case ResourceType.BoosterSuperBear:
+                case ResourceType.BoosterAutoComplete:
                     sValue = "x" + value.ToString();
                     break;
                 case ResourceType.UnlimitedLives:
@@ -105,10 +106,10 @@ namespace GamePackages
     {
         Coin,
         UnlimitedLives,
-        BoosterAddSlot,
-        BoosterShuffle,
         BoosterPickup,
-        BoosterSuperBear,
+        BoosterClean,
+        BoosterShuffle,
+        BoosterAutoComplete,
     }
 
     [System.Serializable]
@@ -261,12 +262,11 @@ namespace GamePackages
             Reset();
         }
 
+        // EN: Coordinates SaveData using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối SaveData qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public void SaveData()
         {
-            if (ProfileManager.instance != null)
-            {
-                ProfileManager.instance.SaveData();
-            }
+            ProfileManager.instance.SaveData();
         }
     }
 
@@ -325,12 +325,11 @@ namespace GamePackages
             Reset();
         }
 
+        // EN: Coordinates SaveData using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối SaveData qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public void SaveData()
         {
-            if (ProfileManager.instance != null)
-            {
-                ProfileManager.instance.SaveData();
-            }
+            ProfileManager.instance.SaveData();
         }
     }
 }

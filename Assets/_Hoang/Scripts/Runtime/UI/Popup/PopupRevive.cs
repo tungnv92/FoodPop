@@ -68,16 +68,19 @@ public class PopupRevive : Popup, IPointerDownHandler, IPointerUpHandler
         EventDispatcher.UnregisterListener(EventId.PurchaseRevivePack, OnPurchaseRevivePack);
     }
 
-    public void ReviveByCoin()
+    // EN: Returns false without closing when the full revive price cannot be committed.
+    // VI: Trả false và không đóng khi không thể chốt đủ chi phí hồi sinh.
+    public bool ReviveByCoin()
     {
         int level = ProfileManager.instance.PlayerDataManager.GetCurrentLevel();
         int retryCount = ProfileManager.instance.GameFeatureContext.RecordManager.GetRetryCount(level);
-        ProfileManager.instance.PlayerDataManager.OnRemoveCoin(_config.RevivePrice, "popup_revive");
+        if (!ProfileManager.instance.PlayerDataManager.OnRemoveCoin(_config.RevivePrice, "popup_revive")) return false;
         //GameplayManager.Ins.OnRevive();
         //SDKBridge.TrackRevive(level, retryCount, "coin");
         Close();
 
         UIManager.Ins.GetPanel().SetActiveLife(false);
+        return true;
     }
 
     public void ReviveByAds()

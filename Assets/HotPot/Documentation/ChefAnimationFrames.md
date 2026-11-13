@@ -17,6 +17,23 @@ Controller có hai trạng thái: **Idle** mặc định (48 frame, vòng 3 giâ
 
 ## Spine chef integration / Tích hợp đầu bếp Spine
 
-EN: The active chef uses ChefAnims with Spine SkeletonAnimation. Defaul/Idle is the initial, cancelled and completed state. Preparation maps SushiRice to RiceBall/Action; TeaLeaves to Tea/Action; Edamame, Shrimp and Octopus to Boil/Action; Tamagoyaki, Unagi, ChickenThigh and ChickenBites to Fry/Action. Other ingredients retain Cut/Action. None maps to idle. Repeating the same animation does not restart its track; transitions use zero mix duration. Missing actions log a warning and fall back to idle when available. ChefManager still controls preparation timing and start/end/cancel; this mapping does not change recipes or ingredient IDs. CuttingBoardSetup resolves the chef renderer through ChefAnims. Older sprite-frame descriptions above are historical.
+EN: The active chef uses ChefAnims with Spine SkeletonAnimation and explicit per-ingredient AnimationReferenceAsset entries. Preparation plays one cycle and uses the selected animation's native duration. Repeated calls keep the current action; transitions use zero mix duration. Idle1 loops immediately on entering idle, then Idle2 loops after the configured delay (default 1.5 seconds). Missing or incompatible ingredient references throw a configuration error. Older sprite-frame descriptions above are historical.
 
-VI: Đầu bếp dùng ChefAnims với Spine SkeletonAnimation. Defaul/Idle là trạng thái ban đầu, khi hủy và khi hoàn thành. Sơ chế ánh xạ SushiRice sang RiceBall/Action; TeaLeaves sang Tea/Action; Edamame, Shrimp và Octopus sang Boil/Action; Tamagoyaki, Unagi, ChickenThigh và ChickenBites sang Fry/Action. Nguyên liệu khác giữ Cut/Action; None dùng nghỉ. Gọi lại cùng animation không phát lại track; chuyển trạng thái có mix duration bằng 0. Thiếu động tác thì ghi cảnh báo và dùng nghỉ nếu có. ChefManager vẫn điều khiển thời gian và bắt đầu/kết thúc/hủy sơ chế; ánh xạ này không đổi công thức hoặc ID nguyên liệu. CuttingBoardSetup lấy renderer qua ChefAnims. Mô tả frame sprite phía trên là lịch sử.
+VI: Đầu bếp dùng ChefAnims với Spine SkeletonAnimation và danh sách AnimationReferenceAsset riêng từng nguyên liệu. Sơ chế phát một lượt, thời gian lấy từ thời lượng gốc của animation đã chọn. Gọi lặp giữ động tác hiện tại; chuyển động tác không trộn. Khi về nghỉ, Idle1 lặp ngay rồi chuyển sang lặp Idle2 sau thời gian cấu hình (mặc định 1,5 giây). Tham chiếu nguyên liệu thiếu hoặc không cùng bộ Spine gây lỗi cấu hình. Mô tả frame sprite phía trên là lịch sử.
+
+### Spine action update / Cập nhật động tác Spine — 2026-11-11
+
+| Ingredient / Nguyên liệu | Animation | Duration / Thời lượng |
+| --- | --- | --- |
+| Avocado / Bơ | Cut_Avocado | 1.7667 s |
+| Scallop / Sò điệp | Slice_Scallop | 1.7667 s |
+| Octopus / Bạch tuộc | Slice_Octopus | 1.7667 s |
+| Edamame / Đậu edamame | Boil_Bean | 2 s |
+
+EN: Added Chef_Cut_Avocado.asset and Chef_Slice_Scallop.asset under Assets/HotPot/Animations/Chef and assigned them in HotPotDemo, including the open scene. Edamame already referenced Chef_Boil_Bean.asset and was verified unchanged. Other ingredient mappings are unchanged. Unity Editor validation resolved all three actions through ChefAnims.GetPreparationAnimation and checked their native durations. No Play Mode gameplay test was run. Existing unsaved scene edits were preserved; only the two new mapping GUIDs were written to the scene file.
+
+VI: Đã thêm Chef_Cut_Avocado.asset và Chef_Slice_Scallop.asset trong Assets/HotPot/Animations/Chef, gán vào HotPotDemo và scene đang mở. Đậu edamame đã tham chiếu Chef_Boil_Bean.asset, được kiểm tra và giữ nguyên. Ánh xạ nguyên liệu khác không đổi. Kiểm tra trong Unity Editor đã lấy thành công cả ba động tác qua ChefAnims.GetPreparationAnimation và xác nhận thời lượng gốc. Chưa thử gameplay trong Play Mode. Giữ các chỉnh sửa scene chưa lưu; chỉ ghi hai GUID ánh xạ mới vào file scene.
+
+EN: Subsequent update: added `Assets/HotPot/Animations/Chef/Chef_Slice_Octopus.asset` for the newly available `Slice_Octopus` Spine action and assigned Octopus in HotPotDemo and the open scene. Other mappings were preserved. Unity Editor command compiled and executed successfully; `GetPreparationAnimationName(Octopus)` resolved to `Slice_Octopus` and `GetPreparationDuration(Octopus)` returned 1.7667 seconds. Only the Octopus mapping GUID was written to the scene file; unrelated unsaved scene edits were preserved. Not Play Mode tested.
+
+VI: Cập nhật tiếp: thêm `Assets/HotPot/Animations/Chef/Chef_Slice_Octopus.asset` cho động tác Spine mới `Slice_Octopus`, gán cho Octopus trong HotPotDemo và scene đang mở. Giữ các ánh xạ khác. Lệnh Unity Editor biên dịch và chạy thành công; `GetPreparationAnimationName(Octopus)` trả `Slice_Octopus`, `GetPreparationDuration(Octopus)` trả 1,7667 giây. Chỉ ghi GUID ánh xạ Octopus vào file scene; giữ chỉnh sửa scene chưa lưu ngoài phạm vi. Chưa thử Play Mode.

@@ -37,8 +37,8 @@ public class MissionControl : Popup
         Instance = this;
     }
 
-    // EN: Opens the Mission Control popup, initializes stages and small chests, and updates grand chest claim UI state.
-    // VI: Mở popup Mission Control, khởi tạo các giai đoạn cùng rương nhỏ và cập nhật trạng thái giao diện nhận rương lớn.
+    // EN: Opens the view using manager queries and commands instead of mutable save models.
+    // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
     public override void Open(object args = null)
     {
         base.Open(args);
@@ -53,7 +53,7 @@ public class MissionControl : Popup
             ChooseStage(Manager.GetStageToChoose());
         }
 
-        bool isGrandChestClaimed = Manager != null && Manager.Data != null && Manager.Data.isClaimedGrandChest;
+        bool isGrandChestClaimed = Manager != null && Manager.IsInitialized && Manager.HasClaimedGrandChest;
 
         foreach (var smallChest in smallChests)
         {
@@ -64,18 +64,18 @@ public class MissionControl : Popup
             }
         }
 
-        if (Manager != null && Manager.Data != null)
+        if (Manager != null && Manager.IsInitialized)
         {
             bool needSave = false;
-            if (!Manager.Data.isDoneTutorial)
+            if (!Manager.HasCompletedTutorial)
             {
-                Manager.Data.isDoneTutorial = true;
+                Manager.CompleteTutorial();
                 needSave = true;
             }
 
-            if (!Manager.Data.isShowedInfo)
+            if (!Manager.HasShownInfo)
             {
-                Manager.Data.isShowedInfo = true;
+                Manager.MarkInfoShown();
                 needSave = true;
                 DOVirtual.DelayedCall(Time.deltaTime, () =>
                 {

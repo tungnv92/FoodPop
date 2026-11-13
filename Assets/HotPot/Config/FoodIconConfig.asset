@@ -15,13 +15,14 @@ MonoBehaviour:
   icons:
   - foodType: 1
     sprite: {fileID: 21300000, guid: ac0750ee4c45ab04ab0278fb0d78d806, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 0c16c0110a4f277409bd2cb5700d4457, type: 3}
+    preparedSprite: {fileID: 21300000, guid: ca4cc5a622505374d89a362cf6031a71, type: 3}
     category: 0
     chopSound: {fileID: 8300000, guid: b4268baa4fbdc6243b65725574587dc7, type: 3}
     chopSoundVariants:
     - {fileID: 8300000, guid: e990c546d4d775849ba8562e63c3512d, type: 3}
     - {fileID: 8300000, guid: c2ba2b32dfd94564ca282df73bd2992b, type: 3}
-    chopDebris: {fileID: 4219975879480897380, guid: 9651284e148f2ca46ada68e8ff80c50b, type: 3}
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
   - foodType: 2
     sprite: {fileID: 21300000, guid: 5812dd92a8155cd49825ab5723007d01, type: 3}
     preparedSprite: {fileID: 21300000, guid: 9538229a3b743d14f8907270d1198f99, type: 3}
@@ -30,7 +31,8 @@ MonoBehaviour:
     chopSoundVariants:
     - {fileID: 8300000, guid: 6aac4fa64c0ee43498e969e559f2e6fe, type: 3}
     - {fileID: 8300000, guid: 5cae827d5d4f553448a2f7dcd983a6d2, type: 3}
-    chopDebris: {fileID: 183058387731265591, guid: e01fc2d505ef0914191ab6e03b1908c6, type: 3}
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
   - foodType: 3
     sprite: {fileID: 21300000, guid: 734a24dde487fd547b1959f760272ced, type: 3}
     preparedSprite: {fileID: 21300000, guid: 02e896f8795302b43b32e52c6882c2ae, type: 3}
@@ -39,174 +41,173 @@ MonoBehaviour:
     chopSoundVariants:
     - {fileID: 8300000, guid: 8cc07c41fa688744697c229b73389921, type: 3}
     - {fileID: 8300000, guid: f843903b07075e349b9bda90e29ed75c, type: 3}
-    chopDebris: {fileID: 5638518784638964072, guid: 5471aa3f1d28be74baf6b80675a8ec10, type: 3}
-  - foodType: 4
-    sprite: {fileID: 21300000, guid: 01a382876c1146b42823c37ab0e26ae9, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 911519374bb4b9d48a2c9e43b6a48ff6, type: 3}
-    category: 0
-    chopSound: {fileID: 8300000, guid: d98f5cd971bf8314ab2768b5bd200509, type: 3}
-    chopSoundVariants:
-    - {fileID: 8300000, guid: eac2c1faef8c8924bbbcf3b393c0582d, type: 3}
-    - {fileID: 8300000, guid: 33b3a59cb0af5fe4a8bc79c28b4f1e29, type: 3}
-    chopDebris: {fileID: 5807971166446243298, guid: 262497199aa7912478daf8d329be3a14, type: 3}
-  - foodType: 5
-    sprite: {fileID: 21300000, guid: b0d90c43803e70c44a5fa274ea60768f, type: 3}
-    preparedSprite: {fileID: 21300000, guid: e19c4cfa5d98b934b981685c81ba1193, type: 3}
-    category: 0
-    chopSound: {fileID: 8300000, guid: f93444352f10f5f439232d72cacc473b, type: 3}
-    chopSoundVariants:
-    - {fileID: 8300000, guid: f3ea2b234b43afa4284af6424f7bfa06, type: 3}
-    - {fileID: 8300000, guid: c97ad067f9501834fa2953446f802a70, type: 3}
-    chopDebris: {fileID: 8768749277253711022, guid: 51211eaced27d234397ec40570c23dc5, type: 3}
-  - foodType: 6
-    sprite: {fileID: 21300000, guid: 563d0d656c1eab44f926e751a37998dc, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 5a6b4d0bd038e074e86d6d5a3d7823ea, type: 3}
-    category: 0
-    chopSound: {fileID: 8300000, guid: 8657ad52df7e46642b7cfff2cd298fb3, type: 3}
-    chopSoundVariants:
-    - {fileID: 8300000, guid: 179c06c3b16c8dd43a17a9f140973e05, type: 3}
-    - {fileID: 8300000, guid: ac5b0514ef3b434489c0da80d4e2bddd, type: 3}
-    chopDebris: {fileID: 824261816892627040, guid: 668a8da29df962b4c883986a24d772a3, type: 3}
-  - foodType: 7
-    sprite: {fileID: 21300000, guid: 9f6fd1f667216cd4ab6726d4a8816034, type: 3}
-    preparedSprite: {fileID: 21300000, guid: ae17a91f5c801324b94cea829ab8b923, type: 3}
-    category: 0
-    chopSound: {fileID: 8300000, guid: f88280a3e3dc53c44b6ee93d419d3156, type: 3}
-    chopSoundVariants:
-    - {fileID: 8300000, guid: 3f7afe95480aa8841bd2f05959d0c730, type: 3}
-    - {fileID: 8300000, guid: 497415e4f76e04e44a9bcc99597ef2cb, type: 3}
-    chopDebris: {fileID: 3241942315069466472, guid: dbbf72a193479e84a8f56e2cf21b453c, type: 3}
-  - foodType: 9
-    sprite: {fileID: 21300000, guid: 9765eff44e95e204da6d1120575ab88e, type: 3}
-    preparedSprite: {fileID: 21300000, guid: f6403e4c5e368bf4ea54731c3070763e, type: 3}
-    category: 0
-    chopSound: {fileID: 8300000, guid: c637a95daa04b304982c2504bdd4db69, type: 3}
-    chopSoundVariants:
-    - {fileID: 8300000, guid: 047d24810fd947a428aeef3cbbbd348f, type: 3}
-    - {fileID: 8300000, guid: c572a027352f1c0469031407c6aad31d, type: 3}
-    chopDebris: {fileID: 2947153644091168474, guid: 2120dceb369900b4897383d4d3f0f726, type: 3}
-  - foodType: 10
-    sprite: {fileID: 21300000, guid: f3fbd229fe937c04d80d9fc056941759, type: 3}
-    preparedSprite: {fileID: 21300000, guid: c6c485c00e3c2e040b21cd4382144f8d, type: 3}
-    category: 0
-    chopSound: {fileID: 8300000, guid: f6ad1ec38039833438be7e39b4350b02, type: 3}
-    chopSoundVariants:
-    - {fileID: 8300000, guid: e68d551ea5800df4a857201d22683090, type: 3}
-    - {fileID: 8300000, guid: 16b4d1e7786385549b58291420237a3a, type: 3}
-    chopDebris: {fileID: 7744106269657887987, guid: 4e690a91fa58def46ac6e1c1a3b1d340, type: 3}
-  - foodType: 12
-    sprite: {fileID: 21300000, guid: 1ceae3174d4297c449efcd567851020b, type: 3}
-    preparedSprite: {fileID: 21300000, guid: e6fc040b1da35d44c8eb8bfe25d58b5f, type: 3}
-    category: 0
-    chopSound: {fileID: 8300000, guid: 17e506b3215d831458bfe593282b2f28, type: 3}
-    chopSoundVariants:
-    - {fileID: 8300000, guid: ca92e673a667ad943b0ac91b22f26a04, type: 3}
-    - {fileID: 8300000, guid: c60891d0975852946947c77915fe7fdd, type: 3}
-    chopDebris: {fileID: 3991012287045265864, guid: 59baadf6007a2dc4aaf1ada7fb8db2f8, type: 3}
-  - foodType: 14
-    sprite: {fileID: 21300000, guid: 8d1afc30c660c7849a7ece84e4872b33, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 8395a33d3f5693648b40a137c543f972, type: 3}
-    category: 0
-    chopSound: {fileID: 8300000, guid: b946da5034875d1419b8baac6ce56fce, type: 3}
-    chopSoundVariants:
-    - {fileID: 8300000, guid: 8af9519e5037fb94e82c082488241aa7, type: 3}
-    - {fileID: 8300000, guid: 0d0fdee4ad176194788210168c23e32e, type: 3}
-    chopDebris: {fileID: 1485868460384909974, guid: a33afe8e884e85d40b2814b77ef3b501, type: 3}
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
   - foodType: 13
-    sprite: {fileID: 21300000, guid: 1d9393ae051ba5a4892d81f8d6469db0, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 1d9393ae051ba5a4892d81f8d6469db0, type: 3}
-    category: 2
-    chopSound: {fileID: 0}
-    chopSoundVariants: []
-    chopDebris: {fileID: 1361022894484440049, guid: 0f2f1faaa033aec4eb3f85d8bc3ff2ee, type: 3}
-  - foodType: 15
-    sprite: {fileID: 21300000, guid: 2b56feae95f235c408e55431c7f41d26, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 2b56feae95f235c408e55431c7f41d26, type: 3}
+    sprite: {fileID: 21300000, guid: 3a830f5447b4ee7439a5d40eb08155a8, type: 3}
+    preparedSprite: {fileID: 21300000, guid: c7d4f8fa81016ec41a6fef2abd2cb373, type: 3}
     category: 2
     chopSound: {fileID: 0}
     chopSoundVariants: []
     chopDebris: {fileID: 0}
-  - foodType: 16
-    sprite: {fileID: 21300000, guid: fc915b3a213b12a45a145e69a0a722d2, type: 3}
-    preparedSprite: {fileID: 21300000, guid: fc915b3a213b12a45a145e69a0a722d2, type: 3}
-    category: 2
-    chopSound: {fileID: 0}
-    chopSoundVariants: []
-    chopDebris: {fileID: 0}
+    skipPreparation: 0
   - foodType: 17
-    sprite: {fileID: 21300000, guid: d29189d00a71f7445b6974a0888c85a4, type: 3}
-    preparedSprite: {fileID: 21300000, guid: d29189d00a71f7445b6974a0888c85a4, type: 3}
+    sprite: {fileID: 21300000, guid: 720ef854e3c641942ba343c1bae5cd6b, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 2be51bb931098ba40bb233ef8a1b80f8, type: 3}
     category: 2
     chopSound: {fileID: 0}
     chopSoundVariants: []
     chopDebris: {fileID: 0}
+    skipPreparation: 0
   - foodType: 18
-    sprite: {fileID: 21300000, guid: 20511355aeb40804dbc1fc8533c2dd67, type: 3}
-    preparedSprite: {fileID: 21300000, guid: ae83215be4865d547828584a93be3ae3, type: 3}
+    sprite: {fileID: 21300000, guid: 250871ccc249083469216c69e2566c89, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 968ae229a7b787540b5283d94cf36f4d, type: 3}
     category: 0
     chopSound: {fileID: 0}
     chopSoundVariants: []
     chopDebris: {fileID: 0}
+    skipPreparation: 0
   - foodType: 19
-    sprite: {fileID: 21300000, guid: 01c4301c0e24f19469f4330c6e335961, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 01c4301c0e24f19469f4330c6e335961, type: 3}
+    sprite: {fileID: 21300000, guid: 9dc7747ea89905a49a99ae5f719192bc, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 9dc7747ea89905a49a99ae5f719192bc, type: 3}
     category: 0
     chopSound: {fileID: 0}
     chopSoundVariants: []
     chopDebris: {fileID: 0}
+    skipPreparation: 1
   - foodType: 20
-    sprite: {fileID: 21300000, guid: 0f80577947720d24cb80a39902846d3e, type: 3}
-    preparedSprite: {fileID: 21300000, guid: b6a3e6ef04bb9d94189980eefae237cb, type: 3}
+    sprite: {fileID: 21300000, guid: 776d5f6b8a1ef4b43b3000986773de32, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 752c332e82e716740af2c3985c3e3b0b, type: 3}
     category: 0
     chopSound: {fileID: 0}
     chopSoundVariants: []
     chopDebris: {fileID: 0}
+    skipPreparation: 0
   - foodType: 21
-    sprite: {fileID: 21300000, guid: aa845c03b88f59f47b8423e72f57eaac, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 5bf9fa2145f2dce429bde02242ff8129, type: 3}
+    sprite: {fileID: 21300000, guid: 9de3cff23f77c5f4abb2f4d2ea09a9e8, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 9de3cff23f77c5f4abb2f4d2ea09a9e8, type: 3}
     category: 0
     chopSound: {fileID: 0}
     chopSoundVariants: []
     chopDebris: {fileID: 0}
-  - foodType: 22
-    sprite: {fileID: 21300000, guid: aa2f6ed2c1d850f42b4773b46fd70f53, type: 3}
-    preparedSprite: {fileID: 21300000, guid: a4c9fe3e7290e204ba119954f144b58b, type: 3}
-    category: 1
-    chopSound: {fileID: 0}
-    chopSoundVariants: []
-    chopDebris: {fileID: 0}
-  - foodType: 23
-    sprite: {fileID: 21300000, guid: 6e92f1bb56fed3c4f83ba41b5a9d0139, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 6e92f1bb56fed3c4f83ba41b5a9d0139, type: 3}
+    skipPreparation: 1
+  - foodType: 15
+    sprite: {fileID: 21300000, guid: 55229322825bb204888e779020413f98, type: 3}
+    preparedSprite: {fileID: 21300000, guid: c905f03a9df7d754bb3f8e030abbd6e3, type: 3}
     category: 0
     chopSound: {fileID: 0}
     chopSoundVariants: []
     chopDebris: {fileID: 0}
+    skipPreparation: 1
+  - foodType: 9
+    sprite: {fileID: 21300000, guid: 49eb2751a6675c946acbd9f0dbd693f8, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 9e2b9e285e42365459404e2bbfd61e22, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 1
+  - foodType: 16
+    sprite: {fileID: 21300000, guid: 88d6374cf2ebfe64d896f4d56432299c, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 1544d3634118273479e78ec724f401e9, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
+  - foodType: 12
+    sprite: {fileID: 21300000, guid: bfd094ebfdfd9b2439905d0e6ba3bd9c, type: 3}
+    preparedSprite: {fileID: 21300000, guid: f94caca8f40759b4c98c348e77e49533, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
   - foodType: 24
-    sprite: {fileID: 21300000, guid: 854e15d5b58bc0e4f82b31509d3ee927, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 6c274418f8cba064a84204131111b941, type: 3}
-    category: 2
+    sprite: {fileID: 21300000, guid: 41f80ac56e3a30045980b6805e684fe3, type: 3}
+    preparedSprite: {fileID: 21300000, guid: f086c6a2a33e86a458aca8945e3c47fa, type: 3}
+    category: 0
     chopSound: {fileID: 0}
     chopSoundVariants: []
     chopDebris: {fileID: 0}
-  - foodType: 25
-    sprite: {fileID: 21300000, guid: 7cf02b355b3bad64096448697d179adc, type: 3}
-    preparedSprite: {fileID: 21300000, guid: b89761d6687bd874faa56c62beb5aa4b, type: 3}
-    category: 1
-    chopSound: {fileID: 0}
-    chopSoundVariants: []
-    chopDebris: {fileID: 0}
-  - foodType: 26
-    sprite: {fileID: 21300000, guid: 710577253c5edfc459f2cafb283e4844, type: 3}
-    preparedSprite: {fileID: 21300000, guid: f87936501406e394eab008f3067badb8, type: 3}
-    category: 1
-    chopSound: {fileID: 0}
-    chopSoundVariants: []
-    chopDebris: {fileID: 0}
+    skipPreparation: 0
   - foodType: 27
-    sprite: {fileID: 21300000, guid: 5b1a4830157f9c641be9d79a32757a4f, type: 3}
-    preparedSprite: {fileID: 21300000, guid: 6f3e507f868eef44dbffbf3db85772f1, type: 3}
-    category: 1
+    sprite: {fileID: 21300000, guid: 3e0e8f63cc558cc46a1cae162fa17259, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 1237e7c4568c86840807652483159b78, type: 3}
+    category: 0
     chopSound: {fileID: 0}
     chopSoundVariants: []
     chopDebris: {fileID: 0}
+    skipPreparation: 0
+  - foodType: 25
+    sprite: {fileID: 21300000, guid: ab53509398c8fb244bc2fa7c11cbe251, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 388b2d349fda1fa439a23a629cf69499, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
+  - foodType: 22
+    sprite: {fileID: 21300000, guid: 67f03a8f8ad8b5d4ba8659add0c731c8, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 3452b1512eaecf444a8d1c88be2046c6, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
+  - foodType: 26
+    sprite: {fileID: 21300000, guid: 882afb06b02bb0843b2c87bbf9bae89c, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 13fc66292fac254479c37e6d98d3e0da, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
+  - foodType: 5
+    sprite: {fileID: 21300000, guid: cf24b2cb3b50be746a8ee1af24ccd862, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 0a0c814a5f7c1bf4fa8955f426c40d05, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
+  - foodType: 10
+    sprite: {fileID: 21300000, guid: ec38c0244ee5a5c48a319cd829aa6749, type: 3}
+    preparedSprite: {fileID: 21300000, guid: a90438dae60d2a2469f60a6ddc93baca, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
+  - foodType: 6
+    sprite: {fileID: 21300000, guid: 378142c5d5c17034c8b9fe36a8b5c533, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 070f8c9f294106e4789d42e7910b10b0, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
+  - foodType: 4
+    sprite: {fileID: 21300000, guid: 5e7123252eb82d74a9b931aa7b464b24, type: 3}
+    preparedSprite: {fileID: 21300000, guid: b4dc462322662ca4a92560c88830d193, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
+  - foodType: 14
+    sprite: {fileID: 21300000, guid: 13b67bcd661eebc47884d280fe7cf82c, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 0284400605bd8b24f91c1b4c7f6adac9, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 0
+  - foodType: 23
+    sprite: {fileID: 21300000, guid: 111386a093b63344788002bf11de9575, type: 3}
+    preparedSprite: {fileID: 21300000, guid: 111386a093b63344788002bf11de9575, type: 3}
+    category: 0
+    chopSound: {fileID: 0}
+    chopSoundVariants: []
+    chopDebris: {fileID: 0}
+    skipPreparation: 1
