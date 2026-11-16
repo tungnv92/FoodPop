@@ -88,8 +88,8 @@ namespace FoodPop
             ExitPreWin();
         }
 
-        // EN: Resolves retry difficulty and resets gameplay, cancelling a pending win presentation, unlocking board taps and restoring plates and chef animation after a result.
-        // VI: Chọn độ khó theo lần chơi lại và đặt lại gameplay, hủy phần trình diễn thắng đang chờ, mở lại chạm board, khôi phục đĩa và animation đầu bếp sau khi có kết quả.
+        // EN: Resolves retry difficulty and resets gameplay, cancelling a pending win presentation and any running booster, unlocking board taps and restoring plates and chef animation after a result.
+        // VI: Chọn độ khó theo lần chơi lại và đặt lại gameplay, hủy phần trình diễn thắng đang chờ và booster đang chạy, mở lại chạm board, khôi phục đĩa và animation đầu bếp sau khi có kết quả.
         public void LoadLevel(LevelConfig config)
         {
             StopWinPresentation();
@@ -109,10 +109,7 @@ namespace FoodPop
             if (boardManager == null) boardManager = FoodBoardManager.Instance;
             if (customerManager == null) customerManager = CustomerManager.Instance;
             if (BoosterController.Instance != null)
-            {
-                BoosterController.Instance.CancelCleanCollection();
-                BoosterController.Instance.CancelPickupForReplay();
-            }
+                BoosterController.Instance.CancelForReplay();
             if (ChefManager.Instance != null)
             {
                 ChefManager.Instance.CancelPreparation();

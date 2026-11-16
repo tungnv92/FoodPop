@@ -20,6 +20,16 @@ namespace FoodPop
             public bool rising;
         }
 
+        public bool IsReady => isActiveAndEnabled && tray != null && tray.isActiveAndEnabled && foodRoot != null;
+
+        public bool IsReturning => returning != null;
+
+        public int Count => portions.Count;
+
+        // EN: World position of the bag mouth, where collected food enters and returned food leaves.
+        // VI: Vị trí world của miệng túi, nơi food thu vào đi vào và food trả về đi ra.
+        public Vector3 MouthPosition => tray != null ? tray.MouthPosition : foodRoot != null ? foodRoot.position : transform.position;
+
         [Tooltip("Túi giữ món (lớp sau, food, lớp trước) và hiệu ứng nảy nhún.")]
         [SerializeField] private FoodHoldingTray tray;
         [Tooltip("Object chứa hình food ở giữa lớp sau và lớp trước của túi.")]
@@ -50,52 +60,20 @@ namespace FoodPop
         [SerializeField, Min(0f)] private float riseDuration = 0.15f;
 
         private readonly List<Portion> portions = new List<Portion>();
+
         private readonly List<FoodType> needs = new List<FoodType>();
+
         private Coroutine returning;
         private ConveyorSlot returnSlot;
         private Portion returnPortion;
         private int returnArrivalId;
         private SpriteRenderer returnFlyer;
-        public bool IsReady => isActiveAndEnabled && tray != null && tray.isActiveAndEnabled && foodRoot != null;
-        public bool IsReturning => returning != null;
-        public int Count => portions.Count;
-
-        // EN: World position of the bag mouth, where collected food enters and returned food leaves.
-        // VI: Vị trí world của miệng túi, nơi food thu vào đi vào và food trả về đi ra.
-        public Vector3 MouthPosition => tray != null ? tray.MouthPosition : foodRoot != null ? foodRoot.position : transform.position;
 
         // EN: Fills missing references from this object's own hierarchy.
         // VI: Tự gán các tham chiếu còn thiếu từ chính cây object của túi.
         private void Awake()
         {
             ResolveReferences();
-        }
-
-        // EN: Uses the FoodHoldingTray on this object and the child named "FoodRoot" when they are not assigned; warns once when FoodRoot is still missing.
-        // VI: Dùng FoodHoldingTray trên object này và object con tên "FoodRoot" khi chưa được gán; cảnh báo nếu vẫn thiếu FoodRoot.
-        private void ResolveReferences()
-        {
-            if (tray == null)
-                tray = GetComponent<FoodHoldingTray>();
-            if (foodRoot == null)
-                foodRoot = FindChild(transform, "FoodRoot");
-            if (foodRoot == null)
-                Debug.LogWarning("[FoodHoldingStorage] Không tìm thấy FoodRoot trong túi giữ món nên Clean không dùng được. Hãy gán foodRoot hoặc thêm object con tên FoodRoot.", this);
-        }
-
-        // EN: Depth-first search for a descendant with the given name.
-        // VI: Tìm theo chiều sâu object con cháu có tên đã cho.
-        private static Transform FindChild(Transform parent, string childName)
-        {
-            foreach (Transform child in parent)
-            {
-                if (child.name == childName)
-                    return child;
-                Transform found = FindChild(child, childName);
-                if (found != null)
-                    return found;
-            }
-            return null;
         }
 
         // EN: Reserves demand returns with a unique slot arrival identity while no booster owns the bag; only ingredients a current customer can accept right now leave the bag (raw ones are re-prepared by the chef on the belt).
@@ -127,14 +105,31 @@ namespace FoodPop
             }
         }
 
-        // EN: Finds an active empty slot; reservations made before flight prevent other picks from taking it.
-        // VI: Tìm slot rỗng đang hoạt động; giữ chỗ trước khi bay tránh lượt pick khác chiếm slot.
-        private ConveyorSlot FindEmptySlot()
+        // EN: Smoothly moves visible portions toward their place (or toward the mouth while rising out).
+        // VI: Di chuyển mượt food đang hiện tới chỗ của nó (hoặc tới miệng túi khi đang nhô lên để ra ngoài).
+        private void LateUpdate()
         {
-            foreach (ConveyorSlot slot in conveyor.Slots)
-                if (slot != null && slot.isActiveAndEnabled && slot.isEmpty)
-                    return slot;
-            return null;
+            if (foodRoot == null || portions.Count == 0)
+                return;
+            float blend = 1f - Mathf.Exp(-settleSpeed * Time.deltaTime);
+            Vector3 mouth = foodRoot.InverseTransformPoint(MouthPosition);
+            foreach (Portion portion in portions)
+            {
+                if (portion.visual == null || !portion.visual.enabled)
+                    continue;
+                Transform visual = portion.visual.transform;
+                Vector3 target = portion.rising ? new Vector3(mouth.x, mouth.y, 0f) : portion.targetPosition;
+                visual.localPosition = Vector3.Lerp(visual.localPosition, target, blend);
+                visual.localRotation = Quaternion.Slerp(visual.localRotation, Quaternion.Euler(0f, 0f, portion.rising ? 0f : portion.targetAngle), blend);
+                visual.localScale = Vector3.Lerp(visual.localScale, LocalScaleFor(portion, portion.rising ? 1f : storedScale), blend);
+            }
+        }
+
+        // EN: Releases only the pending return's owned reservation and keeps its ingredient available in the bag.
+        // VI: Chỉ giải phóng phần giữ chỗ của chuyến trả đang chờ, giữ nguyên liệu còn dùng được trong túi.
+        private void OnDisable()
+        {
+            CancelPendingReturn();
         }
 
         // EN: Registers a hidden portion with its original conveyor world scale; it appears when DropIn or Reveal is called. Uses the shared ingredient configuration for the fallback icon.
@@ -241,6 +236,60 @@ namespace FoodPop
             if (tray != null) tray.Bounce();
             HideIfEmpty();
             return true;
+        }
+
+        // EN: Cancels a pending transfer before AutoComplete reads inventory, returning its single portion to the bag.
+        // VI: Hủy chuyến chuyển đang chờ trước khi AutoComplete đọc kho, trả đúng một phần về túi giữ món.
+        public void CancelPendingReturn()
+        {
+            ConveyorSlot slot = returnSlot;
+            Portion portion = returnPortion;
+            int arrivalId = returnArrivalId;
+            if (returning != null) StopCoroutine(returning);
+            returning = null;
+            if (slot != null) slot.CancelFoodArrival(arrivalId);
+            if (portion != null && portions.Contains(portion)) Reveal(portion);
+            if (returnFlyer != null) Destroy(returnFlyer.gameObject);
+            returnFlyer = null;
+            returnSlot = null;
+            returnPortion = null;
+        }
+
+        // EN: Uses the FoodHoldingTray on this object and the child named "FoodRoot" when they are not assigned; warns once when FoodRoot is still missing.
+        // VI: Dùng FoodHoldingTray trên object này và object con tên "FoodRoot" khi chưa được gán; cảnh báo nếu vẫn thiếu FoodRoot.
+        private void ResolveReferences()
+        {
+            if (tray == null)
+                tray = GetComponent<FoodHoldingTray>();
+            if (foodRoot == null)
+                foodRoot = FindChild(transform, "FoodRoot");
+            if (foodRoot == null)
+                Debug.LogWarning("[FoodHoldingStorage] Không tìm thấy FoodRoot trong túi giữ món nên Clean không dùng được. Hãy gán foodRoot hoặc thêm object con tên FoodRoot.", this);
+        }
+
+        // EN: Depth-first search for a descendant with the given name.
+        // VI: Tìm theo chiều sâu object con cháu có tên đã cho.
+        private static Transform FindChild(Transform parent, string childName)
+        {
+            foreach (Transform child in parent)
+            {
+                if (child.name == childName)
+                    return child;
+                Transform found = FindChild(child, childName);
+                if (found != null)
+                    return found;
+            }
+            return null;
+        }
+
+        // EN: Finds an active empty slot; reservations made before flight prevent other picks from taking it.
+        // VI: Tìm slot rỗng đang hoạt động; giữ chỗ trước khi bay tránh lượt pick khác chiếm slot.
+        private ConveyorSlot FindEmptySlot()
+        {
+            foreach (ConveyorSlot slot in conveyor.Slots)
+                if (slot != null && slot.isActiveAndEnabled && slot.isEmpty)
+                    return slot;
+            return null;
         }
 
         // EN: Cleans up only this return's arrival identity so reused slots retain their replacement food.
@@ -353,26 +402,6 @@ namespace FoodPop
             }
         }
 
-        // EN: Smoothly moves visible portions toward their place (or toward the mouth while rising out).
-        // VI: Di chuyển mượt food đang hiện tới chỗ của nó (hoặc tới miệng túi khi đang nhô lên để ra ngoài).
-        private void LateUpdate()
-        {
-            if (foodRoot == null || portions.Count == 0)
-                return;
-            float blend = 1f - Mathf.Exp(-settleSpeed * Time.deltaTime);
-            Vector3 mouth = foodRoot.InverseTransformPoint(MouthPosition);
-            foreach (Portion portion in portions)
-            {
-                if (portion.visual == null || !portion.visual.enabled)
-                    continue;
-                Transform visual = portion.visual.transform;
-                Vector3 target = portion.rising ? new Vector3(mouth.x, mouth.y, 0f) : portion.targetPosition;
-                visual.localPosition = Vector3.Lerp(visual.localPosition, target, blend);
-                visual.localRotation = Quaternion.Slerp(visual.localRotation, Quaternion.Euler(0f, 0f, portion.rising ? 0f : portion.targetAngle), blend);
-                visual.localScale = Vector3.Lerp(visual.localScale, LocalScaleFor(portion, portion.rising ? 1f : storedScale), blend);
-            }
-        }
-
         // EN: Places a portion exactly at its layout target.
         // VI: Đặt food đúng vào vị trí xếp của nó.
         private void SnapToTarget(Portion portion)
@@ -393,30 +422,6 @@ namespace FoodPop
                 scale.x / Mathf.Max(0.001f, Mathf.Abs(parentScale.x)),
                 scale.y / Mathf.Max(0.001f, Mathf.Abs(parentScale.y)),
                 scale.z / Mathf.Max(0.001f, Mathf.Abs(parentScale.z)));
-        }
-
-        // EN: Cancels a pending transfer before AutoComplete reads inventory, returning its single portion to the bag.
-        // VI: Hủy chuyến chuyển đang chờ trước khi AutoComplete đọc kho, trả đúng một phần về túi giữ món.
-        public void CancelPendingReturn()
-        {
-            ConveyorSlot slot = returnSlot;
-            Portion portion = returnPortion;
-            int arrivalId = returnArrivalId;
-            if (returning != null) StopCoroutine(returning);
-            returning = null;
-            if (slot != null) slot.CancelFoodArrival(arrivalId);
-            if (portion != null && portions.Contains(portion)) Reveal(portion);
-            if (returnFlyer != null) Destroy(returnFlyer.gameObject);
-            returnFlyer = null;
-            returnSlot = null;
-            returnPortion = null;
-        }
-
-        // EN: Releases only the pending return's owned reservation and keeps its ingredient available in the bag.
-        // VI: Chỉ giải phóng phần giữ chỗ của chuyến trả đang chờ, giữ nguyên liệu còn dùng được trong túi.
-        private void OnDisable()
-        {
-            CancelPendingReturn();
         }
 
 #if UNITY_EDITOR

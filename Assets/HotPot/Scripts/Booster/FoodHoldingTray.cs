@@ -8,6 +8,18 @@ namespace FoodPop
     // VI: Túi giữ món: lớp sau, food đang giữ và lớp trước. Cung cấp vị trí miệng túi cho các chuyến bay, bật hiện khi dùng và thu ẩn khi trống, nảy nhún mềm khi food vào hoặc ra.
     public sealed class FoodHoldingTray : MonoBehaviour
     {
+        // EN: The transform that bounces and pops; falls back to this object when no body is assigned.
+        // VI: Transform được nảy nhún và hiện/ẩn; dùng chính object này nếu chưa gán thân túi.
+        public Transform Body => body != null ? body : transform;
+
+        // EN: World position of the bag mouth, where food enters and leaves.
+        // VI: Vị trí world của miệng túi, nơi food đi vào và đi ra.
+        public Vector3 MouthPosition => mouth != null ? mouth.position : Body.TransformPoint(mouthOffset);
+
+        // EN: True while the bag is shown or popping in.
+        // VI: True khi túi đang hiện hoặc đang bật hiện.
+        public bool IsShown => shown;
+
         [Tooltip("Thân túi (chứa lớp sau, food và lớp trước); đây là phần nảy nhún và phần hiện/ẩn.")]
         [FormerlySerializedAs("drawer")]
         [SerializeField] private Transform body;
@@ -39,18 +51,6 @@ namespace FoodPop
         private float squash;
         private float appear = 1f;
         private bool shown = true;
-
-        // EN: The transform that bounces and pops; falls back to this object when no body is assigned.
-        // VI: Transform được nảy nhún và hiện/ẩn; dùng chính object này nếu chưa gán thân túi.
-        public Transform Body => body != null ? body : transform;
-
-        // EN: World position of the bag mouth, where food enters and leaves.
-        // VI: Vị trí world của miệng túi, nơi food đi vào và đi ra.
-        public Vector3 MouthPosition => mouth != null ? mouth.position : Body.TransformPoint(mouthOffset);
-
-        // EN: True while the bag is shown or popping in.
-        // VI: True khi túi đang hiện hoặc đang bật hiện.
-        public bool IsShown => shown;
 
         // EN: Finds the "Bag" child when no body is assigned, remembers the authored pose and starts hidden when requested.
         // VI: Tự tìm object con "Bag" khi chưa gán thân túi, ghi nhớ tư thế thiết kế và ẩn túi lúc đầu nếu được yêu cầu.
@@ -107,6 +107,22 @@ namespace FoodPop
             shown = false;
             appear = 0f;
             ApplyPose();
+        }
+
+        // EN: Plays a soft squash-and-stretch bounce; rapid calls do not restart a bounce that has just begun.
+        // VI: Nảy nhún mềm kiểu bẹp rồi giãn; gọi liên tục sẽ không khởi động lại nhịp nảy vừa bắt đầu.
+        [ContextMenu("Test/Nảy túi")]
+        public void Bounce()
+        {
+            if (!isActiveAndEnabled)
+                return;
+            CaptureRest();
+            if (bounce != null && Time.time - bounceStartTime < bounceDuration * 0.4f)
+                return;
+            if (bounce != null)
+                StopCoroutine(bounce);
+            bounceStartTime = Time.time;
+            bounce = StartCoroutine(PlayBounce());
         }
 
         // EN: Starts the show or hide animation from the current visibility (works outside Play Mode by snapping).
@@ -167,22 +183,6 @@ namespace FoodPop
             const float c3 = c1 + 1f;
             float x = Mathf.Clamp01(t) - 1f;
             return 1f + c3 * x * x * x + c1 * x * x;
-        }
-
-        // EN: Plays a soft squash-and-stretch bounce; rapid calls do not restart a bounce that has just begun.
-        // VI: Nảy nhún mềm kiểu bẹp rồi giãn; gọi liên tục sẽ không khởi động lại nhịp nảy vừa bắt đầu.
-        [ContextMenu("Test/Nảy túi")]
-        public void Bounce()
-        {
-            if (!isActiveAndEnabled)
-                return;
-            CaptureRest();
-            if (bounce != null && Time.time - bounceStartTime < bounceDuration * 0.4f)
-                return;
-            if (bounce != null)
-                StopCoroutine(bounce);
-            bounceStartTime = Time.time;
-            bounce = StartCoroutine(PlayBounce());
         }
 
         // EN: Damped wave: squashes first, then stretches slightly, then settles.

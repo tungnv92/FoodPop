@@ -48,14 +48,14 @@
 
 ## Giới thiệu booster mở khóa
 - `BoosterUnlockIntro` trên object BoosterController. Khi `LevelLoaded` với level ≥ 2, chọn booster có `unlockLevel` đúng level và chưa xem (PlayerPrefs `FoodPop.BoosterIntro.<BoosterType>`; menu ngữ cảnh `Test/Xóa cờ đã xem giới thiệu booster`).
-- Luồng: chờ không booster nào chạy → pause → nút hiện dáng khóa → chờ `popupDelay` 0,8 s → `CanvasBoosterIntro` (tia sáng xoay, icon nhấp nhô, "NEW BOOSTER!", tên, mô tả, "Got it"; xuất hiện theo bước nền tối `blackBackground` → khung `Root` → icon, unscaled) → icon bay vòng cung xuống nút (`flyDuration` 0,65 s), ổ khóa thu nhỏ, nút nảy → đánh dấu đã xem → tặng `unlockGift` lượt (`Booster.Grant`) → lượt dùng thử.
+- Luồng: chờ không booster nào chạy → pause → nút hiện dáng khóa → chờ `popupDelay` 0,8 s → `CanvasBoosterIntro` (tia sáng xoay, icon nhấp nhô, "NEW BOOSTER!", tên, mô tả, "Got it"; xuất hiện theo bước nền tối `blackBackground` → khung `Root` → icon, unscaled) → icon bay vòng cung xuống nút (`flyDuration` 0,65 s), ổ khóa thu nhỏ, nút nảy → tặng `unlockGift` lượt (`Booster.Grant`, lưu ngay) → đánh dấu đã xem → lượt dùng thử. Thứ tự này đảm bảo thoát app giữa hai bước không mất quà (tệ nhất là lần sau xem lại intro và nhận quà thêm một lần).
 - Lượt dùng thử: `BoosterTrialOverlay` (canvas riêng `sortingOrder` 32767, tối toàn màn trừ lỗ tròn quanh nút, bàn tay Spine, dòng `TryPrompt`); nút phập phồng `pulseScale`; `BoosterController.BeginTrial` chỉ nhận chạm đúng nút đó → nhả pause → `TryActivate` như thường (**trừ một lượt**).
 - Hủy giữa chừng (`OnDisable`, nạp lại màn) → `StopIntro()` dọn mọi thứ; chưa đánh dấu xem thì lần nạp sau chạy lại.
 
 ## PickupHand
 - Điều kiện: có ít nhất một cột ≥ 2 hàng; có nhóm đĩa lộ trong `maxVisibleRows` không đóng băng và thỏa sức chứa `DishPickPlan` ([Conveyor.md](Conveyor.md#sức-chứa-khi-lấy-đĩa-dishpickplan)).
 - Xử lý: khóa board, ẩn nút booster, hiện `PickupPrompt` + nút hủy (`cancelCollider`), kéo camera xuống nếu cần (SafeAreaCamera giữ size theo Y gốc; đổi bố cục camera thì gọi `RefreshFramingOrigin()`). Chạm nhóm không hợp lệ → nháy cả nhóm + thông báo từ `GetPickupGroupRejection`. Chạm hợp lệ → nhấc cả nhóm, mở nắp, `board.TryPickDishAt(column, row, settings.Consume)`; thất bại thì trả tư thế/scale/sorting.
-- Hủy/replay/disable (`CancelPickupForReplay`, gọi từ `OnDisable` và `LevelController.LoadLevel`) trả đĩa, camera và khóa input về trạng thái trước Pickup.
+- Hủy/replay/disable (`CancelPickupForReplay`, chạy qua `CancelForReplay` từ `OnDisable` và `LevelController.LoadLevel`) trả đĩa, camera và khóa input về trạng thái trước Pickup; `pickupCameraMoved` giữ tới khi camera trượt về xong nên replay giữa lúc trượt vẫn đưa camera về Y gốc.
 - Chẩn đoán: `FoodBoardManager.logPickFailures` (log `[FoodBoardManager] Không pick được:`), `DishPickBatch.LastFailure`; xem [foodpop-FoodBoardManager.md](foodpop-FoodBoardManager.md).
 
 ## AutoComplete
@@ -70,6 +70,7 @@
 - Trả món: `CustomerManager.GetNeededIngredients` trừ phần đã có/đang bay trên băng; chỉ trả nguyên liệu khách hiện tại nhận ngay (`TryFindCustomer`) để tránh bế tắc giả. Food nhô lên miệng túi rồi bay tới slot trống đã giữ; chỉ xóa khỏi kho sau khi đáp thành công. Phần thô được đầu bếp sơ chế lại.
 - `ConveyorSlot.ArrivalId` đổi mỗi lượt đáp/xóa food để callback cũ không chạm slot dùng lại.
 - `CancelCleanCollection` + `ResetForLevel` khi replay.
+- Replay/disable gọi `BoosterController.CancelForReplay()`: chạy hủy Clean và Pickup, rồi nếu Shuffle/AutoComplete còn chạy thì dừng coroutine, trả `OffscreenHidingSuspended = false`, khôi phục khóa input, ẩn sprite bay, dừng sao AutoComplete và bỏ trạng thái bận. Giữ chỗ nguyên liệu của AutoComplete được reset khi nạp lại khách; chỉ tắt controller (không replay) thì chưa trả giữ chỗ.
 
 ## Shuffle
 - Điều kiện: ≥ 2 nhóm nguyên liệu khác loại/số lượng. Bỏ qua đĩa thuộc nhóm link; đĩa đôi giữ vị trí nhưng xáo food bên trong (loại + số lượng đi cùng nhau).

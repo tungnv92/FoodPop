@@ -21,6 +21,25 @@ namespace FoodPop
         // VI: Lý do từ chối khi chưa gán board (lỗi thiết lập); chỉ ghi log, không hiện cho người chơi.
         private const string BoardNotAssigned = "chưa gán board";
 
+        private sealed class PickupPose
+        {
+            public Food dish;
+            public Vector3 position, scale;
+            public int[] orders;
+            public int boost;
+        }
+
+        // EN: Live state of the AutoComplete star: its particle instance, where it is, its size and the absorb pulse.
+        // VI: Trạng thái hiện tại của ngôi sao AutoComplete: bản particle, vị trí, kích thước và nhịp phồng khi hút.
+        private sealed class StarState
+        {
+            public ParticleEffect effect;
+            public Vector3 position;
+            public float size;
+            public float pulse;
+            public bool alive = true;
+        }
+
         // EN: Scene instance, if any.
         // VI: Bản trong scene, nếu có.
         public static BoosterController Instance => instance;
@@ -54,13 +73,6 @@ namespace FoodPop
         private bool pickupInputWasLocked;
         private bool pickupOwnsInput;
         private readonly List<PickupPose> pickupPoses = new List<PickupPose>();
-        private sealed class PickupPose
-        {
-            public Food dish;
-            public Vector3 position, scale;
-            public int[] orders;
-            public int boost;
-        }
         private ConveyorChefMovement collectionBelt;
         private ChefManager collectionChef;
         private CustomerManager collectionCustomers;
@@ -72,6 +84,10 @@ namespace FoodPop
         private readonly List<ParticleEffect> collectionTrails = new List<ParticleEffect>();
         private Booster trialBooster;
         private System.Action trialTapped;
+        private readonly List<SpriteRenderer> fxPool = new List<SpriteRenderer>();
+        private Material defaultFxMaterial;
+        private Transform fxRoot;
+        private ParticleEffect starInstance;
 
         // EN: Clears the static instance when entering Play Mode with domain reload disabled.
         // VI: Xóa instance tĩnh khi vào Play Mode lúc tắt tải lại miền mã.
@@ -128,14 +144,13 @@ namespace FoodPop
             }
         }
 
-        // EN: Stops following level loads and releases Clean and Pickup-owned animation and input state when disabled.
-        // VI: Ngừng theo dõi lúc nạp level và giải phóng hoạt cảnh cùng trạng thái input của Clean và Pickup khi bị tắt.
+        // EN: Stops following level loads and stops any running booster, releasing its animation, effect and input state, when disabled.
+        // VI: Ngừng theo dõi lúc nạp level và dừng booster đang chạy, giải phóng hoạt cảnh, hiệu ứng và trạng thái input của nó khi bị tắt.
         private void OnDisable()
         {
             if (levelController != null)
                 levelController.LevelLoaded -= OnLevelLoaded;
-            CancelCleanCollection();
-            CancelPickupForReplay();
+            CancelForReplay();
         }
 
         // EN: Unregisters the scene instance.
@@ -239,6 +254,38 @@ namespace FoodPop
             return true;
         }
 
+        // EN: Stops every running booster before replay or disable: Clean and Pickup restore their own state; Shuffle and AutoComplete are stopped and their board flags, input lock and in-flight effects released. The busy flag is read before the Clean/Pickup cancels because a Pickup camera still sliding back clears it. Customer reservations are reset by the level reload itself.
+        // VI: Dừng mọi booster đang chạy trước khi chơi lại hoặc khi bị tắt: Clean và Pickup tự khôi phục trạng thái; Shuffle và AutoComplete bị dừng, trả lại cờ của board, khóa input và hiệu ứng đang bay. Cờ bận được đọc trước khi hủy Clean/Pickup vì camera Pickup còn đang trượt về sẽ xóa cờ này. Phần giữ chỗ của khách được chính lần nạp lại màn reset.
+        public void CancelForReplay()
+        {
+            bool wasRunning = running;
+            CancelCleanCollection();
+            CancelPickupForReplay();
+            if (!wasRunning)
+                return;
+            StopAllCoroutines();
+            if (board != null)
+            {
+                board.OffscreenHidingSuspended = false;
+                board.InputLocked = collectionInputWasLocked;
+            }
+            ReleaseRunningEffects();
+            SetBusy(false);
+            SetBoosterRootVisible(true);
+        }
+
+        // EN: Hides every pooled flight sprite still active and stops the AutoComplete star after its coroutines were stopped.
+        // VI: Ẩn mọi sprite bay trong pool còn đang hiện và dừng ngôi sao AutoComplete sau khi coroutine của nó bị dừng.
+        private void ReleaseRunningEffects()
+        {
+            if (fxRoot != null)
+                foreach (SpriteRenderer fx in fxRoot.GetComponentsInChildren<SpriteRenderer>())
+                    if (fx.transform.parent == fxRoot && fx.GetComponent<ParticleEffect>() == null)
+                        ReleaseFx(fx);
+            if (starInstance != null)
+                starInstance.Stop();
+        }
+
         // EN: Cancels pending collection flights on replay or disable and restores stored portions and pause ownership.
         // VI: Hủy chuyến thu đang chờ khi chơi lại hoặc tắt, khôi phục food đã giữ và quyền tạm dừng.
         public void CancelCleanCollection()
@@ -260,6 +307,62 @@ namespace FoodPop
             if (board != null) board.InputLocked = collectionInputWasLocked;
             SetBusy(false);
             SetBoosterRootVisible(true);
+        }
+
+        // EN: Cancels Pickup before replay or disable, including a camera still sliding back after selection ended, and restores poses, camera and the original input lock.
+        // VI: Hủy Pickup trước khi chơi lại hoặc vô hiệu hóa, kể cả khi camera còn đang trượt về sau khi kết thúc chọn, rồi trả tư thế, camera và khóa input ban đầu.
+        public void CancelPickupForReplay()
+        {
+            if (!pickupOwnsInput && pickupSelecting == null && !pickupCameraMoved) return;
+            StopAllCoroutines();
+            if (pickupSelecting != null) pickupSelecting.ShowPrompt(false);
+            pickupSelecting = null;
+            RestorePickupPoses();
+            Camera cam = inputCamera != null ? inputCamera : Camera.main;
+            if (pickupCameraMoved && cam != null)
+            {
+                Vector3 position = cam.transform.position;
+                position.y = pickupCameraRestY;
+                cam.transform.position = position;
+            }
+            cameraMove = null;
+            pickupCameraMoved = false;
+            pickupVisibleRows = int.MaxValue;
+            pickupTargets.Clear();
+            if (board != null)
+            {
+                board.MaxVisibleRows = int.MaxValue;
+                board.InputLocked = pickupInputWasLocked;
+                board.RefreshSelection();
+            }
+            pickupOwnsInput = false;
+            SetBusy(false);
+            SetBoosterRootVisible(true);
+        }
+
+        // EN: Validates every linked member (rejections use BoosterConfig short messages; a dish outside the selectable rows only flashes, without a message) and starts Pickup using the input lock saved before selection.
+        // VI: Kiểm tra mọi thành viên nối (lý do từ chối dùng thông báo ngắn trong BoosterConfig; đĩa ngoài vùng hàng được chọn chỉ nháy, không hiện thông báo) và chạy Pickup với khóa input đã lưu trước chế độ chọn.
+        public bool TryPickupDishAt(int column, int row)
+        {
+            if (pickupSelecting == null || column < 0 || column >= board.ColumnCount) return false;
+            if (row < 0 || row >= board.GetColumnDishes(column).Count) return false;
+            Food dish = board.GetColumnDishes(column)[row];
+            if (row >= pickupVisibleRows)
+            {
+                ShowPickupDenied(dish, "đĩa nằm ngoài vùng chọn", false);
+                return false;
+            }
+            string reason = board.GetPickupGroupRejection(dish, CountFreeSlots());
+            if (reason != null)
+            {
+                ShowPickupDenied(dish, reason);
+                return false;
+            }
+            PickupHandBooster settings = pickupSelecting;
+            pickupSelecting = null;
+            settings.ShowPrompt(false);
+            StartCoroutine(RunLocked(Pickup(settings, column, row), pickupInputWasLocked));
+            return true;
         }
 
         // EN: Fills empty references straight from the scene: the board singleton, the LevelController, every Booster under this object (inactive ones included) and the child named "Root" that holds the booster buttons.
@@ -482,31 +585,6 @@ namespace FoodPop
             TryPickupDishAt(column, row);
         }
 
-        // EN: Validates every linked member (rejections use BoosterConfig short messages; a dish outside the selectable rows only flashes, without a message) and starts Pickup using the input lock saved before selection.
-        // VI: Kiểm tra mọi thành viên nối (lý do từ chối dùng thông báo ngắn trong BoosterConfig; đĩa ngoài vùng hàng được chọn chỉ nháy, không hiện thông báo) và chạy Pickup với khóa input đã lưu trước chế độ chọn.
-        public bool TryPickupDishAt(int column, int row)
-        {
-            if (pickupSelecting == null || column < 0 || column >= board.ColumnCount) return false;
-            if (row < 0 || row >= board.GetColumnDishes(column).Count) return false;
-            Food dish = board.GetColumnDishes(column)[row];
-            if (row >= pickupVisibleRows)
-            {
-                ShowPickupDenied(dish, "đĩa nằm ngoài vùng chọn", false);
-                return false;
-            }
-            string reason = board.GetPickupGroupRejection(dish, CountFreeSlots());
-            if (reason != null)
-            {
-                ShowPickupDenied(dish, reason);
-                return false;
-            }
-            PickupHandBooster settings = pickupSelecting;
-            pickupSelecting = null;
-            settings.ShowPrompt(false);
-            StartCoroutine(RunLocked(Pickup(settings, column, row), pickupInputWasLocked));
-            return true;
-        }
-
         // EN: Flashes all members of the rejected group, logs the reason and shows it as a short message unless showMessage is false.
         // VI: Nháy mọi thành viên trong nhóm bị từ chối, ghi log lý do và hiện lý do thành thông báo ngắn trừ khi showMessage là false.
         private void ShowPickupDenied(Food dish, string reason, bool showMessage = true)
@@ -612,37 +690,6 @@ namespace FoodPop
             pickupPoses.Clear();
         }
 
-        // EN: Cancels Pickup before replay or disable and restores poses, camera and the original input lock.
-        // VI: Hủy Pickup trước khi chơi lại hoặc vô hiệu hóa, trả tư thế, camera và khóa input ban đầu.
-        public void CancelPickupForReplay()
-        {
-            if (!pickupOwnsInput && pickupSelecting == null) return;
-            StopAllCoroutines();
-            if (pickupSelecting != null) pickupSelecting.ShowPrompt(false);
-            pickupSelecting = null;
-            RestorePickupPoses();
-            Camera cam = inputCamera != null ? inputCamera : Camera.main;
-            if (pickupCameraMoved && cam != null)
-            {
-                Vector3 position = cam.transform.position;
-                position.y = pickupCameraRestY;
-                cam.transform.position = position;
-            }
-            cameraMove = null;
-            pickupCameraMoved = false;
-            pickupVisibleRows = int.MaxValue;
-            pickupTargets.Clear();
-            if (board != null)
-            {
-                board.MaxVisibleRows = int.MaxValue;
-                board.InputLocked = pickupInputWasLocked;
-                board.RefreshSelection();
-            }
-            pickupOwnsInput = false;
-            SetBusy(false);
-            SetBoosterRootVisible(true);
-        }
-
         // EN: Hides every row past maxVisibleRows, then slides the camera down just enough to show min(maxVisibleRows, rows the board has) rows above the prompt; never moves it up. Remembers the old Y so it can slide back. Dishes below the screen turn on by themselves (the board hides/shows them by the camera's bottom edge).
         // VI: Ẩn mọi hàng sau maxVisibleRows, rồi trượt camera xuống vừa đủ để thấy min(maxVisibleRows, số hàng board đang có) hàng phía trên thông báo; không bao giờ đẩy camera lên. Ghi nhớ Y cũ để trượt về. Đĩa dưới màn hình tự bật lại (board bật/tắt đĩa theo mép dưới camera).
         private void MovePickupCamera(PickupHandBooster settings)
@@ -664,8 +711,8 @@ namespace FoodPop
             StartCameraMove(cam, pickupCameraRestY - shift, settings.cameraMoveDuration);
         }
 
-        // EN: Lifts the board's row limit, slides the camera back to where it was before PickupHand (if it was moved) and clears the visible-row limit; returns the running slide, or null.
-        // VI: Bỏ giới hạn số hàng của board, trượt camera về vị trí trước khi dùng PickupHand (nếu đã dịch) và bỏ giới hạn số hàng chọn; trả về coroutine đang trượt, hoặc null.
+        // EN: Lifts the board's row limit, slides the camera back to where it was before PickupHand (if it was moved) and clears the visible-row limit; returns the running slide, or null. pickupCameraMoved stays set until the slide ends so a replay meanwhile still snaps the camera back.
+        // VI: Bỏ giới hạn số hàng của board, trượt camera về vị trí trước khi dùng PickupHand (nếu đã dịch) và bỏ giới hạn số hàng chọn; trả về coroutine đang trượt, hoặc null. pickupCameraMoved giữ nguyên tới khi trượt xong để chơi lại giữa chừng vẫn đưa camera về chỗ cũ.
         private Coroutine RestorePickupCamera()
         {
             pickupVisibleRows = int.MaxValue;
@@ -675,7 +722,6 @@ namespace FoodPop
                 board.MaxVisibleRows = int.MaxValue;
                 return null;
             }
-            pickupCameraMoved = false;
             PickupHandBooster settings = null;
             foreach (Booster booster in boosters)
                 if (booster is PickupHandBooster pickup)
@@ -683,11 +729,12 @@ namespace FoodPop
             return StartCoroutine(SlideBackThenShowRows(StartCameraMove(cam, pickupCameraRestY, settings != null ? settings.cameraMoveDuration : 0.35f)));
         }
 
-        // EN: Waits for the camera to finish sliding back, then lifts the board's row limit, so the extra rows never flash in while the camera is still low.
-        // VI: Chờ camera trượt về xong rồi mới bỏ giới hạn số hàng của board, để các hàng thừa không chớp hiện lên khi camera vẫn còn ở thấp.
+        // EN: Waits for the camera to finish sliding back, then clears the moved-camera flag and lifts the board's row limit, so the extra rows never flash in while the camera is still low.
+        // VI: Chờ camera trượt về xong rồi mới xóa cờ camera đã dịch và bỏ giới hạn số hàng của board, để các hàng thừa không chớp hiện lên khi camera vẫn còn ở thấp.
         private IEnumerator SlideBackThenShowRows(Coroutine slide)
         {
             yield return slide;
+            pickupCameraMoved = false;
             board.MaxVisibleRows = int.MaxValue;
         }
 
@@ -836,22 +883,6 @@ namespace FoodPop
         }
 
         // ---------------------------------------------------------------- AutoComplete
-
-        // EN: Live state of the AutoComplete star: its particle instance, where it is, its size and the absorb pulse.
-        // VI: Trạng thái hiện tại của ngôi sao AutoComplete: bản particle, vị trí, kích thước và nhịp phồng khi hút.
-        private sealed class StarState
-        {
-            public ParticleEffect effect;
-            public Vector3 position;
-            public float size;
-            public float pulse;
-            public bool alive = true;
-        }
-
-        private readonly List<SpriteRenderer> fxPool = new List<SpriteRenderer>();
-        private Material defaultFxMaterial;
-        private Transform fxRoot;
-        private ParticleEffect starInstance;
 
         // EN: Cancels unfinished holding returns before reserving a dish, then gathers each real ingredient once from belt, storage or board and serves it through the star.
         // VI: Hủy chuyến trả từ khay chưa xong trước khi giữ chỗ món, rồi lấy từng nguyên liệu thật một lần từ băng, kho hoặc board và phục vụ qua sao.
