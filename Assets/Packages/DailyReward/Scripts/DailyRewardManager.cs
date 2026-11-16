@@ -6,6 +6,9 @@ namespace GamePackages
     [System.Serializable]
     public class DailyRewardManager : ContextData<DailyRewardData>, IFeatureNewDay
     {
+        // EN: Reads the free reward claim count without exposing the model.
+        // VI: Đọc số lần nhận thưởng miễn phí mà không lộ model.
+        public int TotalFreeClaimed => Data != null ? Data.totalFreeClaimed : 0;
         public DailyRewardGlobalConfig DailyRewardGlobalConfig;
         public UnityAction onClaimedAction;
         // Start is called before the first frame update

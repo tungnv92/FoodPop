@@ -58,19 +58,22 @@ public class WinStreakHome : MonoBehaviour
         InitProgress();
     }
 
+    // EN: Coordinates CheckShowTut using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối CheckShowTut qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public bool CheckShowTut()
     {
-        return Manager.IsLevelUnlocked && !Manager.GetData().isShownFirstTut;
+        return Manager.IsLevelUnlocked && !Manager.HasShownTutorial;
     }
 
+    // EN: Coordinates ShowTut using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ShowTut qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void ShowTut()
     {
         maskObj.SetActive(true);
         handAnim.ShowTouchAnim(transform.position, new Vector2(300, -100), () =>
         {
             UIManager.Ins.EnableBlocker(true);
-            Manager.GetData().isShownFirstTut = true;
-            Manager.Save();
+            Manager.MarkTutorialShown();
             StartCoroutine(PlayRevealAnim());
         });
     }
@@ -91,6 +94,8 @@ public class WinStreakHome : MonoBehaviour
         UIManager.Ins.OpenPopup(PopupId.WinStreak);
     }
 
+    // EN: Coordinates RefreshVisualState using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối RefreshVisualState qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void RefreshVisualState()
     {
         if (Manager == null) return;
@@ -107,7 +112,7 @@ public class WinStreakHome : MonoBehaviour
         {
             if (completedObj != null) completedObj.SetActive(false);
             bool isUnlocked = Manager.IsLevelUnlocked;
-            bool isTut = !Manager.GetData().isShownFirstTut;
+            bool isTut = !Manager.HasShownTutorial;
             tutObj.SetActive(isUnlocked && isTut);
 
             if (unlockedObj != null) unlockedObj.SetActive(isUnlocked && !tutObj.activeInHierarchy);

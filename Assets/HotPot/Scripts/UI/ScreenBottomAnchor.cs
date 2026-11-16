@@ -8,8 +8,7 @@ namespace FoodPop
     [DisallowMultipleComponent]
     public class ScreenBottomAnchor : MonoBehaviour
     {
-        [Tooltip("Camera dùng để tính mép dưới màn hình; để trống dùng Camera.main.")]
-        [SerializeField] private Camera targetCamera;
+        private Camera cam => Camera.main;
         [Tooltip("Khoảng cách (đơn vị world) từ mép dưới màn hình tới vị trí object; số âm là thấp hơn mép dưới.")]
         [SerializeField] private float bottomOffset = -0.1f;
         [Tooltip("Tính mép dưới theo vùng an toàn của thiết bị (tránh thanh điều hướng/tai thỏ) thay vì mép màn hình thật.")]
@@ -26,9 +25,6 @@ namespace FoodPop
         // VI: Di chuyển object để Y nằm cách mép dưới vùng màn hình (an toàn) một khoảng bottomOffset.
         private void Anchor()
         {
-            Camera cam = targetCamera != null ? targetCamera : Camera.main;
-            if (cam == null)
-                return;
             float bottomViewport = useSafeArea && Screen.height > 0 ? Screen.safeArea.yMin / Screen.height : 0f;
             float depth = cam.orthographic ? 0f : Mathf.Abs(transform.position.z - cam.transform.position.z);
             float bottomY = cam.ViewportToWorldPoint(new Vector3(0.5f, bottomViewport, depth)).y;

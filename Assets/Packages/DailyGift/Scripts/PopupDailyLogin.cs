@@ -111,10 +111,10 @@ namespace HomeFeatures.DailyLogin
                         case ResourceType.Coin:
                             PlayerDataManager.OnAddCoin(value, placement);
                             break;
-                        case ResourceType.BoosterAddSlot:
+                        case ResourceType.BoosterClean:
                         case ResourceType.BoosterShuffle:
                         case ResourceType.BoosterPickup:
-                        case ResourceType.BoosterSuperBear:
+                        case ResourceType.BoosterAutoComplete:
                             PlayerDataManager.OnAddBooster(type, value, placement);
                             break;
                         case ResourceType.UnlimitedLives:

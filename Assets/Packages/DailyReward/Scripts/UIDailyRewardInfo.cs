@@ -46,11 +46,13 @@ namespace GamePackages
             }
         }
 
+        // EN: Coordinates Update using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối Update qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         private void Update()
         {
             if (config != null && config.isFree)
             {
-                bool showClaimedStage0 = DailyRewardManager.GetData().totalFreeClaimed >= DailyRewardManager.totalAbleFreeClaim;
+                bool showClaimedStage0 = DailyRewardManager.TotalFreeClaimed >= DailyRewardManager.totalAbleFreeClaim;
                 if (objAdsClaimed) objAdsClaimed.gameObject.SetActive(showClaimedStage0);
 
                 bool isClaimed = DailyRewardManager.IsClaimedStage(config.stageID, out string sCappingTime);

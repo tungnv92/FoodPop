@@ -11,7 +11,62 @@ namespace GamePackages
     [Serializable]
     public class TowerRiseManager : ContextData<TowerRiseData>, IFeatureNewDay, IFeatureUpdate
     {
-        public static TowerRiseManager Instance => ProfileManager.instance != null && ProfileManager.instance.GameFeatureContext != null
+        // EN: Signals persisted UI-owned feature state changes without exposing the model.
+        // VI: Báo thay đổi trạng thái tính năng do giao diện yêu cầu sau khi lưu mà không lộ model.
+        public event Action StateChanged;
+
+        // EN: Reads isDoneTutorial without exposing mutable feature data.
+        // VI: Đọc isDoneTutorial mà không lộ dữ liệu tính năng có thể sửa.
+        public bool HasCompletedTutorial => Data != null ? Data.isDoneTutorial : false;
+
+        // EN: Persists isDoneTutorial when first marked by the feature UI.
+        // VI: Lưu isDoneTutorial khi giao diện tính năng đánh dấu lần đầu.
+        public void CompleteTutorial()
+        {
+            if (Data == null || Data.isDoneTutorial) return;
+            Data.isDoneTutorial = true;
+            Save();
+            StateChanged?.Invoke();
+        }
+        // EN: Reads isShowedInfo without exposing mutable feature data.
+        // VI: Đọc isShowedInfo mà không lộ dữ liệu tính năng có thể sửa.
+        public bool HasShownInfo => Data != null ? Data.isShowedInfo : false;
+
+        // EN: Persists isShowedInfo when first marked by the feature UI.
+        // VI: Lưu isShowedInfo khi giao diện tính năng đánh dấu lần đầu.
+        public void MarkInfoShown()
+        {
+            if (Data == null || Data.isShowedInfo) return;
+            Data.isShowedInfo = true;
+            Save();
+            StateChanged?.Invoke();
+        }
+        // EN: Reads isStarted without exposing mutable feature data.
+        // VI: Đọc isStarted mà không lộ dữ liệu tính năng có thể sửa.
+        public bool HasStarted => Data != null ? Data.isStarted : false;
+        // EN: Reads lastMilestone without exposing mutable feature data.
+        // VI: Đọc lastMilestone mà không lộ dữ liệu tính năng có thể sửa.
+        public int LastViewedProgress => Data != null ? Data.lastMilestone : 0;
+        // EN: Reads currentMilestone without exposing mutable feature data.
+        // VI: Đọc currentMilestone mà không lộ dữ liệu tính năng có thể sửa.
+        public int CurrentProgress => Data != null ? Data.currentMilestone : 0;
+        // EN: Reads totalMilestone without exposing mutable feature data.
+        // VI: Đọc totalMilestone mà không lộ dữ liệu tính năng có thể sửa.
+        public int TotalProgress => Data != null ? Data.totalMilestone : 0;
+
+        // EN: Marks a reached milestone claimed before its rewards are presented, without exposing the saved list.
+        // VI: Đánh dấu đã nhận mốc hoàn thành trước khi trình diễn thưởng mà không lộ danh sách lưu.
+        public void MarkMilestoneClaimed(int index)
+        {
+            if (Data == null || index < 0 || index >= GetMileStoneCount() || !IsMilestoneReached(index) || IsMilestoneClaimed(index)) return;
+            Data.claimedIndexes.Add(index);
+            Save();
+            StateChanged?.Invoke();
+        }
+
+        // EN: Coordinates Instance using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối Instance qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        public static TowerRiseManager Instance => ProfileManager.instance.GameFeatureContext != null
             ? ProfileManager.instance.GameFeatureContext.TowerRiseManager
             : null;
 
@@ -24,8 +79,9 @@ namespace GamePackages
             set => TowerRiseConfig = value;
         }
 
-        public new TowerRiseData Data => base.Data ?? (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.TowerRiseData : null);
-        public TowerRiseData towerRiseData => Data;
+        // EN: Keeps the mutable feature model private while public callers use value queries.
+        // VI: Giữ model tính năng có thể sửa ở phạm vi riêng, nơi gọi public dùng truy vấn giá trị.
+        private TowerRiseData towerRiseData => Data;
 
         public int currentMilestone;
         public int currentStepinMilestone;
@@ -40,23 +96,21 @@ namespace GamePackages
         public int UnlockLevel => TowerRiseConfig != null ? TowerRiseConfig.LevelActiveFeature : 85;
         public int unlockLevelIndex => UnlockLevel;
 
-        public bool IsLevelUnlocked => ProfileManager.instance != null && ProfileManager.instance.PlayerData != null &&
-                                       ProfileManager.instance.PlayerData.currentLevel >= UnlockLevel;
+        // EN: Checks the unlock level through read-only player manager queries.
+        // VI: Kiểm tra level mở khóa qua truy vấn chỉ đọc của manager người chơi.
+        // EN: Checks the unlock level through read-only player manager queries.
+        // VI: Kiểm tra level mở khóa qua truy vấn chỉ đọc của manager người chơi.
+        public bool IsLevelUnlocked => ProfileManager.instance.PlayerDataManager.IsInitialized &&
+                                       ProfileManager.instance.PlayerDataManager.GetCurrentLevel() >= UnlockLevel;
 
         public bool isActive => IsLevelUnlocked && (TowerRiseConfig == null || TowerRiseConfig.isFeatureEnabled);
         public bool IsEnabled => TowerRiseConfig != null && TowerRiseConfig.isFeatureEnabled;
 
-        public override void SetContext(TowerRiseData data)
+        // EN: Binds the saved model through internal initialization and initializes this feature's state.
+        // VI: Gắn model lưu qua khởi tạo nội bộ và khởi tạo trạng thái của tính năng này.
+        internal override void SetContext(TowerRiseData data)
         {
-            if (data == null)
-            {
-                data = new TowerRiseData();
-                if (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null)
-                {
-                    ProfileManager.instance.PlayerData.TowerRiseData = data;
-                }
-            }
-            base.SetContext(data);
+            base.SetContext(data ?? throw new System.ArgumentNullException(nameof(data)));
 
             MigrateLastViewedData();
             EnsureTotalMilestone();
@@ -90,9 +144,11 @@ namespace GamePackages
             TryAutoCompleteFinishedEventIfNoRewards();
         }
 
+        // EN: Coordinates GetCurrentTime using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối GetCurrentTime qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public DateTime GetCurrentTime()
         {
-            if (ProfileManager.instance != null && ProfileManager.instance.TimeManager != null)
+            if (ProfileManager.instance.TimeManager != null)
             {
                 return ProfileManager.instance.TimeManager.GetNow();
             }
@@ -459,10 +515,10 @@ namespace GamePackages
             {
                 ResourceType.Coin => 0,             // Coin
                 ResourceType.UnlimitedLives => 1,   // UnlimitedLife
-                ResourceType.BoosterAddSlot => 2,   // Booster_1
+                ResourceType.BoosterClean => 2,   // Booster_1
                 ResourceType.BoosterShuffle => 3,   // Booster_2
                 ResourceType.BoosterPickup => 4,    // Booster_3
-                ResourceType.BoosterSuperBear => 5, // Booster_4
+                ResourceType.BoosterAutoComplete => 5, // Booster_4
                 _ => 0
             };
         }
@@ -530,9 +586,13 @@ namespace GamePackages
             }
         }
 
+        // EN: Grants supported rewards through dedicated APIs and warns about unknown resource types.
+        // VI: Cấp thưởng hợp lệ qua API chuyên biệt và cảnh báo loại tài nguyên không xác định.
+        // EN: Coordinates ClaimRewardResource using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimRewardResource qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public static void ClaimRewardResource(ResourceGame reward, string placement = "TowerRise")
         {
-            if (reward == null || ProfileManager.instance == null || ProfileManager.instance.PlayerDataManager == null) return;
+            if (reward == null) return;
             var pdm = ProfileManager.instance.PlayerDataManager;
 
             switch (reward.type)
@@ -543,14 +603,14 @@ namespace GamePackages
                 case ResourceType.UnlimitedLives:
                     pdm.AddUnlimitedLiveTime(reward.value, placement);
                     break;
-                case ResourceType.BoosterAddSlot:
+                case ResourceType.BoosterClean:
                 case ResourceType.BoosterShuffle:
                 case ResourceType.BoosterPickup:
-                case ResourceType.BoosterSuperBear:
+                case ResourceType.BoosterAutoComplete:
                     pdm.OnAddBooster(reward.type, reward.value, placement);
                     break;
                 default:
-                    pdm.OnAddResource(reward.type, reward.value, placement);
+                    Debug.LogWarning($"Unsupported reward resource: {reward.type}");
                     break;
             }
         }

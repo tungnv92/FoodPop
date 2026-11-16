@@ -9,11 +9,11 @@ namespace GamePackages
         /// <summary>
         ///  Save Manager, Save Game Data
         /// </summary>
-        public SaveService SaveService;
+        [SerializeField] private SaveService SaveService;
         /// <summary>
         /// Game Data
         /// </summary>
-        public PlayerData PlayerData;
+        [SerializeField] private PlayerData PlayerData;
         /// <summary>
         /// Time Manager
         /// </summary>
@@ -39,7 +39,6 @@ namespace GamePackages
         public LavaQuestConfig LavaQuestConfig;
         public MissionControlConfig MissionControlConfig;
         public TowerRiseConfig TowerRiseConfig;
-        public CardCollectionConfig CardCollectionConfig;
         [Header("Avatar & Frame Configs")]
         public HomeFeatures.Profile.AvatarConfig AvatarConfig;
         public FrameConfig FrameConfig;
@@ -82,8 +81,8 @@ namespace GamePackages
             TimeManager.UpdateTime();
             GameFeatureContext.Update();
         }
-        // EN: Loads player save data, initializes time and feature managers, and binds feature configurations.
-        // VI: Nạp dữ liệu lưu của người chơi, khởi tạo các manager thời gian và tính năng, đồng thời gắn cấu hình tính năng.
+        // EN: Loads private player data and wires managers and features through internal initialization APIs.
+        // VI: Nạp dữ liệu người chơi riêng và gắn manager cùng tính năng qua API khởi tạo nội bộ.
         void LoadData()
         {
             SaveService ??= new SaveService();
@@ -92,7 +91,7 @@ namespace GamePackages
             TimeManager.LoadData();
             PlayerDataManager.SetSaveService(SaveService);
             PlayerDataManager.SetContext(PlayerData);
-            GameFeatureContext = new GameFeatureContext(this);
+            GameFeatureContext = new GameFeatureContext(this, PlayerData, SaveService);
             TimeManager.AddDayCallback("Newday", OnNewDay);
             TimeManager.CheckNewDayWhenLogin();
             GameFeatureContext.DailyGiftManager.DailyGiftGlobalConfig = DailyGiftRewardConfig;
@@ -100,7 +99,6 @@ namespace GamePackages
             GameFeatureContext.WinStreakManager.WinStreakGlobalConfig = WinStreakGlobalConfig;
             GameFeatureContext.LavaQuestManager.LavaQuestConfig = LavaQuestConfig;
             GameFeatureContext.TowerRiseManager.TowerRiseConfig = TowerRiseConfig;
-            GameFeatureContext.CardCollectionManager.CardCollectionConfig = CardCollectionConfig;
         }
 
         public Sprite GetAvatarSprite(int id)
@@ -159,10 +157,11 @@ namespace GamePackages
             //return PlayerPrefs.GetInt("Max_Level", MaxLevel);
             return PlayerData.currentLevel;
         }
+        // EN: Changes the level through the player manager so progress is saved and announced.
+        // VI: Đổi level qua manager người chơi để lưu và thông báo tiến trình.
         public void JumpToTriggerLevel(int triggerLevel)
         {
-            PlayerData.currentLevel = triggerLevel;
-            SaveData();
+            PlayerDataManager.SetCurrentLevel(triggerLevel);
         }
         void OnNewDay()
         {
@@ -187,13 +186,13 @@ namespace GamePackages
         public void SaveData()
         {
             SaveService.SaveData();
-            AwaiterActionManager.Instance.SaveData();
+            if (AwaiterActionManager.Instance) AwaiterActionManager.Instance.SaveData();
             TimeManager.SaveData();
         }
         void ReloadData()
         {
             GameFeatureContext.HeartManager.AsyncTime();
-            AwaiterActionManager.Instance.LoadData();
+           if(AwaiterActionManager.Instance) AwaiterActionManager.Instance.LoadData();
         }
         [Button]
         public void ClearData()

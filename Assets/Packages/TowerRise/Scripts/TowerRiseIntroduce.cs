@@ -11,16 +11,17 @@ public class TowerRiseIntroduce : Popup
     public TextMeshProUGUI descriptionText;
     public Action OnClose = () => { };
 
+    // EN: Opens the view using manager queries and commands instead of mutable save models.
+    // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
     public override void Open(object args = null)
     {
         base.Open(args);
         OnClose = () =>
         {
             if (TowerRiseTutorial.Ins != null) TowerRiseTutorial.Ins.Done();
-            if (TowerRiseManager.Ins != null && TowerRiseManager.Ins.towerRiseData != null)
+            if (TowerRiseManager.Ins != null && TowerRiseManager.Ins.IsInitialized)
             {
-                TowerRiseManager.Ins.towerRiseData.isDoneTutorial = true;
-                TowerRiseManager.Ins.towerRiseData.SaveData();
+                TowerRiseManager.Ins.CompleteTutorial();
             }
         };
     }
@@ -31,6 +32,8 @@ public class TowerRiseIntroduce : Popup
         if (countDownText != null) countDownText.text = TowerRiseManager.Ins.GetCountDownString();
     }
 
+    // EN: Coordinates ButtonStartEvent using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ButtonStartEvent qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void ButtonStartEvent()
     {
         if (TowerRiseManager.Ins != null)
@@ -43,7 +46,7 @@ public class TowerRiseIntroduce : Popup
         OnClose?.Invoke();
         OnClose = null;
 
-        if (TowerRiseManager.Ins != null && !TowerRiseManager.Ins.towerRiseData.isShowedInfo)
+        if (TowerRiseManager.Ins != null && !TowerRiseManager.Ins.HasShownInfo)
         {
             var info = UIManager.Ins.OpenPopup<TowerRiseInfo>(PopupId.TowerRiseInfo);
             if (info != null)

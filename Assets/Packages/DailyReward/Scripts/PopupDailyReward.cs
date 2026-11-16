@@ -98,10 +98,10 @@ public class PopupDailyReward : Popup
                 case ResourceType.Coin:
                     PlayerDataManager.OnAddCoin(value, placement);
                     break;
-                case ResourceType.BoosterAddSlot:
+                case ResourceType.BoosterClean:
                 case ResourceType.BoosterPickup:
                 case ResourceType.BoosterShuffle:
-                case ResourceType.BoosterSuperBear:
+                case ResourceType.BoosterAutoComplete:
                     PlayerDataManager.OnAddBooster(type, value, placement);
                     break;
                 case ResourceType.UnlimitedLives:

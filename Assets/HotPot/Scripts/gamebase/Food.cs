@@ -9,12 +9,10 @@ namespace FoodPop
     // VI: Một nguyên liệu trong game: loại nguyên liệu và trạng thái chế biến (thô -> đã sơ chế).
     public class Food : MonoBehaviour
     {
-        [Tooltip("Cấu hình thời gian và hiệu ứng dùng chung trong màn chơi; để trống dùng asset mặc định.")]
-        [SerializeField] private IngameConfig ingameConfig;
 
-        // EN: Resolves shared gameplay tuning while supporting an explicitly assigned configuration asset.
-        // VI: Lấy thông số màn chơi dùng chung, hỗ trợ asset cấu hình được gán riêng.
-        private IngameConfig Config => IngameConfig.Resolve(ingameConfig);
+        // EN: Reads cached shared gameplay tuning without storing a per-food config reference.
+        // VI: Đọc cấu hình màn chơi dùng chung đã cache, không lưu tham chiếu riêng trên mỗi food.
+        private IngameConfig Config => IngameConfig.Instance;
 
         public FoodType foodType;
         public int amount;
@@ -29,8 +27,6 @@ namespace FoodPop
         [SerializeField] GameObject canvasCount;
         [SerializeField] TextMeshProUGUI txtAmount;
         [SerializeField] SpriteRenderer iconRenderer;
-        [Tooltip("Bảng ảnh nguyên liệu thô và đã sơ chế.")]
-        [SerializeField] FoodIconConfig foodIconConfig;
         [Tooltip("Renderer nắp tròn dùng để che nguyên liệu trên đĩa.")]
         [SerializeField] SpriteRenderer lidRenderer;
         [Tooltip("Renderer đĩa; nắp luôn được vẽ ngay trên đĩa này.")]
@@ -170,6 +166,8 @@ namespace FoodPop
 
         // EN: Creates reusable second-half visuals and positions them without stretching their contents.
         // VI: Tạo hình nửa thứ hai để tái sử dụng và đặt đúng vị trí mà không kéo giãn nội dung.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
         private void ConfigureSecondVisual(FoodType secondType, Vector3 localOffset)
         {
             if (IsDouble && iconRenderer != null)
@@ -180,7 +178,7 @@ namespace FoodPop
                     secondIcon.name = "Second ingredient";
                 }
                 secondIcon.transform.localPosition = iconRenderer.transform.localPosition + localOffset;
-                secondIcon.sprite = foodIconConfig != null ? foodIconConfig.GetIcon(secondType) : null;
+                secondIcon.sprite = IngameConfig.Instance.FoodIcons != null ? IngameConfig.Instance.FoodIcons.GetIcon(secondType) : null;
                 if (secondCount == null && canvasCount != null)
                 {
                     secondCount = Instantiate(canvasCount, canvasCount.transform.parent);
@@ -200,8 +198,8 @@ namespace FoodPop
             RefreshSecondVisual();
         }
 
-        // EN: Refreshes the second ingredient and its own quantity badge.
-        // VI: Cập nhật nguyên liệu thứ hai và nhãn số lượng riêng.
+        // EN: Refreshes the second ingredient and its own quantity badge; like the first badge, the second one only shows when its quantity exceeds one.
+        // VI: Cập nhật nguyên liệu thứ hai và nhãn số lượng riêng; giống nhãn đầu, nhãn thứ hai chỉ hiện khi số lượng lớn hơn một.
         private void RefreshSecondVisual()
         {
             if (secondIcon != null)
@@ -218,7 +216,7 @@ namespace FoodPop
             }
             if (secondCount == null)
                 return;
-            secondCount.SetActive(IsDouble && !countBadgeSuppressed && !isHidden && !IsFrozen && iconRenderer != null && iconRenderer.gameObject.activeSelf);
+            secondCount.SetActive(IsDouble && SecondAmount > 1 && !countBadgeSuppressed && !isHidden && !IsFrozen && iconRenderer != null && iconRenderer.gameObject.activeSelf);
             if (secondCountText != null)
                 secondCountText.text = SecondAmount.ToString();
             if (secondCountCanvas != null && countCanvas != null)
@@ -247,9 +245,8 @@ namespace FoodPop
 
         public bool IsRaw => state == FoodState.Raw;
 
-        // EN: The icon table assigned to this food, used to look up its sprites and preparation group.
-        // VI: Bảng icon gán cho nguyên liệu này, dùng để tra sprite và nhóm sơ chế.
-        public FoodIconConfig IconConfig => foodIconConfig;
+        // EN: Indicates whether this portion has completed preparation.
+        // VI: Cho biết phần nguyên liệu này đã sơ chế xong hay chưa.
         public bool IsPrepared => state == FoodState.Prepared;
 
         // EN: Direct references used by managers instead of searching children at runtime.
@@ -575,13 +572,15 @@ namespace FoodPop
 
         // EN: Changes processing state, refreshes its sushi icon and notifies listeners.
         // VI: Đổi trạng thái chế biến, cập nhật icon sushi và thông báo cho bên lắng nghe.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
         public void SetState(FoodState newState)
         {
             if (state == newState)
                 return;
             state = newState;
-            if (foodIconConfig != null)
-                SetIcon(foodIconConfig.GetIcon(foodType, state));
+            if (IngameConfig.Instance.FoodIcons != null)
+                SetIcon(IngameConfig.Instance.FoodIcons.GetIcon(foodType, state));
             StateChanged?.Invoke(this, state);
         }
 
@@ -600,30 +599,23 @@ namespace FoodPop
 
         // EN: Replaces one ingredient stack during shuffle without changing the plate shape, position, lid or ice.
         // VI: Thay một nhóm nguyên liệu khi xáo mà không đổi hình đĩa, vị trí, nắp hoặc băng.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
         public void SetShuffleContent(bool secondHalf, FoodType type, int quantity)
         {
             if (secondHalf)
             {
                 SecondFoodType = type;
                 SecondAmount = Mathf.Max(0, quantity);
-                if (secondIcon != null && foodIconConfig != null)
-                    secondIcon.sprite = foodIconConfig.GetIcon(type, state);
+                if (secondIcon != null && IngameConfig.Instance.FoodIcons != null)
+                    secondIcon.sprite = IngameConfig.Instance.FoodIcons.GetIcon(type, state);
                 RefreshSecondVisual();
                 return;
             }
             foodType = type;
-            if (foodIconConfig != null)
-                SetIcon(foodIconConfig.GetIcon(type, state));
+            if (IngameConfig.Instance.FoodIcons != null)
+                SetIcon(IngameConfig.Instance.FoodIcons.GetIcon(type, state));
             SetAmount(quantity);
-        }
-
-        // EN: Assigns the shared icon table and immediately updates the current state's sprite.
-        // VI: Gán bảng icon dùng chung và cập nhật ngay sprite theo trạng thái hiện tại.
-        public void SetIconConfig(FoodIconConfig config)
-        {
-            foodIconConfig = config;
-            if (config != null)
-                SetIcon(config.GetIcon(foodType, state));
         }
 
         // EN: Updates the first-half quantity, hides its icon when depleted and refreshes the count badge.

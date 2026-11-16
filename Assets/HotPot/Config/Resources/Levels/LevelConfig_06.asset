@@ -1,0 +1,315 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5cb36b8e9e34dca889267a80d360227, type: 3}
+  m_Name: LevelConfig_06
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.LevelConfig
+  levelNumber: 6
+  useUnifiedCustomerQueue: 0
+  customerQueue:
+  - customerType: 0
+    timeServe: 30
+    ingredientOrders:
+    - ingredients: 010000000d00000003000000
+      dish: {fileID: 6905783594566486328, guid: e6d25c5ee3f379d4eb226535f5b191e8, type: 3}
+    - ingredients: 010000000200000009000000
+      dish: {fileID: 5215155998416200777, guid: 70b61a1f06e94274894292878eddab7f, type: 3}
+  - customerType: 0
+    timeServe: 30
+    ingredientOrders:
+    - ingredients: 010000000200000009000000
+      dish: {fileID: 5215155998416200777, guid: 70b61a1f06e94274894292878eddab7f, type: 3}
+    - ingredients: 010000000300000010000000
+      dish: {fileID: 6905783594566486328, guid: 0310710206b7e0943873f54e6d69f0df, type: 3}
+  - customerType: 0
+    timeServe: 30
+    ingredientOrders:
+    - ingredients: 01000000020000000d00000010000000
+      dish: {fileID: 5215155998416200777, guid: e96271e4f67a4a24caafc141e4fa40b1, type: 3}
+    - ingredients: 010000000200000009000000
+      dish: {fileID: 5215155998416200777, guid: 70b61a1f06e94274894292878eddab7f, type: 3}
+  - customerType: 0
+    timeServe: 30
+    ingredientOrders:
+    - ingredients: 010000000300000010000000
+      dish: {fileID: 6905783594566486328, guid: 0310710206b7e0943873f54e6d69f0df, type: 3}
+    - ingredients: 0100000003000000
+      dish: {fileID: 5587512501118421151, guid: 17903cce35d267a4cba883422cef2447, type: 3}
+  - customerType: 0
+    timeServe: 30
+    ingredientOrders:
+    - ingredients: 0100000003000000
+      dish: {fileID: 5587512501118421151, guid: 17903cce35d267a4cba883422cef2447, type: 3}
+    - ingredients: 0100000002000000
+      dish: {fileID: 8544356767161410794, guid: e9930fb9df5b1b44086f9ac8de0f73fb, type: 3}
+  - customerType: 0
+    timeServe: 30
+    ingredientOrders:
+    - ingredients: 010000000300000010000000
+      dish: {fileID: 6905783594566486328, guid: 0310710206b7e0943873f54e6d69f0df, type: 3}
+    - ingredients: 0100000002000000100000000d000000
+      dish: {fileID: 5215155998416200777, guid: e96271e4f67a4a24caafc141e4fa40b1, type: 3}
+  - customerType: 0
+    timeServe: 30
+    ingredientOrders:
+    - ingredients: 01000000030000000d000000
+      dish: {fileID: 6905783594566486328, guid: e6d25c5ee3f379d4eb226535f5b191e8, type: 3}
+    - ingredients: 010000000200000009000000
+      dish: {fileID: 5215155998416200777, guid: 70b61a1f06e94274894292878eddab7f, type: 3}
+  leftQueue: []
+  rightQueue: []
+  boardRows: 10
+  boardColumns: 3
+  ingredientBoard:
+  - foods:
+    - foodType: 1
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 13
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 16
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 9
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 1
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 9
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 1
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 3
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 13
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 3
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+  - foods:
+    - foodType: 2
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 3
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 9
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 3
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 16
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 1
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 2
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 1
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 2
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 16
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+  - foods:
+    - foodType: 9
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 13
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 1
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 1
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 2
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 2
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 1
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 13
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 16
+      requiredCount: 1
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+    - foodType: 1
+      requiredCount: 2
+      isHidden: 0
+      isFrozen: 0
+      blockValue: 1
+      dishShape: 0
+      secondFoodType: 0
+      secondCount: 1
+  dishLinks: []

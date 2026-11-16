@@ -32,12 +32,12 @@ public class PopupMoreLives : Popup
         Close();
     }
 
+    // EN: Refills hearts only when the combined Coin/heart transaction commits successfully.
+    // VI: Hồi đầy mạng chỉ khi giao dịch xu/mạng kết hợp được chốt thành công.
     public void BuyByCoin()
     {
-        if (ProfileManager.instance.PlayerDataManager.IsEnoughResource(ResourceType.Coin, price))
+        if (PlayerDataManager.TryBuyFullHearts(price, "more_live"))
         {
-            ProfileManager.instance.PlayerDataManager.OnRemoveCoin(price, "more_live");
-            ProfileManager.instance.GameFeatureContext.HeartManager.OnFillFullHeart();
             Close();
         }
         else

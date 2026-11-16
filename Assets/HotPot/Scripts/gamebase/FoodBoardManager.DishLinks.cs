@@ -31,27 +31,44 @@ namespace FoodPop
             return GetPickupGroupRejection(dish, freeSlots) == null;
         }
 
-        // EN: Returns a user-facing reason based on every linked member, checking ice before combined capacity.
-        // VI: Trả lý do cho người chơi dựa trên mọi thành viên nối, kiểm tra băng trước tổng sức chứa.
+        // EN: Explain whole-group rejection, checking ice before the shared belt/direct-order capacity rule.
+        // VI: Giải thích từ chối cả nhóm, kiểm tra băng trước luật sức chứa chung trên băng/đi thẳng order.
         public string GetPickupGroupRejection(Food dish, int freeSlots)
         {
             if (dish == null)
-                return "Không còn nguyên liệu tại vị trí này";
+                return IngameConfig.Instance.Boosters.GetShortDes(BoosterConfig.ShortDesType.PlateEmpty);
             List<Food> members = GetPickMembers(dish);
             bool linked = members.Count > 1;
             foreach (Food member in members)
                 if (member != null && member.IsFrozen)
-                    return linked ? "Nhóm liên kết còn nguyên liệu đóng băng" : "Nguyên liệu đang đóng băng";
+                    return IngameConfig.Instance.Boosters.GetShortDes(linked ? BoosterConfig.ShortDesType.LinkedPlateFrozen : BoosterConfig.ShortDesType.PlateFrozen);
             int total = 0;
             foreach (Food member in members)
             {
                 if (member == null || member.TotalAmount <= 0)
-                    return "Không còn nguyên liệu để lấy";
+                    return IngameConfig.Instance.Boosters.GetShortDes(BoosterConfig.ShortDesType.NoPlateToPick);
                 total += member.TotalAmount;
             }
-            if (total > freeSlots)
-                return linked ? "Không đủ chỗ cho cả nhóm liên kết" : "Băng chuyền không đủ chỗ trống";
+            if (total > freeSlots && !DishPickPlan.Evaluate(members, freeSlots, ChefManager.Instance, CustomerManager.Instance).CanPick)
+                return IngameConfig.Instance.Boosters.GetShortDes(linked ? BoosterConfig.ShortDesType.LinkedPlatesNoSpace : BoosterConfig.ShortDesType.BeltFull);
             return null;
+        }
+
+        // EN: Check each exposed pick group once using exactly the same capacity and direct-order rules as a real tap.
+        // VI: Kiểm tra mỗi nhóm lấy đã lộ một lần bằng đúng luật sức chứa/order đi thẳng của thao tác thật.
+        public bool HasAvailablePick(ChefManager chef, CustomerManager customers)
+        {
+            var visited = new HashSet<Food>();
+            int empty = chef.CountEmptySlots();
+            for (int column = 0; column < columnDishes.Count; column++)
+            {
+                Food dish = GetColumnHead(column);
+                if (dish == null || !visited.Add(dish)) continue;
+                List<Food> members = GetPickMembers(dish);
+                foreach (Food member in members) visited.Add(member);
+                if (CanPickGroup(dish, false) && DishPickPlan.Evaluate(members, empty, chef, customers).CanPick) return true;
+            }
+            return false;
         }
 
         // EN: Reveals every hidden member before a PickupHand group pick, preserving a shared cancellation owner in the booster.
@@ -83,21 +100,29 @@ namespace FoodPop
             return !dish.IsFrozen && !dish.isHidden && dish.TotalAmount > 0 && (ignoreDepth || IsDishAtHead(dish));
         }
 
-        // EN: Rejects picks while paused; otherwise picks the group atomically, settles and damages ice once.
-        // VI: Chặn chọn khi tạm dừng; ngược lại lấy nhóm trong một giao dịch, dồn và trừ băng một lần.
-        private bool PickGroup(Food dish, bool ignoreDepth)
+        // EN: Validates the group and reserves its slots, committing any booster cost before launches; failed payment leaves the board unchanged.
+        // VI: Kiểm tra nhóm và giữ slot, chốt chi phí booster trước khi bay; thanh toán thất bại giữ nguyên board.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
+        private bool PickGroup(Food dish, bool ignoreDepth, System.Func<bool> commitCost = null)
         {
-            if (Time.timeScale <= 0f) return false;
+            if (Time.timeScale <= 0f)
+            {
+                LogPickFailure("game đang tạm dừng (Time.timeScale = 0)", dish);
+                return false;
+            }
             List<Food> members = GetPickMembers(dish);
             if (!CanPickGroup(dish, ignoreDepth))
             {
+                LogPickFailure(DescribePickBlock(dish), dish);
                 foreach (Food member in members)
                     if (member != null)
                         member.Selection?.PlayRejected();
                 return false;
             }
-            if (!pickBatch.TryFill(members, ChefManager.Instance, foodIconConfig))
+            if (!pickBatch.TryFill(members, ChefManager.Instance, commitCost))
             {
+                LogPickFailure(pickBatch.LastFailure ?? "không giữ được slot băng chuyền", dish);
                 foreach (Food member in members)
                     member.Selection?.PlayRejected();
                 return false;
@@ -117,6 +142,21 @@ namespace FoodPop
             foreach (DishPickBatch.Entry entry in entries)
                 DishPicked?.Invoke(entry.type, entry.slots);
             return true;
+        }
+
+        // EN: Explains why CanPickGroup refused a dish (link group not exposed or blocked, ice, lid, no portion left), for the pick-failure log.
+        // VI: Giải thích vì sao CanPickGroup từ chối đĩa (nhóm nối chưa lộ hoặc bị chặn, băng, nắp, hết phần), dùng cho log chọn thất bại.
+        private string DescribePickBlock(Food dish)
+        {
+            if (dishLinks.TryGetValue(dish, out DishLinkGroup group))
+                return group.IsExposed(columnDishes) ? "nhóm liên kết còn thành viên đóng băng/đang ẩn/hết phần" : "nhóm liên kết chưa lộ hết ra hàng đầu";
+            if (dish.IsFrozen)
+                return $"đĩa đang đóng băng (còn {dish.blockValue})";
+            if (dish.isHidden)
+                return "đĩa còn nắp (đang mở nắp hoặc chưa tới hàng đầu)";
+            if (dish.TotalAmount <= 0)
+                return "đĩa không còn phần nguyên liệu";
+            return "đĩa không ở hàng đầu";
         }
 
         // EN: Loads chains from original anchor coordinates before gravity changes their rows, skipping invalid groups atomically.

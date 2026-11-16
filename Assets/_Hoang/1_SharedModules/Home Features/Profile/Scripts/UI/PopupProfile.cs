@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+using DG.Tweening;
 using GamePackages;
 using HomeFeatures.Profile;
 using Longvm.UIAnimator;
@@ -33,14 +33,16 @@ public class PopupProfile : Popup
     [SerializeField] Frame[] frames;
 
     bool isInitialized;
-    PlayerData profileData;
+    PlayerDataManager profileData;
 
     event Action onClose;
 
+    // EN: Opens the view using manager queries and commands instead of mutable save models.
+    // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
     public override void Open(object args = null)
     {
         base.Open(args);
-        profileData = ProfileManager.instance.PlayerData;
+        profileData = ProfileManager.instance.PlayerDataManager;
         StartCoroutine(OpenRoutine());
     }
 
@@ -57,6 +59,8 @@ public class PopupProfile : Popup
 
     public void OnClose(Action onClose) => this.onClose = onClose;
 
+    // EN: Coordinates OpenRoutine using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối OpenRoutine qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     IEnumerator OpenRoutine()
     {
         openAnimator.Init();
@@ -79,11 +83,11 @@ public class PopupProfile : Popup
             yield return null;
         }
 
-        nameIf.text = profileData.playerName;
+        nameIf.text = profileData.PlayerName;
         //nameIf_Golden.text = profileData.Name;
         //nameIf.gameObject.SetActive(!MasterPassManager.Ins.Data.Activated);
         //nameIf_Golden.gameObject.SetActive(MasterPassManager.Ins.Data.Activated);
-        selectedFrameImage.sprite = frameConfig.FrameSprites[profileData.frame_avatar_id];
+        selectedFrameImage.sprite = frameConfig.FrameSprites[profileData.FrameId];
         OpenAvatar();
         avatarButton.Select();
         frameButton.UnSelect();
@@ -118,9 +122,11 @@ public class PopupProfile : Popup
         ReloadFrame();
     }
 
+    // EN: Coordinates ReloadAvatar using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ReloadAvatar qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     void ReloadAvatar()
     {
-        int index = profileData.avatar_id;
+        int index = profileData.AvatarId;
         selectedAvatarImage.sprite = avatarConfig.AvatarSprites[index];
 
         selectRt.SetParent(avatars[index].MyRt);
@@ -130,9 +136,11 @@ public class PopupProfile : Popup
         //selectRt.DOScale(1, 0.25f).SetEase(Ease.OutBack);
     }
 
+    // EN: Coordinates ReloadFrame using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ReloadFrame qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     void ReloadFrame()
     {
-        int index = profileData.frame_avatar_id;
+        int index = profileData.FrameId;
         selectedFrameImage.sprite = frameConfig.FrameSprites[index];
 
         //selectRt.localScale = Vector3.zero;
@@ -149,17 +157,19 @@ public class PopupProfile : Popup
         //goldenFrameEffect.enabled = profileData.FrameIndex == frameConfig.GoldenFrameId;
     }
 
+    // EN: Persists the avatar selection through the player manager and refreshes its preview.
+    // VI: Lưu ảnh đại diện đã chọn qua manager người chơi và cập nhật xem trước.
     public void OnSelectAvatar(int index)
     {
-        profileData.avatar_id = index;
-        ProfileManager.instance.SaveData();
+        profileData.SetAvatar(index);
         ReloadAvatar();
     }
 
+    // EN: Persists the frame selection through the player manager and refreshes its preview.
+    // VI: Lưu khung đã chọn qua manager người chơi và cập nhật xem trước.
     public void OnSelectFrame(int index)
     {
-        profileData.frame_avatar_id = index;
-        ProfileManager.instance.SaveData();
+        profileData.SetFrame(index);
         ReloadFrame();
     }
 
@@ -169,15 +179,16 @@ public class PopupProfile : Popup
         Close();
     }
 
+    // EN: Restores an empty name or saves the edited name through the player manager.
+    // VI: Khôi phục tên rỗng hoặc lưu tên đã sửa qua manager người chơi.
     public void OnEndEditName()
     {
         if (string.IsNullOrEmpty(nameIf.text))
         {
-            nameIf.text = profileData.playerName;
+            nameIf.text = profileData.PlayerName;
             return;
         }
-        profileData.playerName = nameIf.text;
-        ProfileManager.instance.SaveData();
+        profileData.SetPlayerName(nameIf.text);
     }
 
     public void OnEndEditNameGold()

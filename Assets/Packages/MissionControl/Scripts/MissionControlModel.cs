@@ -80,9 +80,11 @@ namespace GamePackages
             Reset();
         }
 
+        // EN: Coordinates SaveData using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối SaveData qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public void SaveData()
         {
-            ProfileManager.instance?.SaveData();
+            ProfileManager.instance.SaveData();
         }
     }
 }

@@ -15,9 +15,11 @@ namespace FoodPop
     {
         // EN: Returns Meat or Vegetable for the food type: the config override when not Auto, otherwise the built-in default.
         // VI: Trả về Meat hoặc Vegetable cho loại nguyên liệu: dùng giá trị ghi đè trong config nếu khác Auto, nếu không thì dùng mặc định có sẵn.
-        public static FoodCategory Get(FoodType type, FoodIconConfig config = null)
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
+        public static FoodCategory Get(FoodType type)
         {
-            FoodCategory overrideCategory = config != null ? config.GetCategoryOverride(type) : FoodCategory.Auto;
+            FoodCategory overrideCategory = IngameConfig.Instance.FoodIcons.GetCategoryOverride(type);
             return overrideCategory != FoodCategory.Auto ? overrideCategory : GetDefault(type);
         }
 

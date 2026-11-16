@@ -27,18 +27,12 @@ namespace FoodPop
             [Range(0f, 1f)] public float landPopAmount = 0.2f;
         }
 
-        [Tooltip("Nguyên liệu bay tới khay")]
-        public IngredientFlightSettings ingredientFlight = new IngredientFlightSettings();
-
         [Serializable]
         public class BoardMotionSettings
         {
             [Tooltip("Thời gian (giây) các đĩa còn lại trong cột trượt lên một hàng sau khi đĩa đầu được chọn.")]
             [Min(0f)] public float shiftUpDuration = 0.18f;
         }
-
-        [Tooltip("Chuyển động trên board")]
-        public BoardMotionSettings boardMotion = new BoardMotionSettings();
 
         [Serializable]
         public class BoardFlightSettings
@@ -59,9 +53,6 @@ namespace FoodPop
             public int sortingOrderBoost = 100;
         }
 
-        [Tooltip("Nguyên liệu bay lên băng chuyền")]
-        public BoardFlightSettings boardFlight = new BoardFlightSettings();
-
         [Serializable]
         public class DishAssemblySettings
         {
@@ -75,9 +66,6 @@ namespace FoodPop
             [Range(0f, 1f)] public float dishPopAmount = 0.35f;
         }
 
-        [Tooltip("Ghép món trên khay")]
-        public DishAssemblySettings dishAssembly = new DishAssemblySettings();
-
         [Serializable]
         public class DishOrderFlightSettings
         {
@@ -90,9 +78,6 @@ namespace FoodPop
             [Tooltip("Hệ số phóng to của món hoàn chỉnh ở giữa đường bay vào order, sau đó thu về đúng kích thước ô món.")]
             [Min(1f)] public float dishFlyPeakScale = 1.3f;
         }
-
-        [Tooltip("Món hoàn chỉnh bay vào order")]
-        public DishOrderFlightSettings dishOrderFlight = new DishOrderFlightSettings();
 
         [Serializable]
         public class CustomersSettings
@@ -113,14 +98,9 @@ namespace FoodPop
             public Vector2 queueSpacing = new Vector2(0.8f, 0.45f);
         }
 
-        [Tooltip("Khách và hàng chờ")]
-        public CustomersSettings customers = new CustomersSettings();
-
         [Serializable]
         public class PreparationSettings
         {
-            [Tooltip("Thời gian sơ chế một nguyên liệu, tính bằng giây.")]
-            [Min(0.01f)] public float preparationDuration = 1f;
             [Tooltip("Độ nảy của món và thớt ở mỗi nhát chặt (0.08 = bẹp 8%).")]
             [Range(0f, 0.3f)] public float chopPunch = 0.08f;
             [Tooltip("Hệ số phóng to món khi nằm trước mặt đầu bếp so với kích thước trên đĩa.")]
@@ -129,6 +109,12 @@ namespace FoodPop
             [Min(0.01f)] public float liftDuration = 0.25f;
             [Tooltip("Thời gian (giây) món đã sơ chế rơi lại vào đĩa.")]
             [Min(0.01f)] public float dropDuration = 0.3f;
+            [Tooltip("Trong khoảng cách này (world) giữa đĩa và điểm cắt, món bay đúng thời gian gốc; xa hơn mới bay lâu thêm.")]
+            [Min(0f)] public float nearFlightDistance = 2f;
+            [Tooltip("Thời gian (giây) cộng thêm cho mỗi đơn vị world vượt quá Near Flight Distance, áp dụng cho cả lúc bay lên và rơi về.")]
+            [Min(0f)] public float flightTimePerUnit = 0.04f;
+            [Tooltip("Giới hạn thời gian bay tối đa = thời gian gốc × hệ số này (2 = lâu nhất gấp đôi).")]
+            [Min(1f)] public float maxFlightMultiplier = 2f;
             [Tooltip("Độ cao vòng cung (world) khi món bay lên và rơi xuống.")]
             [Min(0f)] public float hopHeight = 0.6f;
             [Tooltip("Cộng thêm vào thứ tự vẽ của món để món nằm trên đầu bếp và băng chuyền khi đang cắt.")]
@@ -139,9 +125,6 @@ namespace FoodPop
             [Min(0.05f)] public float chopInterval = 0.167f;
         }
 
-        [Tooltip("Sơ chế nguyên liệu")]
-        public PreparationSettings preparation = new PreparationSettings();
-
         [Serializable]
         public class OrderPopSettings
         {
@@ -151,9 +134,6 @@ namespace FoodPop
             [Range(0f, 1f)] public float popAmount = 0.3f;
         }
 
-        [Tooltip("Hiệu ứng nảy trên order")]
-        public OrderPopSettings orderPop = new OrderPopSettings();
-
         [Serializable]
         public class IceHitSettings
         {
@@ -162,9 +142,6 @@ namespace FoodPop
             [Tooltip("Độ nảy tối đa của khối băng khi bị trừ giá trị (0.12 = phồng 12%).")]
             [Range(0f, 0.5f)] public float iceHitAmount = 0.12f;
         }
-
-        [Tooltip("Hiệu ứng băng trúng đòn")]
-        public IceHitSettings iceHit = new IceHitSettings();
 
         [Serializable]
         public class TrayStackSettings
@@ -183,9 +160,6 @@ namespace FoodPop
             [Min(0f)] public float bounceHold = 0.1f;
         }
 
-        [Tooltip("Xếp chồng nguyên liệu trên khay")]
-        public TrayStackSettings trayStack = new TrayStackSettings();
-
         [Serializable]
         public class LidRevealSettings
         {
@@ -196,9 +170,6 @@ namespace FoodPop
             [Tooltip("Tỉ lệ phóng to của nắp ở cuối lúc mờ dần (1 = giữ nguyên cỡ).")]
             [Min(1f)] public float scaleUp = 1.15f;
         }
-
-        [Tooltip("Mở nắp đĩa ẩn")]
-        public LidRevealSettings lidReveal = new LidRevealSettings();
 
         [Serializable]
         public class PraiseEntry
@@ -228,9 +199,6 @@ namespace FoodPop
             [Range(0f, 30f)] public float maxTilt = 8f;
         }
 
-        [Tooltip("Chữ khen khi khách nhận đủ order")]
-        public PraiseTextSettings praiseText = new PraiseTextSettings();
-
         [Serializable]
         public class DishTwinkleSettings
         {
@@ -238,8 +206,71 @@ namespace FoodPop
             [Min(1)] public int minLayers = 2;
         }
 
+        [Serializable]
+        public class PreWinSettings
+        {
+            [Tooltip("Hệ số tốc độ game khi vào pre-win (1.3 = nhanh hơn 30%).")]
+            [Range(1f, 2f)] public float speedMultiplier = 1.3f;
+        }
+
+        // EN: Exposes the single shared ingredient catalogue referenced by the gameplay configuration.
+        // VI: Cung cấp bảng nguyên liệu dùng chung duy nhất được gán trong cấu hình màn chơi.
+        public FoodIconConfig FoodIcons => foodIcons;
+
+        // EN: Exposes the booster price and unlock-level settings.
+        // VI: Cung cấp thiết lập giá mua và level mở khóa của booster.
+        public BoosterConfig Boosters => boosterConfig;
+
+        // EN: Returns the cached Resources configuration without requiring references on individual food instances.
+        // VI: Trả cấu hình Resources đã cache mà không cần tham chiếu trên từng instance nguyên liệu.
+        public static IngameConfig Instance => Resolve(null);
+
+        [Tooltip("Bảng hình ảnh, âm thanh và hiệu ứng nguyên liệu dùng chung cho toàn bộ màn chơi.")]
+        [SerializeField] private FoodIconConfig foodIcons;
+        [Tooltip("Giá mua và level mở khóa của từng booster.")]
+        [SerializeField] private BoosterConfig boosterConfig;
+
+        [Tooltip("Nguyên liệu bay tới khay")]
+        public IngredientFlightSettings ingredientFlight = new IngredientFlightSettings();
+
+        [Tooltip("Chuyển động trên board")]
+        public BoardMotionSettings boardMotion = new BoardMotionSettings();
+
+        [Tooltip("Nguyên liệu bay lên băng chuyền")]
+        public BoardFlightSettings boardFlight = new BoardFlightSettings();
+
+        [Tooltip("Ghép món trên khay")]
+        public DishAssemblySettings dishAssembly = new DishAssemblySettings();
+
+        [Tooltip("Món hoàn chỉnh bay vào order")]
+        public DishOrderFlightSettings dishOrderFlight = new DishOrderFlightSettings();
+
+        [Tooltip("Khách và hàng chờ")]
+        public CustomersSettings customers = new CustomersSettings();
+
+        [Tooltip("Sơ chế nguyên liệu")]
+        public PreparationSettings preparation = new PreparationSettings();
+
+        [Tooltip("Hiệu ứng nảy trên order")]
+        public OrderPopSettings orderPop = new OrderPopSettings();
+
+        [Tooltip("Hiệu ứng băng trúng đòn")]
+        public IceHitSettings iceHit = new IceHitSettings();
+
+        [Tooltip("Xếp chồng nguyên liệu trên khay")]
+        public TrayStackSettings trayStack = new TrayStackSettings();
+
+        [Tooltip("Mở nắp đĩa ẩn")]
+        public LidRevealSettings lidReveal = new LidRevealSettings();
+
+        [Tooltip("Chữ khen khi khách nhận đủ order")]
+        public PraiseTextSettings praiseText = new PraiseTextSettings();
+
         [Tooltip("Sao lấp lánh tại ô khay")]
         public DishTwinkleSettings dishTwinkle = new DishTwinkleSettings();
+
+        [Tooltip("Pre-win: tăng tốc game khi số phần món còn trên board vừa đủ số slot trống trên băng chuyền")]
+        public PreWinSettings preWin = new PreWinSettings();
 
         private static IngameConfig defaultConfig;
 

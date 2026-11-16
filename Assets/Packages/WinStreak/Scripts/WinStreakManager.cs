@@ -17,7 +17,39 @@ namespace GamePackages
     [System.Serializable]
     public class WinStreakManager : ContextData<WinStreakData>, IFeatureNewDay, IFeatureUpdate
     {
-        public static WinStreakManager Instance => ProfileManager.instance != null && ProfileManager.instance.GameFeatureContext != null
+        // EN: Reads isShownFirstTut without exposing mutable feature data.
+        // VI: Đọc isShownFirstTut mà không lộ dữ liệu tính năng có thể sửa.
+        public bool HasShownTutorial => Data != null ? Data.isShownFirstTut : false;
+
+        // EN: Persists isShownFirstTut when first marked by the feature UI.
+        // VI: Lưu isShownFirstTut khi giao diện tính năng đánh dấu lần đầu.
+        public void MarkTutorialShown()
+        {
+            if (Data == null || Data.isShownFirstTut) return;
+            Data.isShownFirstTut = true;
+            Save();
+            onDataChanged?.Invoke();
+        }
+        // EN: Reads isShownFirstInfo without exposing mutable feature data.
+        // VI: Đọc isShownFirstInfo mà không lộ dữ liệu tính năng có thể sửa.
+        public bool HasShownInfo => Data != null ? Data.isShownFirstInfo : false;
+
+        // EN: Persists isShownFirstInfo when first marked by the feature UI.
+        // VI: Lưu isShownFirstInfo khi giao diện tính năng đánh dấu lần đầu.
+        public void MarkInfoShown()
+        {
+            if (Data == null || Data.isShownFirstInfo) return;
+            Data.isShownFirstInfo = true;
+            Save();
+            onDataChanged?.Invoke();
+        }
+        // EN: Reads currentRoundId without exposing mutable feature data.
+        // VI: Đọc currentRoundId mà không lộ dữ liệu tính năng có thể sửa.
+        public string SavedRoundId => Data != null ? Data.currentRoundId : string.Empty;
+
+        // EN: Coordinates Instance using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối Instance qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        public static WinStreakManager Instance => ProfileManager.instance.GameFeatureContext != null
             ? ProfileManager.instance.GameFeatureContext.WinStreakManager
             : null;
 
@@ -40,11 +72,13 @@ namespace GamePackages
         public bool isCheatBetweenDays;
         public int claimAmountCheat;
 
+        // EN: Coordinates UnlockLevel using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối UnlockLevel qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public int UnlockLevel
         {
             get
             {
-                if (ProfileManager.instance != null && ProfileManager.instance.RemoteConfigBase != null)
+                if (ProfileManager.instance.RemoteConfigBase != null)
                 {
                     return ProfileManager.instance.RemoteConfigBase.level_unlock_treasure;
                 }
@@ -52,8 +86,12 @@ namespace GamePackages
             }
         }
 
-        public bool IsLevelUnlocked => ProfileManager.instance != null && ProfileManager.instance.PlayerData != null &&
-                                       ProfileManager.instance.PlayerData.currentLevel >= UnlockLevel;
+        // EN: Checks the unlock level through read-only player manager queries.
+        // VI: Kiểm tra level mở khóa qua truy vấn chỉ đọc của manager người chơi.
+        // EN: Checks the unlock level through read-only player manager queries.
+        // VI: Kiểm tra level mở khóa qua truy vấn chỉ đọc của manager người chơi.
+        public bool IsLevelUnlocked => ProfileManager.instance.PlayerDataManager.IsInitialized &&
+                                       ProfileManager.instance.PlayerDataManager.GetCurrentLevel() >= UnlockLevel;
 
         public WinStreakRound CurrentRound => GetCurrentRound(DateTime.Now);
 
@@ -108,17 +146,11 @@ namespace GamePackages
             IsCompleted = completed;
         }
 
-        public override void SetContext(WinStreakData data)
+        // EN: Binds the saved model through internal initialization and initializes this feature's state.
+        // VI: Gắn model lưu qua khởi tạo nội bộ và khởi tạo trạng thái của tính năng này.
+        internal override void SetContext(WinStreakData data)
         {
-            if (data == null)
-            {
-                data = new WinStreakData();
-                if (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null)
-                {
-                    ProfileManager.instance.PlayerData.WinStreakData = data;
-                }
-            }
-            base.SetContext(data);
+            base.SetContext(data ?? throw new System.ArgumentNullException(nameof(data)));
             CheckAndInitExpire();
         }
 
@@ -324,8 +356,10 @@ namespace GamePackages
             return false;
         }
 
-        // EN: Claims the specified WinStreak milestone, grants its rewards, saves progress, and notifies listeners.
-        // VI: Nhận mốc phần thưởng WinStreak chỉ định, trao thưởng, lưu tiến độ và thông báo cho các listener.
+        // EN: Coordinates ClaimMilestone using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimMilestone qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        // EN: Coordinates ClaimMilestone using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimMilestone qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public void ClaimMilestone(int milestoneIndex)
         {
             if (WinStreakGlobalConfig == null) return;
@@ -360,20 +394,24 @@ namespace GamePackages
 
             if (isNewClaim)
             {
-                int level = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null
-                    ? ProfileManager.instance.PlayerData.currentLevel
+                int level = ProfileManager.instance.PlayerDataManager.IsInitialized
+                    ? ProfileManager.instance.PlayerDataManager.GetCurrentLevel()
                     : 0;
                 //SDKBridge.TrackWinStreakClaim(level, GetMultiplier(), milestoneIndex, CurrentKeys);
             }
 
             onMilestoneClaimed?.Invoke(ms);
             onDataChanged?.Invoke();
-            ProfileManager.instance?.GameFeatureContext?.MissionControlManager?.OnStepInWinstreak();
+            ProfileManager.instance.GameFeatureContext?.MissionControlManager?.OnStepInWinstreak();
         }
 
+        // EN: Grants supported rewards through dedicated APIs and warns about unknown resource types.
+        // VI: Cấp thưởng hợp lệ qua API chuyên biệt và cảnh báo loại tài nguyên không xác định.
+        // EN: Coordinates ClaimRewardResource using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimRewardResource qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public static void ClaimRewardResource(ResourceGame reward, string placement = "WinStreak")
         {
-            if (reward == null || ProfileManager.instance == null || ProfileManager.instance.PlayerDataManager == null) return;
+            if (reward == null) return;
             var pdm = ProfileManager.instance.PlayerDataManager;
 
             switch (reward.type)
@@ -384,14 +422,14 @@ namespace GamePackages
                 case ResourceType.UnlimitedLives:
                     pdm.AddUnlimitedLiveTime(reward.value, placement);
                     break;
-                case ResourceType.BoosterAddSlot:
+                case ResourceType.BoosterClean:
                 case ResourceType.BoosterShuffle:
                 case ResourceType.BoosterPickup:
-                case ResourceType.BoosterSuperBear:
+                case ResourceType.BoosterAutoComplete:
                     pdm.OnAddBooster(reward.type, reward.value, placement);
                     break;
                 default:
-                    pdm.OnAddResource(reward.type, reward.value, placement);
+                    Debug.LogWarning($"Unsupported reward resource: {reward.type}");
                     break;
             }
         }

@@ -12,7 +12,6 @@ namespace GamePackages
         public LavaQuestManager LavaQuestManager = new();
         public MissionControlManager MissionControlManager = new();
         public TowerRiseManager TowerRiseManager = new();
-        public CardCollectionManager CardCollectionManager = new();
         List<IFeatureSave> l_FeatureSave = new();
         List<IFeatureUpdate> l_FeatureUpdate = new();
         List<IFeatureNewDay> l_FeatureNewday = new();
@@ -23,9 +22,9 @@ namespace GamePackages
         /// Init 
         /// </summary>
         /// <param name="context"></param>
-        // EN: Initializes all feature managers, binds their configs and save contexts, and registers their lifecycle hooks.
-        // VI: Khởi tạo tất cả manager tính năng, gắn cấu hình cùng dữ liệu lưu trữ và đăng ký các hook vòng đời của chúng.
-        public GameFeatureContext(ProfileManager context)
+        // EN: Wires feature managers to private profile data supplied only during internal initialization.
+        // VI: Gắn manager tính năng với dữ liệu hồ sơ riêng được truyền trong khởi tạo nội bộ.
+        internal GameFeatureContext(ProfileManager context, PlayerData data, SaveService saveService)
         {
             DailyGiftManager.DailyGiftGlobalConfig = context.DailyGiftRewardConfig;
             DailyRewardManager.DailyRewardGlobalConfig = context.DailyRewardGlobalConfig;
@@ -33,26 +32,22 @@ namespace GamePackages
             LavaQuestManager.LavaQuestConfig = context.LavaQuestConfig;
             MissionControlManager.MissionControlConfig = context.MissionControlConfig;
             TowerRiseManager.TowerRiseConfig = context.TowerRiseConfig;
-            CardCollectionManager.CardCollectionConfig = context.CardCollectionConfig;
 
             RegistryFeatureContext();
-            RegistryExtraFeatureContext(context);
+            RegistryExtraFeatureContext(context, saveService);
 
-            DailyGiftManager.SetContext(context.PlayerData.DailyGiftData);
-            DailyRewardManager.SetContext(context.PlayerData.DailyRewardData);
-            RecordManager.SetContext(context.PlayerData.RecordTrackingData);
-            HeartManager.SetContext(context.PlayerData.HeartData);
-            WinStreakManager.SetContext(context.PlayerData.WinStreakData);
-            LavaQuestManager.SetContext(context.PlayerData.LavaQuestData);
-            MissionControlManager.SetContext(context.PlayerData.MissionControlData);
-            TowerRiseManager.SetContext(context.PlayerData.TowerRiseData);
-            CardCollectionManager.SetContext(context.PlayerData.CardCollectionData);
+            DailyGiftManager.SetContext(data.DailyGiftData);
+            DailyRewardManager.SetContext(data.DailyRewardData);
+            RecordManager.SetContext(data.RecordTrackingData);
+            HeartManager.SetContext(data.HeartData);
+            WinStreakManager.SetContext(data.WinStreakData);
+            LavaQuestManager.SetContext(data.LavaQuestData);
+            MissionControlManager.SetContext(data.MissionControlData);
+            TowerRiseManager.SetContext(data.TowerRiseData);
         }
         /// <summary>
         /// Registry All Feature
         /// </summary>
-        // EN: Registers all feature managers into their corresponding update, new-day, save, and tracking lists.
-        // VI: Đăng ký tất cả manager tính năng vào các danh sách cập nhật, ngày mới, lưu trữ và theo dõi tương ứng.
         void RegistryFeatureContext()
         {
             l_FeatureSave.Clear();
@@ -69,16 +64,17 @@ namespace GamePackages
             RegisterFeature(LavaQuestManager);
             RegisterFeature(MissionControlManager);
             RegisterFeature(TowerRiseManager);
-            RegisterFeature(CardCollectionManager);
         }
         /// <summary>
         /// Registry Extra Context (Time, Data)
         /// </summary>
         /// <param name="context"></param>
-        void RegistryExtraFeatureContext(ProfileManager context)
+        // EN: Injects the supplied save service and shared managers without reading a public player model.
+        // VI: Gắn dịch vụ lưu được truyền vào cùng manager dùng chung mà không đọc model người chơi public.
+        void RegistryExtraFeatureContext(ProfileManager context, SaveService saveService)
         {
             l_FeatureTime.ForEach(x => x.SetTimeManager(context.TimeManager));
-            l_FeatureSave.ForEach(x => x.SetSaveService(context.SaveService));
+            l_FeatureSave.ForEach(x => x.SetSaveService(saveService));
             l_FeaturePlayerData.ForEach(x => x.SetPlayerDataManager(context.PlayerDataManager));
         }
         /// <summary>

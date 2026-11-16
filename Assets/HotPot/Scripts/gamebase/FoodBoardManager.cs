@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using GamePackages;
+using Lofelt.NiceVibrations;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -11,17 +13,9 @@ namespace FoodPop
     [DisallowMultipleComponent]
     public partial class FoodBoardManager : MonoBehaviour
     {
-        [Tooltip("Cấu hình thời gian và hiệu ứng dùng chung trong màn chơi; để trống dùng asset mặc định.")]
-        [SerializeField] private IngameConfig ingameConfig;
-
-        // EN: Resolves shared gameplay tuning while supporting an explicitly assigned configuration asset.
-        // VI: Lấy thông số màn chơi dùng chung, hỗ trợ asset cấu hình được gán riêng.
-        private IngameConfig Config => IngameConfig.Resolve(ingameConfig);
-
         public const int MinColumns = 3;
-        public const int MaxColumns = 5;
 
-        private static FoodBoardManager instance;
+        public const int MaxColumns = 5;
 
         // EN: Returns the scene singleton, resolving it once when lifecycle registration has not run yet.
         // VI: Trả về singleton trong scene, tìm một lần nếu vòng đời chưa đăng ký instance.
@@ -34,54 +28,6 @@ namespace FoodPop
                 return instance;
             }
         }
-
-        [Tooltip("Danh sách cột nguyên liệu theo thứ tự từ trái sang phải; gán trực tiếp các cột trong scene.")]
-        [SerializeField] private List<Transform> ingredientColumns = new List<Transform>();
-        [Tooltip("Bộ hiển thị nền băng chuyền nguyên liệu, tự đổi hình khi nạp số cột của level.")]
-        [SerializeField] private SpriteRenderer ingredientTableRenderer;
-        [Tooltip("Hình nền băng chuyền dùng cho board ba cột.")]
-        [SerializeField] private Sprite ingredientTableThreeLaneSprite;
-        [Tooltip("Hình nền băng chuyền dùng cho board bốn cột; cũng dùng khi chưa có hình tương ứng cho số cột khác.")]
-        [SerializeField] private Sprite ingredientTableFourLaneSprite;
-        [Tooltip("Bảng icon của các loại nguyên liệu; để trống sẽ tự gán cấu hình mặc định trong editor.")]
-        [SerializeField] private FoodIconConfig foodIconConfig;
-        [Tooltip("Các sprite lớp băng theo thứ tự từ sắp tan đến dày nhất; tự gán trong editor.")]
-        [SerializeField] private Sprite[] iceBlockSprites = new Sprite[4];
-        [Tooltip("Prefab đĩa nguyên liệu được tạo khi pool hết đĩa tái sử dụng.")]
-        [SerializeField] private Food ingredientDishPrefab;
-        [Tooltip("Hình đĩa đôi ngang chữ nhật bo nhẹ bốn góc.")]
-        [SerializeField] private Sprite horizontalDoublePlate;
-        [Tooltip("Hình đĩa đôi dọc chữ nhật bo nhẹ bốn góc.")]
-        [SerializeField] private Sprite verticalDoublePlate;
-        [Tooltip("Viền chọn trắng cho đĩa đôi ngang.")]
-        [SerializeField] private Sprite horizontalDoubleOutline;
-        [Tooltip("Viền chọn trắng cho đĩa đôi dọc.")]
-        [SerializeField] private Sprite verticalDoubleOutline;
-        [Tooltip("Nắp chữ nhật cho đĩa đôi ngang, dùng khi ẩn cả đĩa.")]
-        [SerializeField] private Sprite horizontalDoubleLid;
-        [Tooltip("Nắp chữ nhật cho đĩa đôi dọc, dùng khi ẩn cả đĩa.")]
-        [SerializeField] private Sprite verticalDoubleLid;
-        [Tooltip("Vật liệu viền chọn bám theo hình chữ nhật của đĩa đôi.")]
-        [SerializeField] private Material doublePlateOutlineMaterial;
-        [Tooltip("Đối tượng chứa các đĩa đang nằm trong pool; tự tạo nếu chưa gán.")]
-        [SerializeField] private Transform dishPoolRoot;
-        [Tooltip("Camera dùng để đổi vị trí chạm/chuột sang toạ độ world; để trống sẽ dùng Camera.main.")]
-        [SerializeField] private Camera inputCamera;
-
-        [Tooltip("Khoảng cách theo trục Y (đơn vị world cục bộ của cột) giữa hai đĩa liền nhau trong cùng một cột.")]
-        [Min(0f)] [SerializeField] private float rowSpacing = 1.31f;
-        [Tooltip("Khoảng cách theo trục X (đơn vị world cục bộ của object cha) giữa hai cột liền nhau; các cột đang dùng được căn giữa tại x = 0 (ví dụ 1 với 3 cột: -1, 0, 1). Đặt 0 thì các cột chồng lên nhau.")]
-        [Min(0f)] [SerializeField] private float columnSpacing;
-        [Tooltip("Khoảng cách (đơn vị world) phía dưới mép dưới camera: đĩa có tâm (tính theo hàng hiện tại) thấp hơn mép dưới quá khoảng này sẽ bị tắt; tự bật lại khi dồn lên gần màn hình. Đĩa đầu cột không bao giờ bị tắt.")]
-        [Min(0f)] [SerializeField] private float offscreenHideMargin = 1f;
-        [Tooltip("Hoạt cảnh món nhảy vòng cung lên băng chuyền (component trên cùng GameObject).")]
-        [SerializeField] private FoodFlyAnimator flyAnimator;
-        [Tooltip("Hiệu ứng vụn băng bắn ra mỗi khi khối băng bị trừ giá trị.")]
-        [SerializeField] private ParticleEffect iceHitEffect;
-        [Tooltip("Hiệu ứng băng vỡ tung khi khối băng về 0 và tan.")]
-        [SerializeField] private ParticleEffect iceBreakEffect;
-        [Tooltip("Các đĩa đặt sẵn trong scene; được đưa vào pool khi nạp level đầu tiên.")]
-        [SerializeField] private List<Food> sceneDishes = new List<Food>();
 
         // EN: Returns the configured ingredient flight duration.
         // VI: Trả về thời gian bay của nguyên liệu đã cấu hình.
@@ -111,10 +57,84 @@ namespace FoodPop
         // VI: Trả về mức tăng tỉ lệ khi nguyên liệu nảy lúc đáp xuống.
         public float LandPopAmount => Config.ingredientFlight.landPopAmount;
 
+        // EN: When true every dish stays active regardless of its position (BoosterController sets it while Shuffle flies dishes between rows).
+        // VI: Khi true mọi đĩa luôn được bật bất kể vị trí (BoosterController bật trong lúc Shuffle cho đĩa bay giữa các hàng).
+        public bool OffscreenHidingSuspended { get; set; }
+
+        // EN: Only the first MaxVisibleRows rows of each column may be shown; deeper dishes stay off even when they are on screen (BoosterController limits it to 7 while PickupHand selects). int.MaxValue means no limit.
+        // VI: Chỉ MaxVisibleRows hàng đầu của mỗi cột được hiện; đĩa ở hàng sâu hơn luôn bị tắt dù nằm trong màn hình (BoosterController giới hạn 7 hàng khi PickupHand đang chọn). int.MaxValue là không giới hạn.
+        public int MaxVisibleRows { get; set; } = int.MaxValue;
+
+        // EN: Number of columns currently tracked on the board.
+        // VI: Số cột đang được theo dõi trên board.
+        public int ColumnCount => columnDishes.Count;
+
+        // EN: When true the board ignores taps (set by BoosterController while a booster animates the board).
+        // VI: Khi true, board bỏ qua thao tác chạm (BoosterController bật khi booster đang chạy hiệu ứng trên board).
+        public bool InputLocked { get; set; }
+
+        // EN: True while a column is still sliding or a lid is still opening.
+        // VI: True khi còn cột đang trượt hoặc nắp đang mở.
+        public bool IsAnimating => columnShifts.Count > 0 || lidReveals.Count > 0;
+
         // EN: Raised after a head dish is picked: gives its food type and the conveyor slots that received its portions.
         // VI: Phát ra sau khi chọn đĩa đầu cột: cho biết loại nguyên liệu và các slot băng chuyền đã nhận từng phần của đĩa.
         public event Action<FoodType, IReadOnlyList<ConveyorSlot>> DishPicked;
 
+        [Tooltip("Danh sách cột nguyên liệu theo thứ tự từ trái sang phải; gán trực tiếp các cột trong scene.")]
+        [SerializeField] private List<Transform> ingredientColumns = new List<Transform>();
+        [Tooltip("Bộ hiển thị nền băng chuyền nguyên liệu, tự đổi hình khi nạp số cột của level.")]
+        [SerializeField] private SpriteRenderer ingredientTableRenderer;
+        [Tooltip("Hình nền băng chuyền")]
+        [SerializeField] private Sprite ingredientTable3LaneSprite;
+        [SerializeField] private Sprite ingredientTable4LaneSprite;
+        [SerializeField] private Sprite ingredientTable5LaneSprite;
+        [Tooltip("Các sprite lớp băng theo thứ tự từ sắp tan đến dày nhất; tự gán trong editor.")]
+        [SerializeField] private Sprite[] iceBlockSprites = new Sprite[4];
+        [Tooltip("Prefab đĩa nguyên liệu được tạo khi pool hết đĩa tái sử dụng.")]
+        [SerializeField] private Food ingredientDishPrefab;
+        [Tooltip("Hình đĩa đôi ngang chữ nhật bo nhẹ bốn góc.")]
+        [SerializeField] private Sprite horizontalDoublePlate;
+        [Tooltip("Hình đĩa đôi dọc chữ nhật bo nhẹ bốn góc.")]
+        [SerializeField] private Sprite verticalDoublePlate;
+        [Tooltip("Viền chọn trắng cho đĩa đôi ngang.")]
+        [SerializeField] private Sprite horizontalDoubleOutline;
+        [Tooltip("Viền chọn trắng cho đĩa đôi dọc.")]
+        [SerializeField] private Sprite verticalDoubleOutline;
+        [Tooltip("Nắp chữ nhật cho đĩa đôi ngang, dùng khi ẩn cả đĩa.")]
+        [SerializeField] private Sprite horizontalDoubleLid;
+        [Tooltip("Nắp chữ nhật cho đĩa đôi dọc, dùng khi ẩn cả đĩa.")]
+        [SerializeField] private Sprite verticalDoubleLid;
+        [Tooltip("Vật liệu viền chọn bám theo hình chữ nhật của đĩa đôi.")]
+        [SerializeField] private Material doublePlateOutlineMaterial;
+        [Tooltip("Đối tượng chứa các đĩa đang nằm trong pool; tự tạo nếu chưa gán.")]
+        [SerializeField] private Transform dishPoolRoot;
+        [Tooltip("Camera dùng để đổi vị trí chạm/chuột sang toạ độ world; để trống sẽ dùng Camera.main.")]
+        [SerializeField] private Camera inputCamera;
+
+        [Tooltip("Khoảng cách theo trục Y (đơn vị world cục bộ của cột) giữa hai đĩa liền nhau trong cùng một cột.")]
+        [Min(0f)][SerializeField] private float rowSpacing = 1.31f;
+        [Tooltip("Khoảng cách theo trục X (đơn vị world cục bộ của object cha) giữa hai cột liền nhau; các cột đang dùng được căn giữa tại x = 0 (ví dụ 1 với 3 cột: -1, 0, 1). Đặt 0 thì các cột chồng lên nhau.")]
+        [Min(0f)][SerializeField] private float columnSpacing;
+        [Tooltip("Khoảng cách (đơn vị world) phía dưới mép dưới camera: đĩa có tâm (tính theo hàng hiện tại) thấp hơn mép dưới quá khoảng này sẽ bị tắt; tự bật lại khi dồn lên gần màn hình. Đĩa đầu cột không bao giờ bị tắt.")]
+        [Min(0f)][SerializeField] private float offscreenHideMargin = 1f;
+        [Tooltip("Hoạt cảnh món nhảy vòng cung lên băng chuyền (component trên cùng GameObject).")]
+        [SerializeField] private FoodFlyAnimator flyAnimator;
+        [Tooltip("Hiệu ứng vụn băng bắn ra mỗi khi khối băng bị trừ giá trị.")]
+        [SerializeField] private ParticleEffect iceHitEffect;
+        [Tooltip("Hiệu ứng băng vỡ tung khi khối băng về 0 và tan.")]
+        [SerializeField] private ParticleEffect iceBreakEffect;
+        [Tooltip("Các đĩa đặt sẵn trong scene; được đưa vào pool khi nạp level đầu tiên.")]
+        [SerializeField] private List<Food> sceneDishes = new List<Food>();
+
+        [Tooltip("Ghi ra Console lý do mỗi lần chạm board mà không lấy được đĩa (dùng để tìm lỗi; tắt khi không cần).")]
+        [SerializeField] private bool logPickFailures = true;
+
+        // EN: Shared gameplay tuning from the IngameConfig singleton (Resources asset); no per-component reference.
+        // VI: Thông số màn chơi dùng chung lấy từ singleton IngameConfig (asset trong Resources); không cần tham chiếu riêng trên component.
+        private static IngameConfig Config => IngameConfig.Instance;
+
+        private static FoodBoardManager instance;
 
         private readonly Dictionary<Transform, Coroutine> columnShifts = new Dictionary<Transform, Coroutine>();
         private readonly Dictionary<Food, Coroutine> lidReveals = new Dictionary<Food, Coroutine>();
@@ -129,6 +149,8 @@ namespace FoodPop
         private int[] dishSortingOrders = new int[0];
         private int dishSortingLayer;
         private int quantitySortingOrder;
+
+        private readonly List<int> pendingReturns = new List<int>();
 
         // EN: Clears the static singleton when entering Play Mode, including when domain reload is disabled.
         // VI: Xóa singleton tĩnh khi vào Play Mode, kể cả khi tắt tải lại miền mã.
@@ -152,24 +174,48 @@ namespace FoodPop
             instance = this;
         }
 
-        // EN: Releases link visuals, pooled dishes and this manager's singleton registration.
-        // VI: Giải phóng hình liên kết, đĩa trong pool và đăng ký singleton của manager.
-        private void OnDestroy()
+#if UNITY_EDITOR
+        // EN: Assigns default board assets including double plates, lids, dedicated rings and fallback outline material.
+        // VI: Gán asset board mặc định gồm đĩa đôi, nắp, vòng viền riêng và vật liệu viền dự phòng.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
+        private void OnValidate()
         {
-            ClearDishLinks();
-            dishPool?.Dispose();
-            if (instance == this)
-                instance = null;
+            if (Application.isPlaying)
+                return;
+            if (doublePlateOutlineMaterial == null)
+                doublePlateOutlineMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/HotPot/Art/Materials/Dishes/PlateSilhouette.mat");
+            string[] icePaths =
+            {
+                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Frost.png",
+                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Cracked.png",
+                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Faceted.png",
+                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Clear.png"
+            };
+            if (iceBlockSprites == null || iceBlockSprites.Length != icePaths.Length)
+                iceBlockSprites = new Sprite[icePaths.Length];
+            for (int i = 0; i < icePaths.Length; i++)
+            {
+                if (iceBlockSprites[i] == null)
+                    iceBlockSprites[i] = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(icePaths[i]);
+            }
+            if (ingredientDishPrefab == null)
+                ingredientDishPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<Food>("Assets/HotPot/Prefabs/Ingame/IngredientDish.prefab");
         }
+#endif
 
-        // EN: Reads the pointer each frame and picks the head dish under it.
-        // VI: Đọc con trỏ/chạm mỗi frame và chọn đĩa đầu cột nằm dưới vị trí đó.
+        // EN: Reads the pointer each frame and picks the head dish under it; with logPickFailures on, a tap ignored because input is locked is logged.
+        // VI: Đọc con trỏ/chạm mỗi frame và chọn đĩa đầu cột nằm dưới vị trí đó; khi bật logPickFailures, lượt chạm bị bỏ qua do khóa input sẽ được ghi log.
         private void Update()
         {
-            if (InputLocked)
+            if (!TryGetPointerDown(out Vector2 worldPoint))
                 return;
-            if (TryGetPointerDown(out Vector2 worldPoint))
-                TryPickAt(worldPoint);
+            if (InputLocked)
+            {
+                LogPickFailure("board đang khóa input (InputLocked = true, thường do booster chưa nhả khóa)");
+                return;
+            }
+            TryPickAt(worldPoint);
         }
 
         // EN: Updates offscreen visibility and straight links after all dish and camera movement for the frame.
@@ -180,78 +226,46 @@ namespace FoodPop
             UpdateDishLinkViews();
         }
 
-        // EN: When true every dish stays active regardless of its position (BoosterController sets it while Shuffle flies dishes between rows).
-        // VI: Khi true mọi đĩa luôn được bật bất kể vị trí (BoosterController bật trong lúc Shuffle cho đĩa bay giữa các hàng).
-        public bool OffscreenHidingSuspended { get; set; }
-
-        // EN: Only the first MaxVisibleRows rows of each column may be shown; deeper dishes stay off even when they are on screen (BoosterController limits it to 7 while PickupHand selects). int.MaxValue means no limit.
-        // VI: Chỉ MaxVisibleRows hàng đầu của mỗi cột được hiện; đĩa ở hàng sâu hơn luôn bị tắt dù nằm trong màn hình (BoosterController giới hạn 7 hàng khi PickupHand đang chọn). int.MaxValue là không giới hạn.
-        public int MaxVisibleRows { get; set; } = int.MaxValue;
-
-        // EN: World Y of the bottom edge of the input camera view, or negative infinity when there is no camera (nothing gets hidden).
-        // VI: Toạ độ Y world của mép dưới khung camera input, hoặc âm vô cùng khi không có camera (không đĩa nào bị tắt).
-        private float GetCameraBottomY()
+        // EN: Releases link visuals, pooled dishes and this manager's singleton registration.
+        // VI: Giải phóng hình liên kết, đĩa trong pool và đăng ký singleton của manager.
+        private void OnDestroy()
         {
-            Camera cam = inputCamera != null ? inputCamera : Camera.main;
-            if (cam == null)
-                return float.NegativeInfinity;
-            return cam.ViewportToWorldPoint(new Vector3(0.5f, 0f, Mathf.Abs(cam.transform.position.z))).y;
+            ClearDishLinks();
+            dishPool?.Dispose();
+            if (instance == this)
+                instance = null;
         }
 
-        // EN: Updates visibility once per anchor so double-dish placeholder cells never override it.
-        // VI: Cập nhật hiển thị một lần tại ô gốc để ô giữ chỗ đĩa đôi không ghi đè trạng thái.
-        private void RefreshOffscreenDishes()
+        // EN: Rebuilds footprints and ordered links from saved coordinates before settling gaps and opening exposed dishes.
+        // VI: Dựng lại vùng chiếm và liên kết theo tọa độ đã lưu trước khi dồn ô trống và mở đĩa đã lộ.
+        public void LoadIngredientBoard(List<BoardColumn> board, IReadOnlyList<DishLinkConfig> links = null)
         {
-            float hideBelowY = GetCameraBottomY() - offscreenHideMargin;
-            for (int c = 0; c < columnDishes.Count && c < ingredientColumns.Count; c++)
-                for (int r = 0; r < columnDishes[c].Count; r++)
-                {
-                    if (!IsDishAnchor(c, r))
-                        continue;
-                    Food dish = columnDishes[c][r];
-                    bool show = r == 0 || (r < MaxVisibleRows && (OffscreenHidingSuspended ||
-                        ingredientColumns[c].TransformPoint(GetRowLocalPosition(r)).y >= hideBelowY));
-                    if (dish.gameObject.activeSelf != show)
-                        dish.gameObject.SetActive(show);
-                }
+            List<Transform> columns = GetColumnObjects();
+            if (columns.Count == 0 || board == null || !EnsureDishPool())
+                return;
+            int upperLimit = Mathf.Min(MaxColumns, columns.Count);
+            int columnCount = Mathf.Clamp(board.Count, Mathf.Min(MinColumns, upperLimit), upperLimit);
+            if (board.Count > columnCount)
+                Debug.LogWarning($"[FoodBoardManager] Board vượt {columnCount} cột đang hỗ trợ.", this);
+            foreach (Transform column in columns)
+                FinishColumnShift(column);
+            StopLidReveals();
+            ClearDishLinks();
+            ReturnBoardDishes();
+            pendingReturns.Clear();
+            ApplyColumnSpacing(columnCount);
+            UpdateIngredientTableVisual(columnCount);
+            while (columnDishes.Count < columns.Count)
+                columnDishes.Add(new List<Food>());
+            for (int c = 0; c < columns.Count; c++)
+                columns[c].gameObject.SetActive(c < columnCount);
+            FillBoard(board, columnCount);
+            BuildDishLinks(links);
+            SettleBoard(false);
+            for (int c = 0; c < columnDishes.Count; c++)
+                RefreshColumnSelection(c, false);
+            UpdateDishLinkViews();
         }
-
-        // EN: True when the dish is active and part of its plate is above the bottom edge of the camera view.
-        // VI: True khi đĩa đang bật và một phần đĩa nằm trên mép dưới khung camera.
-        private bool IsDishOnScreen(Food dish)
-        {
-            if (!dish.gameObject.activeInHierarchy)
-                return false;
-            SpriteRenderer area = dish.PlateRenderer != null ? dish.PlateRenderer : dish.IconRenderer;
-            float top = area != null ? area.bounds.max.y : dish.transform.position.y;
-            return top >= GetCameraBottomY();
-        }
-
-        // EN: Returns true on the frame the mouse or touch is pressed, with its world position (Input System).
-        // VI: Trả về true ở frame chuột hoặc ngón tay vừa nhấn, kèm vị trí world (Input System).
-        private bool TryGetPointerDown(out Vector2 worldPoint)
-        {
-            worldPoint = default;
-            Pointer pointer = Pointer.current;
-            Camera cam = inputCamera != null ? inputCamera : Camera.main;
-            if (pointer == null || cam == null || !pointer.press.wasPressedThisFrame)
-                return false;
-            Vector2 screen = pointer.position.ReadValue();
-            worldPoint = cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, Mathf.Abs(cam.transform.position.z)));
-            return true;
-        }
-
-        // EN: Number of columns currently tracked on the board.
-        // VI: Số cột đang được theo dõi trên board.
-        public int ColumnCount => columnDishes.Count;
-
-        // EN: When true the board ignores taps (set by BoosterController while a booster animates the board).
-        // VI: Khi true, board bỏ qua thao tác chạm (BoosterController bật khi booster đang chạy hiệu ứng trên board).
-        public bool InputLocked { get; set; }
-
-        // EN: True while a column is still sliding or a lid is still opening.
-        // VI: True khi còn cột đang trượt hoặc nắp đang mở.
-        public bool IsAnimating => columnShifts.Count > 0 || lidReveals.Count > 0;
 
         // EN: Dishes of a column, top (head) first.
         // VI: Các đĩa của một cột, từ đầu cột xuống.
@@ -274,6 +288,82 @@ namespace FoodPop
             return new Vector3(0f, -rowSpacing * row, 0f);
         }
 
+        // EN: Food type of a column's head dish, or None when the column is empty.
+        // VI: Loại món của đĩa đầu cột, hoặc None nếu cột trống.
+        public FoodType GetColumnHeadType(int columnIndex)
+        {
+            Food head = GetColumnHead(columnIndex);
+            return head != null ? head.foodType : FoodType.None;
+        }
+
+        // EN: Finds the active dish (any row) whose plate contains the world point; dishes turned off below the screen are skipped. Returns false when there is none.
+        // VI: Tìm đĩa đang bật (hàng bất kỳ) có vùng đĩa chứa điểm world; bỏ qua đĩa đã tắt vì nằm dưới màn hình. Trả về false khi không có.
+        public bool TryGetDishAt(Vector2 worldPoint, out int columnIndex, out int row)
+        {
+            for (int c = 0; c < columnDishes.Count; c++)
+            {
+                List<Food> dishes = columnDishes[c];
+                for (int r = 0; r < dishes.Count; r++)
+                {
+                    if (dishes[r] != null && dishes[r].gameObject.activeSelf && ContainsPoint(dishes[r], worldPoint))
+                    {
+                        columnIndex = c;
+                        row = r;
+                        return true;
+                    }
+                }
+            }
+            columnIndex = -1;
+            row = -1;
+            return false;
+        }
+
+        // EN: Plays a light emphasis vibration when the player's vibration setting is on (no-op before the profile is loaded).
+        // VI: Phát rung nhấn nhẹ khi người chơi bật rung (không làm gì nếu hồ sơ người chơi chưa được nạp).
+        public void PlayHaptic()
+        {
+            if (ProfileManager.instance != null && ProfileManager.instance.PlayerDataManager != null &&
+                ProfileManager.instance.PlayerDataManager.isVibrateOn)
+                HapticPatterns.PlayEmphasis(0.8f, 0.5f);
+        }
+
+        // EN: Vibrates whenever the tap hits a dish; only a front-row dish may trigger a normal pick, tapping a deeper dish has no rejection or pick side effect. Misses and deep taps are logged when logPickFailures is on.
+        // VI: Rung mỗi khi chạm trúng đĩa; chỉ đĩa hàng đầu được kích hoạt lượt chọn thường, chạm đĩa sâu không lấy hay phát hiệu ứng từ chối. Chạm trượt và chạm đĩa sâu được ghi log khi bật logPickFailures.
+        public bool TryPickAt(Vector2 worldPoint)
+        {
+            for (int c = 0; c < columnDishes.Count; c++)
+                for (int r = 0; r < columnDishes[c].Count; r++)
+                    if (IsDishAnchor(c, r) && ContainsPoint(columnDishes[c][r], worldPoint))
+                    {
+                        Food dish = columnDishes[c][r];
+                        PlayHaptic();
+                        if (IsDishAtHead(dish))
+                            return PickGroup(dish, false);
+                        LogPickFailure($"đĩa ở cột {c + 1}, hàng {r + 1} không nằm ở hàng đầu", dish);
+                        return false;
+                    }
+            LogPickFailure($"điểm chạm {worldPoint} không trúng đĩa nào (board có {columnDishes.Count} cột; kiểm tra camera input và vùng PlateRenderer)");
+            return false;
+        }
+
+        // EN: Picks a column head and its complete linked group when all normal exposure and state conditions hold.
+        // VI: Chọn đĩa đầu cột và cả nhóm nối khi đủ điều kiện lộ nhóm và trạng thái thông thường.
+        public bool TryPickColumn(int columnIndex)
+        {
+            Food dish = GetColumnHead(columnIndex);
+            return dish != null && PickGroup(dish, false);
+        }
+
+        // EN: PickupHand validates and reserves the group before committing its optional cost, then launches the pick only on success.
+        // VI: PickupHand kiểm tra và giữ chỗ cho nhóm trước khi chốt chi phí tùy chọn, chỉ bắt đầu lấy khi thành công.
+        public bool TryPickDishAt(int columnIndex, int row, System.Func<bool> commitCost = null)
+        {
+            if (columnIndex < 0 || columnIndex >= columnDishes.Count || row < 0 || row >= columnDishes[columnIndex].Count)
+                return false;
+            Food dish = columnDishes[columnIndex][row];
+            return dish != null && PickGroup(dish, true, commitCost);
+        }
+
         // EN: Replaces the dish order of every column (each dish must already be parented to its column) and refreshes heads, outlines and lids.
         // VI: Thay thứ tự đĩa của mọi cột (mỗi đĩa phải đã là con của cột mới) và cập nhật đĩa đầu, viền chọn và nắp.
         public void ApplyColumnDishes(List<List<Food>> columns)
@@ -287,47 +377,17 @@ namespace FoodPop
                 RefreshColumnSelection(c);
         }
 
-        // EN: Food type of a column's head dish, or None when the column is empty.
-        // VI: Loại món của đĩa đầu cột, hoặc None nếu cột trống.
-        public FoodType GetColumnHeadType(int columnIndex)
-        {
-            Food head = GetColumnHead(columnIndex);
-            return head != null ? head.foodType : FoodType.None;
-        }
-
-        // EN: Only a front-row dish may trigger a normal pick; tapping a deeper dish has no rejection or pick side effect.
-        // VI: Chỉ đĩa hàng đầu được kích hoạt lượt chọn thường; chạm đĩa sâu không lấy hay phát hiệu ứng từ chối.
-        public bool TryPickAt(Vector2 worldPoint)
+        // EN: Re-applies ordinary and whole-group readiness after every column has refreshed its lids.
+        // VI: Áp lại trạng thái chọn đĩa thường và cả nhóm sau khi mọi cột cập nhật nắp.
+        public void RefreshSelection()
         {
             for (int c = 0; c < columnDishes.Count; c++)
-                for (int r = 0; r < columnDishes[c].Count; r++)
-                    if (IsDishAnchor(c, r) && ContainsPoint(columnDishes[c][r], worldPoint))
-                        return IsDishAtHead(columnDishes[c][r]) && PickGroup(columnDishes[c][r], false);
-            return false;
+                RefreshColumnSelection(c);
+            UpdateDishLinkViews();
         }
-
-        // EN: Picks a column head and its complete linked group when all normal exposure and state conditions hold.
-        // VI: Chọn đĩa đầu cột và cả nhóm nối khi đủ điều kiện lộ nhóm và trạng thái thông thường.
-        public bool TryPickColumn(int columnIndex)
-        {
-            Food dish = GetColumnHead(columnIndex);
-            return dish != null && PickGroup(dish, false);
-        }
-
-        // EN: PickupHand takes the whole group while bypassing depth, but still requires every lid open and every member unfrozen.
-        // VI: PickupHand lấy cả nhóm không xét độ sâu, nhưng vẫn yêu cầu mọi nắp đã mở và mọi thành viên không đóng băng.
-        public bool TryPickDishAt(int columnIndex, int row)
-        {
-            if (columnIndex < 0 || columnIndex >= columnDishes.Count || row < 0 || row >= columnDishes[columnIndex].Count)
-                return false;
-            Food dish = columnDishes[columnIndex][row];
-            return dish != null && PickGroup(dish, true);
-        }
-
 
         // EN: Shared icon table (lets boosters look up raw/prepared sprites).
         // VI: Bảng icon dùng chung (để booster tra sprite thô/đã sơ chế).
-        public FoodIconConfig IconConfig => foodIconConfig;
 
         // EN: Takes one portion from either half for a booster; clears the footprint only after both halves are empty.
         // VI: Lấy một phần từ một trong hai nửa cho booster; chỉ xóa các ô đĩa chiếm khi cả hai nửa hết nguyên liệu.
@@ -351,10 +411,10 @@ namespace FoodPop
             return true;
         }
 
-        private readonly List<int> pendingReturns = new List<int>();
-
         // EN: Books the bottom place of the active column that will hold the fewest dishes (counting returns still on their way) for a dish coming back from the conveyor; gives the column and the world position where that dish will sit.
         // VI: Giữ chỗ cuối của cột đang dùng sẽ có ít đĩa nhất (tính cả các đĩa đang trên đường trả về) cho một đĩa trả về từ băng chuyền; trả về cột và vị trí world nơi đĩa đó sẽ nằm.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
         public bool TryReserveReturnSpot(out int column, out Vector3 position)
         {
             column = -1;
@@ -395,7 +455,6 @@ namespace FoodPop
             dish.transform.localPosition = GetRowLocalPosition(columnDishes[column].Count);
             dish.SetIceBlockSprites(iceBlockSprites);
             dish.Setup(type, 1, GetIcon(type));
-            dish.SetIconConfig(foodIconConfig);
             dish.name = $"Ingredient dish · {type}";
             ApplyDishVisuals(dish);
             dish.gameObject.SetActive(true);
@@ -404,183 +463,149 @@ namespace FoodPop
             StartCoroutine(PopInDish(dish.transform));
         }
 
-        // EN: Pops a dish in from nothing with a small overshoot to its normal board scale.
-        // VI: Cho đĩa nảy lên từ cỡ 0, vượt nhẹ rồi về cỡ bình thường trên board.
-        private IEnumerator PopInDish(Transform dish)
+        // EN: Re-lays out the board after rowSpacing/columnSpacing change (Inspector "Update View" button). Re-spaces the active columns. In Play Mode it snaps every running slide, moves each dish to its row and refits double dishes and link lines. In Edit Mode it stacks each active column's child dishes top to bottom by their current height.
+        // VI: Dàn lại board sau khi đổi rowSpacing/columnSpacing (nút "Update View" trên Inspector). Dàn lại các cột đang bật. Khi Play thì kết thúc ngay các hiệu ứng trượt, đưa từng đĩa về đúng hàng, căn lại đĩa đôi và dây liên kết. Khi chưa Play thì xếp các đĩa con của mỗi cột đang bật từ trên xuống theo độ cao hiện tại.
+        public void UpdateView()
         {
-            const float Duration = 0.3f;
-            for (float time = 0f; time < Duration && dish != null; time += Time.deltaTime)
-            {
-                float t = time / Duration;
-                float scale = t < 0.6f ? 1.18f * Mathf.SmoothStep(0f, 1f, t / 0.6f) : Mathf.Lerp(1.18f, 1f, (t - 0.6f) / 0.4f);
-                dish.localScale = dishLocalScale * scale;
-                yield return null;
-            }
-            if (dish != null)
-                dish.localScale = dishLocalScale;
-        }
-
-        // EN: Finds matching portions in either half, nearest the head first and filtered by frozen state.
-        // VI: Tìm phần nguyên liệu trong cả hai nửa, ưu tiên gần đầu cột và lọc theo trạng thái đóng băng.
-        private bool FindPortion(FoodType type, bool frozen, out int column, out int row)
-        {
-            int maxRows = 0;
-            foreach (List<Food> dishes in columnDishes)
-                maxRows = Mathf.Max(maxRows, dishes.Count);
-            for (row = 0; row < maxRows; row++)
-                for (column = 0; column < columnDishes.Count; column++)
-                {
-                    if (!IsDishAnchor(column, row))
-                        continue;
-                    Food dish = columnDishes[column][row];
-                    if (dish.IsFrozen == frozen && ((dish.foodType == type && dish.amount > 0) ||
-                        (dish.SecondFoodType == type && dish.SecondAmount > 0)))
-                        return true;
-                }
-            column = -1;
-            row = -1;
-            return false;
-        }
-
-        // EN: Breaks a dish's ice at once with the ice-break burst (shown only when the dish is on screen).
-        // VI: Phá băng của đĩa ngay lập tức kèm hiệu ứng vỡ băng (chỉ hiện khi đĩa nằm trong màn hình).
-        private void ShatterIce(Food dish)
-        {
-            SpriteRenderer ice = dish.IceRenderer;
-            if (IsDishOnScreen(dish))
-                OneShotEffects.PlayParticle(iceBreakEffect, ice != null ? ice.bounds.center : dish.transform.position,
-                    ice != null ? ice.sortingLayerID : 0, ice != null ? ice.sortingOrder + 2 : 0);
-            dish.SetFrozen(false, 0);
-        }
-
-        // EN: Finds the active dish (any row) whose plate contains the world point; dishes turned off below the screen are skipped. Returns false when there is none.
-        // VI: Tìm đĩa đang bật (hàng bất kỳ) có vùng đĩa chứa điểm world; bỏ qua đĩa đã tắt vì nằm dưới màn hình. Trả về false khi không có.
-        public bool TryGetDishAt(Vector2 worldPoint, out int columnIndex, out int row)
-        {
-            for (int c = 0; c < columnDishes.Count; c++)
-            {
-                List<Food> dishes = columnDishes[c];
-                for (int r = 0; r < dishes.Count; r++)
-                {
-                    if (dishes[r] != null && dishes[r].gameObject.activeSelf && ContainsPoint(dishes[r], worldPoint))
-                    {
-                        columnIndex = c;
-                        row = r;
-                        return true;
-                    }
-                }
-            }
-            columnIndex = -1;
-            row = -1;
-            return false;
-        }
-
-        // EN: Re-applies ordinary and whole-group readiness after every column has refreshed its lids.
-        // VI: Áp lại trạng thái chọn đĩa thường và cả nhóm sau khi mọi cột cập nhật nắp.
-        public void RefreshSelection()
-        {
-            for (int c = 0; c < columnDishes.Count; c++)
-                RefreshColumnSelection(c);
-            UpdateDishLinkViews();
-        }
-
-        // EN: Damages each distinct frozen dish once, including double dishes, then refreshes selection.
-        // VI: Trừ băng mỗi đĩa riêng biệt đúng một lần, kể cả đĩa đôi, rồi cập nhật trạng thái chọn.
-        private void ReduceFrozenBlocks()
-        {
-            HashSet<Food> visited = new HashSet<Food>();
-            foreach (List<Food> dishes in columnDishes)
-                foreach (Food dish in dishes)
-                    if (dish != null && visited.Add(dish))
-                        DamageIce(dish);
-            RefreshSelection();
-        }
-
-        // EN: Lowers one frozen dish's block value; only when the dish is on screen does it burst ice shards (a bigger burst when it breaks). Dishes below the screen just lose the value silently. Returns true when the dish thawed.
-        // VI: Giảm giá trị băng của một đĩa đóng băng; chỉ khi đĩa nằm trong màn hình mới bắn vụn băng (bắn mạnh hơn khi vỡ). Đĩa nằm dưới màn hình chỉ bị trừ giá trị, không có hiệu ứng. Trả về true khi đĩa tan băng.
-        private bool DamageIce(Food dish)
-        {
-            if (!dish.IsFrozen)
-                return false;
-            if (!IsDishOnScreen(dish))
-                return dish.ReduceBlock();
-            SpriteRenderer ice = dish.IceRenderer;
-            Vector3 position = ice != null ? ice.bounds.center : dish.transform.position;
-            int sortingLayer = ice != null ? ice.sortingLayerID : 0;
-            int sortingOrder = ice != null ? ice.sortingOrder + 2 : 0;
-            bool thawed = dish.ReduceBlock();
-            OneShotEffects.PlayParticle(thawed ? iceBreakEffect : iceHitEffect, position, sortingLayer, sortingOrder);
-            return thawed;
-        }
-
-
-        // EN: Launches each member's ingredient halves to destinations reserved by the atomic group batch.
-        // VI: Cho từng nửa nguyên liệu của mỗi thành viên bay tới đích đã giữ bởi lượt lấy nhóm.
-        private void LaunchPickAnimation(DishPickBatch.Entry entry)
-        {
-            if (flyAnimator == null)
+            List<Transform> columns = GetColumnObjects();
+            if (columns.Count == 0)
                 return;
-            Food dish = entry.dish;
-            SpriteRenderer source = dish.IconRenderer;
-            Vector3 start = source != null ? source.transform.position : dish.transform.position;
-            flyAnimator.Launch(source, start, GetIcon(dish.foodType), entry.first);
-            source = dish.SecondIconRenderer;
-            start = source != null ? source.transform.position : dish.transform.position;
-            flyAnimator.Launch(source, start, GetIcon(dish.SecondFoodType), entry.second);
+            int activeCount = 0;
+            foreach (Transform column in columns)
+                if (column.gameObject.activeSelf)
+                    activeCount++;
+            ApplyColumnSpacing(activeCount);
+            if (Application.isPlaying)
+                RelayoutBoardDishes();
+            else
+                RelayoutSceneDishes(activeCount);
         }
 
-        // EN: Detaches live links before returning a dish to its pool or hiding a nonpooled dish.
-        // VI: Gỡ liên kết đang chơi trước khi trả đĩa vào pool hoặc ẩn đĩa ngoài pool.
-        private void RemoveFromBoard(Food dish)
+        // EN: Returns true on the frame the mouse or touch is pressed, with its world position (Input System); logs when a press arrives but no camera is available.
+        // VI: Trả về true ở frame chuột hoặc ngón tay vừa nhấn, kèm vị trí world (Input System); ghi log khi có lượt nhấn nhưng không có camera.
+        private bool TryGetPointerDown(out Vector2 worldPoint)
         {
-            DetachDishLink(dish);
-            if (dishPool == null || !dishPool.Release(dish))
-                dish.gameObject.SetActive(false);
-        }
-
-        // EN: Returns the current head dish of a column (first entry of its top-to-bottom list), or null.
-        // VI: Trả về đĩa đầu cột hiện tại (phần tử đầu của danh sách từ trên xuống), hoặc null.
-        private Food GetColumnHead(int columnIndex)
-        {
-            if (columnIndex < 0 || columnIndex >= columnDishes.Count)
-                return null;
-            List<Food> dishes = columnDishes[columnIndex];
-            return dishes.Count > 0 ? dishes[0] : null;
-        }
-
-        // EN: Hit-tests a point against the dish's plate sprite bounds.
-        // VI: Kiểm tra điểm có nằm trong vùng sprite đĩa không.
-        private static bool ContainsPoint(Food dish, Vector2 worldPoint)
-        {
-            SpriteRenderer area = dish.PlateRenderer != null ? dish.PlateRenderer : dish.IconRenderer;
-            if (area == null)
+            worldPoint = default;
+            Pointer pointer = Pointer.current;
+            if (pointer == null || !pointer.press.wasPressedThisFrame)
                 return false;
-            Bounds bounds = area.bounds;
-            return worldPoint.x >= bounds.min.x && worldPoint.x <= bounds.max.x &&
-                   worldPoint.y >= bounds.min.y && worldPoint.y <= bounds.max.y;
+            Camera cam = inputCamera != null ? inputCamera : Camera.main;
+            if (cam == null)
+            {
+                LogPickFailure("không có camera (inputCamera trống và scene không có Camera tag MainCamera)");
+                return false;
+            }
+            Vector2 screen = pointer.position.ReadValue();
+            worldPoint = cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, Mathf.Abs(cam.transform.position.z)));
+            return true;
         }
 
-        // EN: Smoothly slides dishes from their current positions to their targets, then clears the column's shift state.
-        // VI: Trượt mượt các đĩa từ vị trí hiện tại tới vị trí đích, sau đó xoá trạng thái trượt của cột.
-        private IEnumerator AnimateColumnShift(Transform column, List<KeyValuePair<Transform, Vector3>> targets)
+        // EN: Writes one pick-failure reason to the Console when logPickFailures is on.
+        // VI: Ghi một lý do chọn đĩa thất bại ra Console khi bật logPickFailures.
+        private void LogPickFailure(string reason, UnityEngine.Object context = null)
         {
-            Vector3[] starts = new Vector3[targets.Count];
-            for (int i = 0; i < targets.Count; i++)
-                starts[i] = targets[i].Key.localPosition;
-            float time = 0f;
-            while (time < Config.boardMotion.shiftUpDuration)
-            {
-                time += Time.deltaTime;
-                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(time / Config.boardMotion.shiftUpDuration));
-                for (int i = 0; i < targets.Count; i++)
+            if (logPickFailures)
+                Debug.Log($"[FoodBoardManager] Không pick được: {reason}.", context != null ? context : this);
+        }
+
+        // EN: Updates visibility once per anchor so double-dish placeholder cells never override it.
+        // VI: Cập nhật hiển thị một lần tại ô gốc để ô giữ chỗ đĩa đôi không ghi đè trạng thái.
+        private void RefreshOffscreenDishes()
+        {
+            float hideBelowY = GetCameraBottomY() - offscreenHideMargin;
+            for (int c = 0; c < columnDishes.Count && c < ingredientColumns.Count; c++)
+                for (int r = 0; r < columnDishes[c].Count; r++)
                 {
-                    if (targets[i].Key != null)
-                        targets[i].Key.localPosition = Vector3.LerpUnclamped(starts[i], targets[i].Value, t);
+                    if (!IsDishAnchor(c, r))
+                        continue;
+                    Food dish = columnDishes[c][r];
+                    bool show = r == 0 || (r < MaxVisibleRows && (OffscreenHidingSuspended ||
+                        ingredientColumns[c].TransformPoint(GetRowLocalPosition(r)).y >= hideBelowY));
+                    if (dish.gameObject.activeSelf != show)
+                        dish.gameObject.SetActive(show);
                 }
-                yield return null;
+        }
+
+        // EN: World Y of the bottom edge of the input camera view, or negative infinity when there is no camera (nothing gets hidden).
+        // VI: Toạ độ Y world của mép dưới khung camera input, hoặc âm vô cùng khi không có camera (không đĩa nào bị tắt).
+        private float GetCameraBottomY()
+        {
+            Camera cam = inputCamera != null ? inputCamera : Camera.main;
+            if (cam == null)
+                return float.NegativeInfinity;
+            return cam.ViewportToWorldPoint(new Vector3(0.5f, 0f, Mathf.Abs(cam.transform.position.z))).y;
+        }
+
+        // EN: Identifies the top-left cell of a dish, skipping empty cells and duplicate footprint entries.
+        // VI: Xác định ô trên trái của đĩa, bỏ qua ô trống và các ô chiếm trùng tham chiếu.
+        private bool IsDishAnchor(int column, int row)
+        {
+            if (column < 0 || column >= columnDishes.Count || row < 0 || row >= columnDishes[column].Count)
+                return false;
+            Food dish = columnDishes[column][row];
+            return dish != null && (row == 0 || columnDishes[column][row - 1] != dish) &&
+                (column == 0 || row >= columnDishes[column - 1].Count || columnDishes[column - 1][row] != dish);
+        }
+
+        // EN: Returns the assigned column references in Inspector order, rejecting missing or duplicate entries.
+        // VI: Trả về reference cột theo thứ tự Inspector, từ chối phần tử chưa gán hoặc bị trùng.
+        private List<Transform> GetColumnObjects()
+        {
+            if (ingredientColumns == null)
+                return new List<Transform>();
+            for (int i = 0; i < ingredientColumns.Count; i++)
+            {
+                if (ingredientColumns[i] == null || ingredientColumns.IndexOf(ingredientColumns[i]) != i)
+                {
+                    Debug.LogWarning($"[FoodBoardManager] Reference cột {i + 1} chưa được gán hoặc bị trùng; kiểm tra danh sách cột trong Inspector.", this);
+                    return new List<Transform>();
+                }
             }
-            columnShifts.Remove(column);
-            FinishColumnShift(column);
+            return ingredientColumns;
+        }
+
+        // EN: Captures dish visuals from the first scene dish (or the prefab), then adopts the scene dishes into the reusable pool; row spacing comes from the inspector.
+        // VI: Ghi lại hình ảnh đĩa từ đĩa scene đầu tiên (hoặc prefab), rồi đưa các đĩa scene vào pool tái sử dụng; khoảng cách hàng lấy từ inspector.
+        private bool EnsureDishPool()
+        {
+            if (dishPool != null)
+                return true;
+            if (ingredientDishPrefab == null)
+            {
+                Debug.LogWarning("[FoodBoardManager] Chưa gán prefab đĩa nguyên liệu cho pool.", this);
+                return false;
+            }
+            Food template = sceneDishes.Count > 0 && sceneDishes[0] != null ? sceneDishes[0] : ingredientDishPrefab;
+            CaptureDishVisuals(template);
+            if (dishPoolRoot == null)
+            {
+                dishPoolRoot = new GameObject("IngredientDishPool").transform;
+                dishPoolRoot.SetParent(transform, false);
+            }
+            dishPoolRoot.gameObject.SetActive(false);
+            dishPool = new IngredientDishPool(ingredientDishPrefab, dishPoolRoot);
+            foreach (Food dish in sceneDishes)
+                dishPool.Adopt(dish);
+            return true;
+        }
+
+        // EN: Remembers the template's transform, layer and per-renderer sorting so every pooled dish is drawn the same way.
+        // VI: Ghi nhớ transform, layer và thứ tự vẽ từng renderer của đĩa mẫu để mọi đĩa trong pool được vẽ giống nhau.
+        private void CaptureDishVisuals(Food template)
+        {
+            dishLocalScale = template.transform.localScale;
+            dishLocalRotation = template.transform.localRotation;
+            dishLayer = template.gameObject.layer;
+            SpriteRenderer[] renderers = template.VisualRenderers;
+            dishSortingOrders = new int[renderers.Length];
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] == null)
+                    continue;
+                dishSortingOrders[i] = renderers[i].sortingOrder;
+                dishSortingLayer = renderers[i].sortingLayerID;
+            }
+            quantitySortingOrder = template.CountCanvas != null ? template.CountCanvas.sortingOrder : 0;
         }
 
         // EN: Stops a running shift and snaps its dishes to their final row, so a quick second pick starts from a clean layout.
@@ -603,41 +628,6 @@ namespace FoodPop
             shiftTargets.Remove(column);
         }
 
-        // EN: Opens exposed lids and keeps front linked dishes bright even while another member prevents picking the group.
-        // VI: Mở nắp đã lộ và giữ đĩa nối ở đầu hàng sáng kể cả khi thành viên khác đang chặn việc lấy nhóm.
-        private void RefreshColumnSelection(int columnIndex, bool animateReveal = true)
-        {
-            List<Food> dishes = columnDishes[columnIndex];
-            for (int r = 0; r < dishes.Count; r++)
-            {
-                if (!IsDishAnchor(columnIndex, r))
-                    continue;
-                Food dish = dishes[r];
-                bool head = IsDishExposedForReveal(dish);
-                if (head && dish.isHidden)
-                {
-                    if (!animateReveal || Config.lidReveal.fadeDuration <= 0f)
-                        dish.SetHidden(false);
-                    else if (!lidReveals.ContainsKey(dish))
-                        lidReveals[dish] = StartCoroutine(RevealHeadDish(columnIndex, dish));
-                }
-                dish.Selection?.SetSelectable(CanPickGroup(dish, false) || (IsLinked(dish) && IsDishAtHead(dish)));
-            }
-        }
-
-        // EN: Waits for sliding and lid reveal, then refreshes every column so linked members become selectable together.
-        // VI: Chờ dồn và mở nắp, rồi cập nhật mọi cột để các thành viên nối cùng trở nên chọn được.
-        private IEnumerator RevealHeadDish(int columnIndex, Food dish)
-        {
-            Transform column = ingredientColumns[columnIndex];
-            while (columnShifts.ContainsKey(column))
-                yield return null;
-            IngameConfig.LidRevealSettings lid = Config.lidReveal;
-            yield return dish.FadeOutLid(lid.fadeDuration, lid.liftHeight, lid.scaleUp);
-            lidReveals.Remove(dish);
-            RefreshSelection();
-        }
-
         // EN: Stops every running lid fade and opens those dishes instantly (used before the board is rebuilt).
         // VI: Dừng mọi hiệu ứng mờ nắp đang chạy và mở ngay các đĩa đó (dùng trước khi dựng lại board).
         private void StopLidReveals()
@@ -652,35 +642,41 @@ namespace FoodPop
             lidReveals.Clear();
         }
 
-        // EN: Rebuilds footprints and ordered links from saved coordinates before settling gaps and opening exposed dishes.
-        // VI: Dựng lại vùng chiếm và liên kết theo tọa độ đã lưu trước khi dồn ô trống và mở đĩa đã lộ.
-        public void LoadIngredientBoard(List<BoardColumn> board, IReadOnlyList<DishLinkConfig> links = null)
+        // EN: Returns each distinct dish once and clears all footprint references.
+        // VI: Trả mỗi đĩa riêng biệt một lần và xóa mọi tham chiếu ô chiếm.
+        private void ReturnBoardDishes()
         {
-            List<Transform> columns = GetColumnObjects();
-            if (columns.Count == 0 || board == null || !EnsureDishPool())
+            HashSet<Food> returned = new HashSet<Food>();
+            foreach (List<Food> dishes in columnDishes)
+            {
+                foreach (Food dish in dishes)
+                    if (dish != null && returned.Add(dish))
+                        RemoveFromBoard(dish);
+                dishes.Clear();
+            }
+        }
+
+        // EN: Detaches live links before returning a dish to its pool or hiding a nonpooled dish.
+        // VI: Gỡ liên kết đang chơi trước khi trả đĩa vào pool hoặc ẩn đĩa ngoài pool.
+        private void RemoveFromBoard(Food dish)
+        {
+            DetachDishLink(dish);
+            if (dishPool == null || !dishPool.Release(dish))
+                dish.gameObject.SetActive(false);
+        }
+
+        // EN: Spreads the first activeCount columns evenly by columnSpacing, centred on local x = 0 (e.g. spacing 1 with 3 columns gives x = -1, 0, 1), and puts every active column on the first column's local Y and Z, so a column placed lower in the scene (e.g. the 5th lane) cannot start its rows lower than the others; spacing 0 stacks every column at x = 0.
+        // VI: Dàn đều activeCount cột đầu tiên theo columnSpacing, căn giữa tại x cục bộ = 0 (ví dụ spacing 1 với 3 cột cho x = -1, 0, 1), và đặt mọi cột đang dùng về cùng Y, Z cục bộ của cột đầu tiên, để cột đặt lệch thấp trong scene (ví dụ làn thứ 5) không bị bắt đầu hàng thấp hơn các cột khác; spacing bằng 0 thì mọi cột chồng lên nhau tại x = 0.
+        private void ApplyColumnSpacing(int activeCount)
+        {
+            if (activeCount <= 0 || ingredientColumns.Count == 0)
                 return;
-            int upperLimit = Mathf.Min(MaxColumns, columns.Count);
-            int columnCount = Mathf.Clamp(board.Count, Mathf.Min(MinColumns, upperLimit), upperLimit);
-            if (board.Count > columnCount)
-                Debug.LogWarning($"[FoodBoardManager] Board vượt {columnCount} cột đang hỗ trợ.", this);
-            foreach (Transform column in columns)
-                FinishColumnShift(column);
-            StopLidReveals();
-            ClearDishLinks();
-            ReturnBoardDishes();
-            pendingReturns.Clear();
-            ApplyColumnSpacing(columnCount);
-            UpdateIngredientTableVisual(columnCount);
-            while (columnDishes.Count < columns.Count)
-                columnDishes.Add(new List<Food>());
-            for (int c = 0; c < columns.Count; c++)
-                columns[c].gameObject.SetActive(c < columnCount);
-            FillBoard(board, columnCount);
-            BuildDishLinks(links);
-            SettleBoard(false);
-            for (int c = 0; c < columnDishes.Count; c++)
-                RefreshColumnSelection(c, false);
-            UpdateDishLinkViews();
+            Vector3 reference = ingredientColumns[0].localPosition;
+            for (int c = 0; c < activeCount && c < ingredientColumns.Count; c++)
+            {
+                Transform column = ingredientColumns[c];
+                column.localPosition = new Vector3((c - (activeCount - 1) * 0.5f) * columnSpacing, reference.y, reference.z);
+            }
         }
 
         // EN: Selects the three-lane image for three active columns and the existing four-lane image otherwise, preserving the renderer's scene settings.
@@ -689,24 +685,9 @@ namespace FoodPop
         {
             if (ingredientTableRenderer == null)
                 return;
-            Sprite sprite = activeCount == 3 ? ingredientTableThreeLaneSprite : ingredientTableFourLaneSprite;
-            if (sprite != null)
-                ingredientTableRenderer.sprite = sprite;
-        }
-
-        // EN: Spreads the first activeCount columns evenly by columnSpacing, centred on local x = 0 (e.g. spacing 1 with 3 columns gives x = -1, 0, 1); spacing 0 stacks every column at x = 0.
-        // VI: Dàn đều activeCount cột đầu tiên theo columnSpacing, căn giữa tại x cục bộ = 0 (ví dụ spacing 1 với 3 cột cho x = -1, 0, 1); spacing bằng 0 thì mọi cột chồng lên nhau tại x = 0.
-        private void ApplyColumnSpacing(int activeCount)
-        {
-            if (activeCount <= 0)
-                return;
-            for (int c = 0; c < activeCount && c < ingredientColumns.Count; c++)
-            {
-                Transform column = ingredientColumns[c];
-                Vector3 position = column.localPosition;
-                position.x = (c - (activeCount - 1) * 0.5f) * columnSpacing;
-                column.localPosition = position;
-            }
+            if (activeCount == 3) ingredientTableRenderer.sprite = ingredientTable3LaneSprite;
+            if (activeCount == 4) ingredientTableRenderer.sprite = ingredientTable4LaneSprite;
+            if (activeCount == 5) ingredientTableRenderer.sprite = ingredientTable5LaneSprite;
         }
 
         // EN: Loads rows in row-major order so each double reserves its second cell before that cell is visited.
@@ -762,12 +743,20 @@ namespace FoodPop
             dish.transform.localPosition = GetRowLocalPosition(row);
             dish.SetIceBlockSprites(iceBlockSprites);
             dish.Setup(cell.foodType, cell.requiredCount, GetIcon(cell.foodType), cell.isHidden);
-            dish.SetIconConfig(foodIconConfig);
             ApplyDishShape(dish, cell.dishShape, cell.secondFoodType, cell.secondCount, column);
             dish.SetFrozen(cell.isFrozen, cell.blockValue);
             dish.name = $"Ingredient dish · {cell.foodType} · {cell.dishShape}";
             ApplyDishVisuals(dish);
             return dish;
+        }
+
+        // EN: Returns the icon of a food type from the FoodIconConfig, or null.
+        // VI: Lấy icon của một loại nguyên liệu từ FoodIconConfig, hoặc null.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
+        private Sprite GetIcon(FoodType type)
+        {
+            return IngameConfig.Instance.FoodIcons != null ? IngameConfig.Instance.FoodIcons.GetIcon(type) : null;
         }
 
         // EN: Sizes a dish's footprint for its shape from the current spacing: a vertical double reaches one row down, a horizontal double reaches the next column; picks the matching plate, ring and lid sprites.
@@ -781,115 +770,6 @@ namespace FoodPop
             Sprite outline = shape == DishShape.Horizontal ? horizontalDoubleOutline : verticalDoubleOutline;
             Sprite lid = shape == DishShape.Horizontal ? horizontalDoubleLid : verticalDoubleLid;
             dish.ConfigureShape(shape, secondType, secondCount, dish.transform.InverseTransformVector(worldOffset), plate, doublePlateOutlineMaterial, outline, lid);
-        }
-
-        // EN: Re-lays out the board after rowSpacing/columnSpacing change (Inspector "Update View" button). Re-spaces the active columns. In Play Mode it snaps every running slide, moves each dish to its row and refits double dishes and link lines. In Edit Mode it stacks each active column's child dishes top to bottom by their current height.
-        // VI: Dàn lại board sau khi đổi rowSpacing/columnSpacing (nút "Update View" trên Inspector). Dàn lại các cột đang bật. Khi Play thì kết thúc ngay các hiệu ứng trượt, đưa từng đĩa về đúng hàng, căn lại đĩa đôi và dây liên kết. Khi chưa Play thì xếp các đĩa con của mỗi cột đang bật từ trên xuống theo độ cao hiện tại.
-        public void UpdateView()
-        {
-            List<Transform> columns = GetColumnObjects();
-            if (columns.Count == 0)
-                return;
-            int activeCount = 0;
-            foreach (Transform column in columns)
-                if (column.gameObject.activeSelf)
-                    activeCount++;
-            ApplyColumnSpacing(activeCount);
-            if (Application.isPlaying)
-                RelayoutBoardDishes();
-            else
-                RelayoutSceneDishes(activeCount);
-        }
-
-        // EN: Play Mode relayout: snaps running slides, puts each anchor dish at its row position, refits double footprints and refreshes link lines.
-        // VI: Dàn lại khi Play: kết thúc hiệu ứng trượt, đặt mỗi đĩa gốc vào vị trí hàng, căn lại vùng đĩa đôi và cập nhật dây liên kết.
-        private void RelayoutBoardDishes()
-        {
-            foreach (Transform column in ingredientColumns)
-                FinishColumnShift(column);
-            for (int c = 0; c < columnDishes.Count && c < ingredientColumns.Count; c++)
-                for (int r = 0; r < columnDishes[c].Count; r++)
-                {
-                    if (!IsDishAnchor(c, r))
-                        continue;
-                    Food dish = columnDishes[c][r];
-                    dish.transform.localPosition = GetRowLocalPosition(r);
-                    if (dish.IsDouble)
-                        ApplyDishShape(dish, dish.Shape, dish.SecondFoodType, dish.SecondAmount, c);
-                }
-            UpdateDishLinkViews();
-        }
-
-        // EN: Edit Mode relayout: for the first activeCount columns, orders the child dishes by height (highest = head) and puts them on consecutive rows.
-        // VI: Dàn lại khi chưa Play: với activeCount cột đầu, sắp các đĩa con theo độ cao (cao nhất là đầu cột) và đặt vào các hàng liên tiếp.
-        private void RelayoutSceneDishes(int activeCount)
-        {
-            for (int c = 0; c < activeCount && c < ingredientColumns.Count; c++)
-            {
-                List<Food> dishes = new List<Food>(ingredientColumns[c].GetComponentsInChildren<Food>(true));
-                dishes.RemoveAll(dish => dish.transform.parent != ingredientColumns[c]);
-                dishes.Sort((a, b) => b.transform.localPosition.y.CompareTo(a.transform.localPosition.y));
-                for (int r = 0; r < dishes.Count; r++)
-                    dishes[r].transform.localPosition = GetRowLocalPosition(r);
-            }
-        }
-
-        // EN: Captures dish visuals from the first scene dish (or the prefab), then adopts the scene dishes into the reusable pool; row spacing comes from the inspector.
-        // VI: Ghi lại hình ảnh đĩa từ đĩa scene đầu tiên (hoặc prefab), rồi đưa các đĩa scene vào pool tái sử dụng; khoảng cách hàng lấy từ inspector.
-        private bool EnsureDishPool()
-        {
-            if (dishPool != null)
-                return true;
-            if (ingredientDishPrefab == null)
-            {
-                Debug.LogWarning("[FoodBoardManager] Chưa gán prefab đĩa nguyên liệu cho pool.", this);
-                return false;
-            }
-            Food template = sceneDishes.Count > 0 && sceneDishes[0] != null ? sceneDishes[0] : ingredientDishPrefab;
-            CaptureDishVisuals(template);
-            if (dishPoolRoot == null)
-            {
-                dishPoolRoot = new GameObject("IngredientDishPool").transform;
-                dishPoolRoot.SetParent(transform, false);
-            }
-            dishPoolRoot.gameObject.SetActive(false);
-            dishPool = new IngredientDishPool(ingredientDishPrefab, dishPoolRoot);
-            foreach (Food dish in sceneDishes)
-                dishPool.Adopt(dish);
-            return true;
-        }
-
-        // EN: Remembers the template's transform, layer and per-renderer sorting so every pooled dish is drawn the same way.
-        // VI: Ghi nhớ transform, layer và thứ tự vẽ từng renderer của đĩa mẫu để mọi đĩa trong pool được vẽ giống nhau.
-        private void CaptureDishVisuals(Food template)
-        {
-            dishLocalScale = template.transform.localScale;
-            dishLocalRotation = template.transform.localRotation;
-            dishLayer = template.gameObject.layer;
-            SpriteRenderer[] renderers = template.VisualRenderers;
-            dishSortingOrders = new int[renderers.Length];
-            for (int i = 0; i < renderers.Length; i++)
-            {
-                if (renderers[i] == null)
-                    continue;
-                dishSortingOrders[i] = renderers[i].sortingOrder;
-                dishSortingLayer = renderers[i].sortingLayerID;
-            }
-            quantitySortingOrder = template.CountCanvas != null ? template.CountCanvas.sortingOrder : 0;
-        }
-
-        // EN: Returns each distinct dish once and clears all footprint references.
-        // VI: Trả mỗi đĩa riêng biệt một lần và xóa mọi tham chiếu ô chiếm.
-        private void ReturnBoardDishes()
-        {
-            HashSet<Food> returned = new HashSet<Food>();
-            foreach (List<Food> dishes in columnDishes)
-            {
-                foreach (Food dish in dishes)
-                    if (dish != null && returned.Add(dish))
-                        RemoveFromBoard(dish);
-                dishes.Clear();
-            }
         }
 
         // EN: Restores the board's renderer layers and sorting so newly created prefab dishes match scene dishes.
@@ -913,63 +793,6 @@ namespace FoodPop
                 dish.CountCanvas.gameObject.layer = dishLayer;
                 dish.CountCanvas.sortingOrder = quantitySortingOrder;
             }
-        }
-
-        // EN: Returns the assigned column references in Inspector order, rejecting missing or duplicate entries.
-        // VI: Trả về reference cột theo thứ tự Inspector, từ chối phần tử chưa gán hoặc bị trùng.
-        private List<Transform> GetColumnObjects()
-        {
-            if (ingredientColumns == null)
-                return new List<Transform>();
-            for (int i = 0; i < ingredientColumns.Count; i++)
-            {
-                if (ingredientColumns[i] == null || ingredientColumns.IndexOf(ingredientColumns[i]) != i)
-                {
-                    Debug.LogWarning($"[FoodBoardManager] Reference cột {i + 1} chưa được gán hoặc bị trùng; kiểm tra danh sách cột trong Inspector.", this);
-                    return new List<Transform>();
-                }
-            }
-            return ingredientColumns;
-        }
-
-        // EN: Returns the icon of a food type from the FoodIconConfig, or null.
-        // VI: Lấy icon của một loại nguyên liệu từ FoodIconConfig, hoặc null.
-        private Sprite GetIcon(FoodType type)
-        {
-            return foodIconConfig != null ? foodIconConfig.GetIcon(type) : null;
-        }
-
-        // EN: Identifies the top-left cell of a dish, skipping empty cells and duplicate footprint entries.
-        // VI: Xác định ô trên trái của đĩa, bỏ qua ô trống và các ô chiếm trùng tham chiếu.
-        private bool IsDishAnchor(int column, int row)
-        {
-            if (column < 0 || column >= columnDishes.Count || row < 0 || row >= columnDishes[column].Count)
-                return false;
-            Food dish = columnDishes[column][row];
-            return dish != null && (row == 0 || columnDishes[column][row - 1] != dish) &&
-                (column == 0 || row >= columnDishes[column - 1].Count || columnDishes[column - 1][row] != dish);
-        }
-
-        // EN: Requires a dish to occupy row zero in every column of its footprint for a normal pick.
-        // VI: Yêu cầu đĩa chiếm hàng đầu ở mọi cột trong vùng chiếm để chọn thông thường.
-        private bool IsDishAtHead(Food dish)
-        {
-            for (int c = 0; c < columnDishes.Count; c++)
-                if (GetColumnHead(c) == dish)
-                    return dish.Shape != DishShape.Horizontal || GetColumnHead(c + 1) == dish;
-            return false;
-        }
-
-        // EN: Removes one exhausted booster dish, updates its links and settles remaining gaps.
-        // VI: Gỡ một đĩa hết nguyên liệu do booster, cập nhật liên kết và dồn khoảng trống còn lại.
-        private void RemoveDishAndSettle(Food dish)
-        {
-            foreach (Transform column in ingredientColumns)
-                FinishColumnShift(column);
-            ClearDishFootprint(dish);
-            RemoveFromBoard(dish);
-            SettleBoard();
-            RefreshSelection();
         }
 
         // EN: Compacts each footprint upward only through free cells; horizontal gates wait for both columns.
@@ -1032,51 +855,244 @@ namespace FoodPop
             }
         }
 
-#if UNITY_EDITOR
-        // EN: Assigns default board assets including double plates, lids, dedicated rings and fallback outline material.
-        // VI: Gán asset board mặc định gồm đĩa đôi, nắp, vòng viền riêng và vật liệu viền dự phòng.
-        private void OnValidate()
+        // EN: Smoothly slides dishes from their current positions to their targets, then clears the column's shift state.
+        // VI: Trượt mượt các đĩa từ vị trí hiện tại tới vị trí đích, sau đó xoá trạng thái trượt của cột.
+        private IEnumerator AnimateColumnShift(Transform column, List<KeyValuePair<Transform, Vector3>> targets)
         {
-            if (Application.isPlaying)
-                return;
-            if (horizontalDoublePlate == null)
-                horizontalDoublePlate = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/HotPot/Art/Sprites/UI/Dishes/CeramicPlateHorizontal.png");
-            if (verticalDoublePlate == null)
-                verticalDoublePlate = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/HotPot/Art/Sprites/UI/Dishes/CeramicPlateVertical.png");
-            if (horizontalDoubleOutline == null)
-                horizontalDoubleOutline = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/HotPot/Art/Sprites/UI/Dishes/PlateSelectionOutlineHorizontal.png");
-            if (verticalDoubleOutline == null)
-                verticalDoubleOutline = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/HotPot/Art/Sprites/UI/Dishes/PlateSelectionOutlineVertical.png");
-            if (horizontalDoubleLid == null)
-                horizontalDoubleLid = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/HotPot/Art/Sprites/UI/Dishes/PlateLidHorizontal.png");
-            if (verticalDoubleLid == null)
-                verticalDoubleLid = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/HotPot/Art/Sprites/UI/Dishes/PlateLidVertical.png");
-            if (doublePlateOutlineMaterial == null)
-                doublePlateOutlineMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/HotPot/Art/Materials/Dishes/PlateSilhouette.mat");
-            if (ingredientTableThreeLaneSprite == null)
-                ingredientTableThreeLaneSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/HotPot/Art/Sprites/Demo/IngredientTableStandalone3Lane.png");
-            if (ingredientTableFourLaneSprite == null)
-                ingredientTableFourLaneSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/HotPot/Art/Sprites/Demo/IngredientTableStandalone.png");
-            if (foodIconConfig == null)
-                foodIconConfig = UnityEditor.AssetDatabase.LoadAssetAtPath<FoodIconConfig>("Assets/HotPot/Config/FoodIconConfig.asset");
-            string[] icePaths =
+            Vector3[] starts = new Vector3[targets.Count];
+            for (int i = 0; i < targets.Count; i++)
+                starts[i] = targets[i].Key.localPosition;
+            float time = 0f;
+            while (time < Config.boardMotion.shiftUpDuration)
             {
-                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Frost.png",
-                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Cracked.png",
-                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Faceted.png",
-                "Assets/HotPot/Art/Sprites/Blocks/Ice/IceBlock_Clear.png"
-            };
-            if (iceBlockSprites == null || iceBlockSprites.Length != icePaths.Length)
-                iceBlockSprites = new Sprite[icePaths.Length];
-            for (int i = 0; i < icePaths.Length; i++)
-            {
-                if (iceBlockSprites[i] == null)
-                    iceBlockSprites[i] = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(icePaths[i]);
+                time += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(time / Config.boardMotion.shiftUpDuration));
+                for (int i = 0; i < targets.Count; i++)
+                {
+                    if (targets[i].Key != null)
+                        targets[i].Key.localPosition = Vector3.LerpUnclamped(starts[i], targets[i].Value, t);
+                }
+                yield return null;
             }
-            if (ingredientDishPrefab == null)
-                ingredientDishPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<Food>("Assets/HotPot/Prefabs/Ingame/IngredientDish.prefab");
+            columnShifts.Remove(column);
+            FinishColumnShift(column);
         }
-#endif
+
+        // EN: Opens exposed lids and keeps front linked dishes bright even while another member prevents picking the group.
+        // VI: Mở nắp đã lộ và giữ đĩa nối ở đầu hàng sáng kể cả khi thành viên khác đang chặn việc lấy nhóm.
+        private void RefreshColumnSelection(int columnIndex, bool animateReveal = true)
+        {
+            List<Food> dishes = columnDishes[columnIndex];
+            for (int r = 0; r < dishes.Count; r++)
+            {
+                if (!IsDishAnchor(columnIndex, r))
+                    continue;
+                Food dish = dishes[r];
+                bool head = IsDishExposedForReveal(dish);
+                if (head && dish.isHidden)
+                {
+                    if (!animateReveal || Config.lidReveal.fadeDuration <= 0f)
+                        dish.SetHidden(false);
+                    else if (!lidReveals.ContainsKey(dish))
+                        lidReveals[dish] = StartCoroutine(RevealHeadDish(columnIndex, dish));
+                }
+                dish.Selection?.SetSelectable(CanPickGroup(dish, false) || (IsLinked(dish) && IsDishAtHead(dish)));
+            }
+        }
+
+        // EN: Waits for sliding and lid reveal, then refreshes every column so linked members become selectable together.
+        // VI: Chờ dồn và mở nắp, rồi cập nhật mọi cột để các thành viên nối cùng trở nên chọn được.
+        private IEnumerator RevealHeadDish(int columnIndex, Food dish)
+        {
+            Transform column = ingredientColumns[columnIndex];
+            while (columnShifts.ContainsKey(column))
+                yield return null;
+            IngameConfig.LidRevealSettings lid = Config.lidReveal;
+            yield return dish.FadeOutLid(lid.fadeDuration, lid.liftHeight, lid.scaleUp);
+            lidReveals.Remove(dish);
+            RefreshSelection();
+        }
+
+        // EN: Requires a dish to occupy row zero in every column of its footprint for a normal pick.
+        // VI: Yêu cầu đĩa chiếm hàng đầu ở mọi cột trong vùng chiếm để chọn thông thường.
+        private bool IsDishAtHead(Food dish)
+        {
+            for (int c = 0; c < columnDishes.Count; c++)
+                if (GetColumnHead(c) == dish)
+                    return dish.Shape != DishShape.Horizontal || GetColumnHead(c + 1) == dish;
+            return false;
+        }
+
+        // EN: Returns the current head dish of a column (first entry of its top-to-bottom list), or null.
+        // VI: Trả về đĩa đầu cột hiện tại (phần tử đầu của danh sách từ trên xuống), hoặc null.
+        private Food GetColumnHead(int columnIndex)
+        {
+            if (columnIndex < 0 || columnIndex >= columnDishes.Count)
+                return null;
+            List<Food> dishes = columnDishes[columnIndex];
+            return dishes.Count > 0 ? dishes[0] : null;
+        }
+
+        // EN: Hit-tests a point against the dish's plate sprite bounds.
+        // VI: Kiểm tra điểm có nằm trong vùng sprite đĩa không.
+        private static bool ContainsPoint(Food dish, Vector2 worldPoint)
+        {
+            SpriteRenderer area = dish.PlateRenderer != null ? dish.PlateRenderer : dish.IconRenderer;
+            if (area == null)
+                return false;
+            Bounds bounds = area.bounds;
+            return worldPoint.x >= bounds.min.x && worldPoint.x <= bounds.max.x &&
+                   worldPoint.y >= bounds.min.y && worldPoint.y <= bounds.max.y;
+        }
+
+        // EN: Finds matching portions in either half, nearest the head first and filtered by frozen state.
+        // VI: Tìm phần nguyên liệu trong cả hai nửa, ưu tiên gần đầu cột và lọc theo trạng thái đóng băng.
+        private bool FindPortion(FoodType type, bool frozen, out int column, out int row)
+        {
+            int maxRows = 0;
+            foreach (List<Food> dishes in columnDishes)
+                maxRows = Mathf.Max(maxRows, dishes.Count);
+            for (row = 0; row < maxRows; row++)
+                for (column = 0; column < columnDishes.Count; column++)
+                {
+                    if (!IsDishAnchor(column, row))
+                        continue;
+                    Food dish = columnDishes[column][row];
+                    if (dish.IsFrozen == frozen && ((dish.foodType == type && dish.amount > 0) ||
+                        (dish.SecondFoodType == type && dish.SecondAmount > 0)))
+                        return true;
+                }
+            column = -1;
+            row = -1;
+            return false;
+        }
+
+        // EN: Breaks a dish's ice at once with the ice-break burst (shown only when the dish is on screen).
+        // VI: Phá băng của đĩa ngay lập tức kèm hiệu ứng vỡ băng (chỉ hiện khi đĩa nằm trong màn hình).
+        private void ShatterIce(Food dish)
+        {
+            SpriteRenderer ice = dish.IceRenderer;
+            if (IsDishOnScreen(dish))
+                OneShotEffects.PlayParticle(iceBreakEffect, ice != null ? ice.bounds.center : dish.transform.position,
+                    ice != null ? ice.sortingLayerID : 0, ice != null ? ice.sortingOrder + 2 : 0);
+            dish.SetFrozen(false, 0);
+        }
+
+        // EN: True when the dish is active and part of its plate is above the bottom edge of the camera view.
+        // VI: True khi đĩa đang bật và một phần đĩa nằm trên mép dưới khung camera.
+        private bool IsDishOnScreen(Food dish)
+        {
+            if (!dish.gameObject.activeInHierarchy)
+                return false;
+            SpriteRenderer area = dish.PlateRenderer != null ? dish.PlateRenderer : dish.IconRenderer;
+            float top = area != null ? area.bounds.max.y : dish.transform.position.y;
+            return top >= GetCameraBottomY();
+        }
+
+        // EN: Removes one exhausted booster dish, updates its links and settles remaining gaps.
+        // VI: Gỡ một đĩa hết nguyên liệu do booster, cập nhật liên kết và dồn khoảng trống còn lại.
+        private void RemoveDishAndSettle(Food dish)
+        {
+            foreach (Transform column in ingredientColumns)
+                FinishColumnShift(column);
+            ClearDishFootprint(dish);
+            RemoveFromBoard(dish);
+            SettleBoard();
+            RefreshSelection();
+        }
+
+        // EN: Pops a dish in from nothing with a small overshoot to its normal board scale.
+        // VI: Cho đĩa nảy lên từ cỡ 0, vượt nhẹ rồi về cỡ bình thường trên board.
+        private IEnumerator PopInDish(Transform dish)
+        {
+            const float Duration = 0.3f;
+            for (float time = 0f; time < Duration && dish != null; time += Time.deltaTime)
+            {
+                float t = time / Duration;
+                float scale = t < 0.6f ? 1.18f * Mathf.SmoothStep(0f, 1f, t / 0.6f) : Mathf.Lerp(1.18f, 1f, (t - 0.6f) / 0.4f);
+                dish.localScale = dishLocalScale * scale;
+                yield return null;
+            }
+            if (dish != null)
+                dish.localScale = dishLocalScale;
+        }
+
+        // EN: Play Mode relayout: snaps running slides, puts each anchor dish at its row position, refits double footprints and refreshes link lines.
+        // VI: Dàn lại khi Play: kết thúc hiệu ứng trượt, đặt mỗi đĩa gốc vào vị trí hàng, căn lại vùng đĩa đôi và cập nhật dây liên kết.
+        private void RelayoutBoardDishes()
+        {
+            foreach (Transform column in ingredientColumns)
+                FinishColumnShift(column);
+            for (int c = 0; c < columnDishes.Count && c < ingredientColumns.Count; c++)
+                for (int r = 0; r < columnDishes[c].Count; r++)
+                {
+                    if (!IsDishAnchor(c, r))
+                        continue;
+                    Food dish = columnDishes[c][r];
+                    dish.transform.localPosition = GetRowLocalPosition(r);
+                    if (dish.IsDouble)
+                        ApplyDishShape(dish, dish.Shape, dish.SecondFoodType, dish.SecondAmount, c);
+                }
+            UpdateDishLinkViews();
+        }
+
+        // EN: Edit Mode relayout: for the first activeCount columns, orders the child dishes by height (highest = head) and puts them on consecutive rows.
+        // VI: Dàn lại khi chưa Play: với activeCount cột đầu, sắp các đĩa con theo độ cao (cao nhất là đầu cột) và đặt vào các hàng liên tiếp.
+        private void RelayoutSceneDishes(int activeCount)
+        {
+            for (int c = 0; c < activeCount && c < ingredientColumns.Count; c++)
+            {
+                List<Food> dishes = new List<Food>(ingredientColumns[c].GetComponentsInChildren<Food>(true));
+                dishes.RemoveAll(dish => dish.transform.parent != ingredientColumns[c]);
+                dishes.Sort((a, b) => b.transform.localPosition.y.CompareTo(a.transform.localPosition.y));
+                for (int r = 0; r < dishes.Count; r++)
+                    dishes[r].transform.localPosition = GetRowLocalPosition(r);
+            }
+        }
+
+        // EN: Damages each distinct frozen dish once, including double dishes, then refreshes selection.
+        // VI: Trừ băng mỗi đĩa riêng biệt đúng một lần, kể cả đĩa đôi, rồi cập nhật trạng thái chọn.
+        private void ReduceFrozenBlocks()
+        {
+            HashSet<Food> visited = new HashSet<Food>();
+            foreach (List<Food> dishes in columnDishes)
+                foreach (Food dish in dishes)
+                    if (dish != null && visited.Add(dish))
+                        DamageIce(dish);
+            RefreshSelection();
+        }
+
+        // EN: Lowers one frozen dish's block value; only when the dish is on screen does it burst ice shards (a bigger burst when it breaks). Dishes below the screen just lose the value silently. Returns true when the dish thawed.
+        // VI: Giảm giá trị băng của một đĩa đóng băng; chỉ khi đĩa nằm trong màn hình mới bắn vụn băng (bắn mạnh hơn khi vỡ). Đĩa nằm dưới màn hình chỉ bị trừ giá trị, không có hiệu ứng. Trả về true khi đĩa tan băng.
+        private bool DamageIce(Food dish)
+        {
+            if (!dish.IsFrozen)
+                return false;
+            if (!IsDishOnScreen(dish))
+                return dish.ReduceBlock();
+            SpriteRenderer ice = dish.IceRenderer;
+            Vector3 position = ice != null ? ice.bounds.center : dish.transform.position;
+            int sortingLayer = ice != null ? ice.sortingLayerID : 0;
+            int sortingOrder = ice != null ? ice.sortingOrder + 2 : 0;
+            bool thawed = dish.ReduceBlock();
+            OneShotEffects.PlayParticle(thawed ? iceBreakEffect : iceHitEffect, position, sortingLayer, sortingOrder);
+            return thawed;
+        }
+
+        // EN: Launches each member's ingredient halves to destinations reserved by the atomic group batch.
+        // VI: Cho từng nửa nguyên liệu của mỗi thành viên bay tới đích đã giữ bởi lượt lấy nhóm.
+        private void LaunchPickAnimation(DishPickBatch.Entry entry)
+        {
+            if (flyAnimator == null)
+                return;
+            Food dish = entry.dish;
+            SpriteRenderer source = dish.IconRenderer;
+            Vector3 start = source != null ? source.transform.position : dish.transform.position;
+            flyAnimator.Launch(source, start, GetIcon(dish.foodType), entry.first);
+            source = dish.SecondIconRenderer;
+            start = source != null ? source.transform.position : dish.transform.position;
+            flyAnimator.Launch(source, start, GetIcon(dish.SecondFoodType), entry.second);
+        }
     }
 }
 

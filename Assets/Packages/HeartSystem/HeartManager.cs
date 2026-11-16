@@ -1,4 +1,4 @@
-﻿using Sirenix.OdinInspector;
+using Sirenix.OdinInspector;
 using System;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -12,13 +12,19 @@ namespace GamePackages
         public int timeRefillOnHeart = 30;
         public int refillGoldCost = 900;
         bool isInit;
-        public override void SetContext(HeartData data)
+        // EN: Initializes hearts in place so the manager and root profile retain the same saved object.
+        // VI: Khởi tạo mạng tại chỗ để manager và hồ sơ gốc giữ cùng đối tượng được lưu.
+        internal override void SetContext(HeartData data)
         {
             base.SetContext(data);
             if (!data.isInit)
             {
-                data = new();
-                Data = data;
+                // Keep the root profile and HeartManager bound to the same persisted object.
+                data.isInit = true;
+                data.currentHeartAmount = data.maxHeart = default_Max_Heart;
+                data.timeToNewHeart = 0;
+                data.unlimitedLivesExpireTime = 0;
+                data.sLastTimeOnline = null;
             }
             isInit = true;
             Debug.Log("HeartManager");

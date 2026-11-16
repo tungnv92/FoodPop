@@ -8,7 +8,11 @@ namespace FoodPop
     [DisallowMultipleComponent]
     public class IngameSoundManager : MonoBehaviour
     {
-        private static IngameSoundManager instance;
+        public enum Event
+        {
+            PopupShow, PopupHide, ItemBought, RewardCollect, OutOfSpace,
+            NewItemUnlocked, GameWin, GameFailed, Revive
+        }
 
         // EN: Returns the scene singleton, resolving it once when Awake has not run yet.
         // VI: Trả về singleton trong scene, tìm một lần nếu Awake chưa chạy.
@@ -24,6 +28,28 @@ namespace FoodPop
 
         [Tooltip("AudioSource dùng để phát mọi hiệu ứng âm thanh (gắn cùng GameObject).")]
         [SerializeField] private AudioSource source;
+        [Tooltip("Âm thanh khi nhấn nút trên giao diện cài đặt.")]
+        [SerializeField] private AudioClip clickSound;
+
+        [Header("Sự kiện giao diện và màn chơi")]
+        [Tooltip("Âm thanh popup xuất hiện.")]
+        [SerializeField] private AudioClip popupShowSound;
+        [Tooltip("Âm thanh popup đóng.")]
+        [SerializeField] private AudioClip popupHideSound;
+        [Tooltip("Âm thanh mua vật phẩm thành công.")]
+        [SerializeField] private AudioClip itemBoughtSound;
+        [Tooltip("Âm thanh nhận phần thưởng.")]
+        [SerializeField] private AudioClip rewardCollectSound;
+        [Tooltip("Âm thanh băng chuyền hết chỗ.")]
+        [SerializeField] private AudioClip outOfSpaceSound;
+        [Tooltip("Âm thanh giới thiệu vật phẩm mới.")]
+        [SerializeField] private AudioClip newItemUnlockedSound;
+        [Tooltip("Âm thanh thắng màn.")]
+        [SerializeField] private AudioClip gameWinSound;
+        [Tooltip("Âm thanh thua màn.")]
+        [SerializeField] private AudioClip gameFailedSound;
+        [Tooltip("Âm thanh hồi sinh thành công.")]
+        [SerializeField] private AudioClip reviveSound;
 
         [Header("Chọn đĩa từ board")]
         [Tooltip("Âm thanh khi đĩa được chọn và các phần bắt đầu bay.")]
@@ -61,17 +87,10 @@ namespace FoodPop
         [SerializeField] private AudioClip customerHappySound;
         [Range(0f, 1f)] [SerializeField] private float customerHappyVolume = 0.9f;
 
+        private static IngameSoundManager instance;
         private readonly List<float> dishPitches = new List<float>();
         private float lastServeTime = -10f;
         private int serveCombo;
-
-        // EN: Clears the static singleton when entering Play Mode, including when domain reload is disabled.
-        // VI: Xóa singleton tĩnh khi vào Play Mode, kể cả khi tắt tải lại miền mã.
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetInstance()
-        {
-            instance = null;
-        }
 
         // EN: Registers the singleton, removes a duplicate component and makes sure an AudioSource exists.
         // VI: Đăng ký singleton, bỏ component trùng và bảo đảm có AudioSource.
@@ -129,11 +148,19 @@ namespace FoodPop
 
         // EN: One knife chop on a food: plays one of the food's own chop sounds from FoodIconConfig.
         // VI: Một nhát dao lên món: phát một trong các tiếng chặt riêng của món trong FoodIconConfig.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
         public void PlayChop(Food food)
         {
-            if (food == null || food.IconConfig == null)
-                return;
-            Play(food.IconConfig.GetChopSound(food.foodType), chopVolume, 1f + Random.Range(-chopPitchJitter, chopPitchJitter));
+            if (food != null) PlayChop(food.foodType);
+        }
+
+        // EN: Play ingredient-specific chopping audio without requiring a conveyor Food instance.
+        // VI: Phát âm chặt riêng theo nguyên liệu, không cần instance Food trên băng chuyền.
+        public void PlayChop(FoodType type)
+        {
+            if (IngameConfig.Instance.FoodIcons == null) return;
+            Play(IngameConfig.Instance.FoodIcons.GetChopSound(type), chopVolume, 1f + Random.Range(-chopPitchJitter, chopPitchJitter));
         }
 
         // EN: A food finished its preparation.
@@ -161,6 +188,41 @@ namespace FoodPop
         public void PlayCustomerHappy()
         {
             Play(customerHappySound, customerHappyVolume, 1f);
+        }
+
+        // EN: Plays the authored UI click on the shared sound-effects source, including while time is paused.
+        // VI: Phát tiếng nhấn UI đã gán qua nguồn hiệu ứng chung, kể cả khi thời gian đang dừng.
+        public void PlayClick()
+        {
+            Play(clickSound, 1f, 1f);
+        }
+
+        // EN: Plays the authored sound for one concrete UI or level outcome through the shared muted effects source.
+        // VI: Phát âm thanh đã gán cho một sự kiện UI hoặc kết quả màn qua nguồn hiệu ứng chung có mute.
+        public void PlayEvent(Event soundEvent)
+        {
+            AudioClip clip = soundEvent switch
+            {
+                Event.PopupShow => popupShowSound,
+                Event.PopupHide => popupHideSound,
+                Event.ItemBought => itemBoughtSound,
+                Event.RewardCollect => rewardCollectSound,
+                Event.OutOfSpace => outOfSpaceSound,
+                Event.NewItemUnlocked => newItemUnlockedSound,
+                Event.GameWin => gameWinSound,
+                Event.GameFailed => gameFailedSound,
+                Event.Revive => reviveSound,
+                _ => null
+            };
+            Play(clip, 1f, 1f);
+        }
+
+        // EN: Clears the static singleton when entering Play Mode, including when domain reload is disabled.
+        // VI: Xóa singleton tĩnh khi vào Play Mode, kể cả khi tắt tải lại miền mã.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetInstance()
+        {
+            instance = null;
         }
 
         // EN: Plays one clip once at the given volume and pitch.

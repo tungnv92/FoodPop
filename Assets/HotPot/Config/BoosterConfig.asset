@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42914cc8ca20462380b4aa0de6837dc6, type: 3}
+  m_Name: BoosterConfig
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.BoosterConfig
+  boosters:
+  - type: 0
+    boosterName: Helping Hand
+    boosterInfo: Pick any plate you want from the table.
+    price: 10
+    unlockLevel: 1
+    unlockGift: 2
+  - type: 1
+    boosterName: Belt Sweep
+    boosterInfo: Collect the plates on the conveyor into the holding bag.
+    price: 10
+    unlockLevel: 1
+    unlockGift: 2
+  - type: 2
+    boosterName: Shuffle
+    boosterInfo: Swap the positions of the plates on the table.
+    price: 10
+    unlockLevel: 1
+    unlockGift: 2
+  - type: 3
+    boosterName: Auto Complete
+    boosterInfo: Instantly finish one plate a customer is waiting for.
+    price: 10
+    unlockLevel: 1
+    unlockGift: 2
+  shortDes:
+  - type: 0
+    info: Another booster is in use.
+  - type: 1
+    info: Please wait for the board to settle.
+  - type: 3
+    info: The conveyor is empty.
+  - type: 4
+    info: Choose a plate to pick up
+  - type: 7
+    info: No plates to pick up.
+  - type: 8
+    info: This plate is empty.
+  - type: 9
+    info: This plate is frozen.
+  - type: 10
+    info: A linked plate is still frozen.
+  - type: 11
+    info: Not enough free space on the conveyor.
+  - type: 12
+    info: Not enough space for all linked plates.
+  - type: 13
+    info: Not enough gold. You need {0} gold to buy this booster.
+  - type: 14
+    info: Purchase failed. Please try again.
+  - type: 15
+    info: Tap to try!

@@ -28,10 +28,12 @@ public class MissionControlButtonHome : MonoBehaviour
         RefreshState();
     }
 
+    // EN: Coordinates CheckShowTut using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối CheckShowTut qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public bool CheckShowTut()
     {
         if (Manager == null || !Manager.IsLevelUnlocked) return false;
-        if (Manager.Data == null || Manager.Data.isDoneTutorial) return false;
+        if (!Manager.IsInitialized || Manager.HasCompletedTutorial) return false;
 
         tutObj.SetActive(true);
         unlockedObject.SetActive(false);

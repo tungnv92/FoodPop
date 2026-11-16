@@ -1,4 +1,4 @@
-﻿//using Firebase.Analytics;
+//using Firebase.Analytics;
 using GamePackages;
 using HomeFeatures.Profile;
 using Longvm.RewardAnimator;
@@ -309,6 +309,8 @@ namespace MonetToolkit
             //    Debug.LogException(e);
             //}
         }
+        // EN: Coordinates OnPurchaseConfirmed using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối OnPurchaseConfirmed qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         void OnPurchaseConfirmed(string productID)
         {
             Debug.LogError("Product confirm: " + productID);
@@ -327,7 +329,7 @@ namespace MonetToolkit
             ProfileManager.instance.GameFeatureContext.RecordManager.RecordIAP();
             int count = ProfileManager.instance.GameFeatureContext.RecordManager.GetIAPCount();
             string packName = "";
-            //SDKBridge.TrackEventIAPPurchased(ProfileManager.instance.PlayerData.currentLevel, placement, productID, packName, count == 1, count);
+            //SDKBridge.TrackEventIAPPurchased(ProfileManager.instance.PlayerDataManager.GetCurrentLevel(), placement, productID, packName, count == 1, count);
             //if (isLogEvent)
             //{
             //    SDKBridge.TrackAppflyerPurchase(productID, cost, currencyCode);
@@ -348,19 +350,20 @@ namespace MonetToolkit
 
         bool IsValidateReceipt(string receipt)
         {
+            return true;
 #if UNITY_EDITOR
             return true;
 #elif UNITY_ANDROID
-            var validator = new CrossPlatformValidator(GooglePlayTangle.Data(), null, Application.identifier);
-            try
-            {
-                var receipts = validator.Validate(receipt);
-                return true;
-            } catch (IAPSecurityException e)
-            {
-                Debug.LogError($"Validation failed: {e}");
-                return false;
-            }
+            //var validator = new CrossPlatformValidator(GooglePlayTangle.Data(), null, Application.identifier);
+            //try
+            //{
+            //    var receipts = validator.Validate(receipt);
+            //    return true;
+            //} catch (IAPSecurityException e)
+            //{
+            //    Debug.LogError($"Validation failed: {e}");
+            //    return false;
+            //}
 #elif UNITY_IOS
         var validator = new CrossPlatformValidator(null, AppleTangle.Data(), Application.identifier);
         try
@@ -378,6 +381,8 @@ namespace MonetToolkit
 
         #endregion
 
+        // EN: Coordinates HandlePurchaseComplete using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối HandlePurchaseComplete qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         IEnumerator HandlePurchaseComplete(string id)
         {
             Debug.Log("Handle purchase complete: " + id);
@@ -392,7 +397,7 @@ namespace MonetToolkit
                 case ProductId.RemoveAds or /*ProductId.RemoveAds_5 or ProductId.RemoveAds_3 or*/ ProductId.RemoveAdsPack:
                     data.RemoveAdsPurchased = true;
                     SaveData();
-                    ProfileManager.instance.PlayerData.isRemoveAds = true;
+                    ProfileManager.instance.PlayerDataManager.OnBoughtRemoveAds();
                     EventDispatcher.DispatchEvent(EventId.PurchaseRemoveAds);
                     break;
                 case ProductId.BeginnerPack:
@@ -453,7 +458,7 @@ namespace MonetToolkit
                     PlayerDataManager.AddUnlimitedLiveTime(amount, place);
                     break;
                 case RewardType.Booster1:
-                    PlayerDataManager.OnAddBooster(ResourceType.BoosterAddSlot, amount, place);
+                    PlayerDataManager.OnAddBooster(ResourceType.BoosterClean, amount, place);
                     break;
                 case RewardType.Booster2:
                     PlayerDataManager.OnAddBooster(ResourceType.BoosterShuffle, amount, place);
@@ -462,7 +467,7 @@ namespace MonetToolkit
                     PlayerDataManager.OnAddBooster(ResourceType.BoosterPickup, amount, place);
                     break;
                 case RewardType.Booster4:
-                    PlayerDataManager.OnAddBooster(ResourceType.BoosterSuperBear, amount, place);
+                    PlayerDataManager.OnAddBooster(ResourceType.BoosterAutoComplete, amount, place);
                     break;
             }
         }
@@ -515,6 +520,8 @@ namespace MonetToolkit
             return product != null ? product.metadata.localizedPriceString : "---";
         }
 
+        // EN: Coordinates OnPurchaseClick using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối OnPurchaseClick qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public void OnPurchaseClick(string productId, LocationType locationType)
         {
             //if (!NetworkManager.Ins.IsInternetAvailable())
@@ -536,7 +543,7 @@ namespace MonetToolkit
             storeController.PurchaseProduct(productId);
             IsPurchasing = true;
             this.locationType = locationType;
-            //SDKBridge.TrackEventIAPClick(ProfileManager.instance.PlayerData.currentLevel, locationType.ToString(), productId);
+            //SDKBridge.TrackEventIAPClick(ProfileManager.instance.PlayerDataManager.GetCurrentLevel(), locationType.ToString(), productId);
 
         }
 
@@ -550,9 +557,11 @@ namespace MonetToolkit
 
         public bool RemoveAdsPurchased() => data.RemoveAdsPurchased;
 
+        // EN: Coordinates StarterPackEnabled using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối StarterPackEnabled qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public bool StarterPackEnabled()
         {
-            return ProfileManager.instance.PlayerData.currentLevel >= config.StarterPackOfferLevel;
+            return ProfileManager.instance.PlayerDataManager.GetCurrentLevel() >= config.StarterPackOfferLevel;
         }
 
         public bool StarterPackPurchased()

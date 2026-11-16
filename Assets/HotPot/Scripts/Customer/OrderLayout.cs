@@ -81,8 +81,8 @@ namespace FoodPop
             activePreviews[item] = preview;
         }
 
-        // EN: First collapse phase: the layout grows to the right from the left edge of the dish's column, except for the last dish of a multi-dish card, which grows to the left from its column's right edge; a layout not wider than the column stays centred on the dish.
-        // VI: Giai đoạn đầu của collapse: layout mọc sang phải từ mép trái cột của món, riêng món cuối của thẻ nhiều món thì mọc sang trái từ mép phải cột; layout không rộng hơn cột thì nằm giữa món.
+        // EN: First collapse phase: a layout wider than the dish's column is centred on the order card (the background centre, x = 0 in card space) at the dish's height; a layout not wider than the column stays centred on the dish.
+        // VI: Giai đoạn đầu của collapse: layout rộng hơn cột của món thì nằm giữa thẻ order (tâm nền, x = 0 theo local thẻ) ở độ cao của món; layout không rộng hơn cột thì nằm giữa món.
         protected Vector2 CollapseAnchor(OrderItemView item, IngredientPreviewView preview)
         {
             Vector3 slot = item.transform.localPosition;
@@ -91,13 +91,8 @@ namespace FoodPop
             float column = view != null ? view.ColumnSize.x / Mathf.Max(0.0001f, Mathf.Abs(view.RestLossyScale.x)) : rect.width;
             if (rect.width <= column + 0.0001f)
                 return new Vector2(slot.x - rect.center.x, slot.y);
-            int index = view != null ? view.IndexOfDish(item) : -1;
-            int count = view != null ? view.ActiveDishCount : 0;
-            bool last = count > 1 && index == count - 1;
-            float x = last
-                ? slot.x + column * 0.5f - rect.xMax
-                : slot.x - column * 0.5f - rect.xMin;
-            return new Vector2(x, slot.y);
+            float cardCentre = view != null && view.Background != null ? view.Background.transform.localPosition.x : 0f;
+            return new Vector2(cardCentre - rect.center.x, slot.y);
         }
 
         // EN: Card-local rectangle covered by the dish's open ingredient layout (false when none is open).

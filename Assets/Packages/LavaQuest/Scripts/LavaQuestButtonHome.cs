@@ -29,10 +29,12 @@ public class LavaQuestButtonHome : MonoBehaviour
         RefreshState();
     }
 
+    // EN: Coordinates CheckShowTut using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối CheckShowTut qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public bool CheckShowTut()
     {
         if (!Manager.IsLevelUnlocked) return false;
-        if (Manager.Data.isDoneTutorial) return false;
+        if (Manager.HasCompletedTutorial) return false;
 
         tutObj.SetActive(true);
         notiTutObj.SetActive(true);

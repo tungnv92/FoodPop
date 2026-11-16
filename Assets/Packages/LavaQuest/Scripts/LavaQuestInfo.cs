@@ -13,16 +13,17 @@ public class LavaQuestInfo : Popup
 
     bool isShowingAnim;
     Coroutine showingRoutine;
+    // EN: Opens the view using manager queries and commands instead of mutable save models.
+    // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
     public override void Open(object args = null)
     {
         base.Open(args);
         AnimShow();
         if (continueTmp != null) continueTmp.SetActive(false);
 
-        if (LavaQuestManager.Instance != null && LavaQuestManager.Instance.Data != null && !LavaQuestManager.Instance.Data.isShowedInfo)
+        if (LavaQuestManager.Instance != null && LavaQuestManager.Instance.IsInitialized && !LavaQuestManager.Instance.HasShownInfo)
         {
-            LavaQuestManager.Instance.Data.isShowedInfo = true;
-            LavaQuestManager.Instance.Save();
+            LavaQuestManager.Instance.MarkInfoShown();
 
             OnClose = () => UIManager.Ins.OpenPopup(PopupId.LavaQuest);
         }

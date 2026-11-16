@@ -25,6 +25,8 @@ namespace FoodPop
             public AudioClip[] chopSoundVariants;
             [Tooltip("Prefab vụn riêng của nguyên liệu này bắn ra mỗi nhát chặt; để trống sẽ dùng vụn theo nhóm.")]
             public ParticleEffect chopDebris;
+            [Tooltip("Không cần sơ chế: lên băng chuyền là đã dùng được ngay, đầu bếp bỏ qua (ví dụ muối, đá).")]
+            public bool skipPreparation;
         }
 
         [Tooltip("Mỗi loại nguyên liệu một dòng; dùng nút \"Tự điền từ Art/Sprites/Foods\" trong menu ⋮ để điền nhanh.")]
@@ -54,6 +56,14 @@ namespace FoodPop
                     return icon.category;
             }
             return FoodCategory.Auto;
+        }
+
+        // EN: True when the food type must be prepared by the chef before customers can use it; false for entries marked skipPreparation (e.g. salt, ice).
+        // VI: True khi loại nguyên liệu cần đầu bếp sơ chế trước khi khách dùng được; false với dòng được đánh dấu skipPreparation (ví dụ muối, đá).
+        public bool NeedsPreparation(FoodType type)
+        {
+            FoodIcon entry = Find(type);
+            return entry == null || !entry.skipPreparation;
         }
 
         // EN: Returns a chop sound for a food type, picked at random among its main sound and variants; null when it should fall back to its group's sound.

@@ -32,15 +32,17 @@ public class TowerRiseTutorial : SingletonMonoBehaviour<TowerRiseTutorial>
         StartClickButtonTowerRise();
     }
 
+    // EN: Coordinates ShouldShowTutorial using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối ShouldShowTutorial qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public bool ShouldShowTutorial()
     {
         var manager = TowerRiseManager.Ins;
-        if (manager == null || manager.towerRiseData == null) return false;
+        if (manager == null || !manager.IsInitialized) return false;
 
         return manager.isActive
             && manager.IsEventScheduleActive()
-            && !manager.towerRiseData.isDoneTutorial
-            && !manager.towerRiseData.isStarted;
+            && !manager.HasCompletedTutorial
+            && !manager.HasStarted;
     }
 
     [Button]
@@ -92,13 +94,14 @@ public class TowerRiseTutorial : SingletonMonoBehaviour<TowerRiseTutorial>
             arrowButtonTowerRiseRectTF.gameObject.SetActive(false);
     }
 
+    // EN: Coordinates Done using encapsulated player and feature APIs instead of accessing live save models.
+    // VI: Điều phối Done qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     public void Done()
     {
         var manager = TowerRiseManager.Ins;
-        if (manager != null && manager.towerRiseData != null)
+        if (manager != null && manager.IsInitialized)
         {
-            manager.towerRiseData.isDoneTutorial = true;
-            manager.towerRiseData.SaveData();
+            manager.CompleteTutorial();
         }
     }
 

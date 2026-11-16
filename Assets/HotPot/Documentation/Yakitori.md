@@ -15,9 +15,9 @@ EN: Ingredients are ChickenThigh (22), TeriyakiSauce (23) and ChickenBites (25).
 | Chai sốt, dùng chung hai trạng thái / Sauce bottle shared by both states | Shared/teriyaki-sauce.png |
 | Hai xiên gà phủ sốt / Finished glazed skewers | Final/teriyaki-chicken-skewer.png |
 
-VI: Ảnh RGBA nền trong suốt, sinh bằng ImageGen tích hợp. Thư mục đầy đủ: `Assets/HotPot/Art/Sprites/Foods/Yakitori`. Icon được đăng ký trong FoodIconConfig; công thức và ảnh món được đăng ký trong FinalFoodConfig. Hàm tự điền icon/công thức hỗ trợ thư mục Yakitori. Đầu bếp dùng Fry/Action khi sơ chế gà; đùi gà giữ hình nguyên chiếc, còn gà viên trở thành xiên. Sốt dùng động tác mặc định hiện có. Nhóm âm thanh/vụn của gà là Meat.
+VI: Ảnh RGBA nền trong suốt, sinh bằng ImageGen tích hợp. Thư mục đầy đủ: `Assets/HotPot/Art/Sprites/Foods/Yakitori`. Icon được đăng ký trong FoodIconConfig. (Cập nhật 2026-11-03: `FinalFoodConfig` đã bị gỡ nên công thức/ảnh món `TeriyakiChickenSkewer = 112` không còn là dữ liệu chạy game, `Final/teriyaki-chicken-skewer.png` không còn được tham chiếu; món xiên nay chỉ là nhóm nguyên liệu `[ChickenBites, TeriyakiSauce]` và chỉ có hình nếu có prefab `FinalFoodView` khớp.) Đầu bếp dùng Fry/Action khi sơ chế gà; đùi gà giữ hình nguyên chiếc, còn gà viên trở thành xiên. Sốt dùng động tác mặc định hiện có. Nhóm âm thanh/vụn của gà là Meat.
 
-EN: Transparent RGBA art is generated with the built-in ImageGen tool. FoodIconConfig and FinalFoodConfig reference these sprites, and their fill tools support the Yakitori folder. Chicken uses Fry/Action; drumsticks stay whole while bites become skewers. Sauce retains the default action. Chicken uses the Meat sound/debris category.
+EN: Transparent RGBA art is generated with the built-in ImageGen tool. FoodIconConfig references these sprites (updated 2026-11-03: `FinalFoodConfig` was removed, so recipe 112 and the Final skewer picture are no longer game data; the skewer is just the ingredient group [ChickenBites, TeriyakiSauce] and has a picture only if a matching `FinalFoodView` prefab exists). Chicken uses Fry/Action; drumsticks stay whole while bites become skewers. Sauce retains the default action. Chicken uses the Meat sound/debris category.
 
 ## Tool web / Web studio
 

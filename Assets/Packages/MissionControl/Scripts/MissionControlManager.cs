@@ -10,20 +10,58 @@ namespace GamePackages
     [Serializable]
     public class MissionControlManager : ContextData<MissionControlData>, IFeatureNewDay, IFeatureUpdate
     {
-        public static MissionControlManager Instance => ProfileManager.instance != null && ProfileManager.instance.GameFeatureContext != null
+        // EN: Signals persisted UI-owned feature state changes without exposing the model.
+        // VI: Báo thay đổi trạng thái tính năng do giao diện yêu cầu sau khi lưu mà không lộ model.
+        public event Action StateChanged;
+
+        // EN: Reads isDoneTutorial without exposing mutable feature data.
+        // VI: Đọc isDoneTutorial mà không lộ dữ liệu tính năng có thể sửa.
+        public bool HasCompletedTutorial => Data != null ? Data.isDoneTutorial : false;
+
+        // EN: Persists isDoneTutorial when first marked by the feature UI.
+        // VI: Lưu isDoneTutorial khi giao diện tính năng đánh dấu lần đầu.
+        public void CompleteTutorial()
+        {
+            if (Data == null || Data.isDoneTutorial) return;
+            Data.isDoneTutorial = true;
+            Save();
+            StateChanged?.Invoke();
+        }
+        // EN: Reads isShowedInfo without exposing mutable feature data.
+        // VI: Đọc isShowedInfo mà không lộ dữ liệu tính năng có thể sửa.
+        public bool HasShownInfo => Data != null ? Data.isShowedInfo : false;
+
+        // EN: Persists isShowedInfo when first marked by the feature UI.
+        // VI: Lưu isShowedInfo khi giao diện tính năng đánh dấu lần đầu.
+        public void MarkInfoShown()
+        {
+            if (Data == null || Data.isShowedInfo) return;
+            Data.isShowedInfo = true;
+            Save();
+            StateChanged?.Invoke();
+        }
+        // EN: Reads isClaimedGrandChest without exposing mutable feature data.
+        // VI: Đọc isClaimedGrandChest mà không lộ dữ liệu tính năng có thể sửa.
+        public bool HasClaimedGrandChest => Data != null ? Data.isClaimedGrandChest : false;
+
+        // EN: Coordinates Instance using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối Instance qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        public static MissionControlManager Instance => ProfileManager.instance.GameFeatureContext != null
             ? ProfileManager.instance.GameFeatureContext.MissionControlManager
             : null;
 
         public static MissionControlManager Ins => Instance;
 
         public MissionControlConfig MissionControlConfig;
+        // EN: Coordinates config using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối config qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public MissionControlConfig config
         {
             get
             {
                 if (MissionControlConfig == null)
                 {
-                    if (ProfileManager.instance != null && ProfileManager.instance.MissionControlConfig != null)
+                    if (ProfileManager.instance.MissionControlConfig != null)
                     {
                         MissionControlConfig = ProfileManager.instance.MissionControlConfig;
                     }
@@ -37,7 +75,6 @@ namespace GamePackages
             set => MissionControlConfig = value;
         }
 
-        public new MissionControlData Data => base.Data ?? (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null ? ProfileManager.instance.PlayerData.MissionControlData : null);
 
         public bool isCheatBetweenFridayAndMonday;
 
@@ -51,8 +88,12 @@ namespace GamePackages
 
         public int unlockLevelIndex => UnlockLevel;
 
-        public bool IsLevelUnlocked => ProfileManager.instance != null && ProfileManager.instance.PlayerData != null &&
-                                       ProfileManager.instance.PlayerData.currentLevel >= UnlockLevel;
+        // EN: Checks the unlock level through read-only player manager queries.
+        // VI: Kiểm tra level mở khóa qua truy vấn chỉ đọc của manager người chơi.
+        // EN: Checks the unlock level through read-only player manager queries.
+        // VI: Kiểm tra level mở khóa qua truy vấn chỉ đọc của manager người chơi.
+        public bool IsLevelUnlocked => ProfileManager.instance.PlayerDataManager.IsInitialized &&
+                                       ProfileManager.instance.PlayerDataManager.GetCurrentLevel() >= UnlockLevel;
 
         public DayOfWeek StartDay => config != null ? config.startDay : DayOfWeek.Friday;
         public DayOfWeek EndDay => config != null ? config.endDay : DayOfWeek.Monday;
@@ -70,17 +111,11 @@ namespace GamePackages
 
         public bool isActive => (config == null || config.isFeatureEnabled) && IsLevelUnlocked && IsInEventDays();
 
-        public override void SetContext(MissionControlData data)
+        // EN: Binds the saved model through internal initialization and initializes this feature's state.
+        // VI: Gắn model lưu qua khởi tạo nội bộ và khởi tạo trạng thái của tính năng này.
+        internal override void SetContext(MissionControlData data)
         {
-            if (data == null)
-            {
-                data = new MissionControlData();
-                if (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null)
-                {
-                    ProfileManager.instance.PlayerData.MissionControlData = data;
-                }
-            }
-            base.SetContext(data);
+            base.SetContext(data ?? throw new System.ArgumentNullException(nameof(data)));
             CheckExpire();
             CheckMismatchData();
         }
@@ -95,9 +130,11 @@ namespace GamePackages
             CheckExpire();
         }
 
+        // EN: Coordinates GetCurrentTime using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối GetCurrentTime qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public DateTime GetCurrentTime()
         {
-            if (ProfileManager.instance != null && ProfileManager.instance.TimeManager != null)
+            if (ProfileManager.instance.TimeManager != null)
             {
                 return ProfileManager.instance.TimeManager.GetNow();
             }
@@ -389,8 +426,10 @@ namespace GamePackages
         }
 
         #region CLAIM
-        // EN: Marks the specified Mission Control quest as claimed, saves progress, and refreshes the active popup.
-        // VI: Đánh dấu nhiệm vụ Mission Control chỉ định là đã nhận, lưu tiến độ và làm mới popup đang hiển thị.
+        // EN: Coordinates ClaimQuest using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimQuest qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        // EN: Coordinates ClaimQuest using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimQuest qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public void ClaimQuest(MissionControlQuestInfo missionControlQuestInfo)
         {
             if (Data == null || missionControlQuestInfo == null) return;
@@ -402,8 +441,8 @@ namespace GamePackages
                     missionControlQuestInfo.amount));
                 Save();
 
-                int currentLevel = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null
-                    ? ProfileManager.instance.PlayerData.currentLevel
+                int currentLevel = ProfileManager.instance.PlayerDataManager.IsInitialized
+                    ? ProfileManager.instance.PlayerDataManager.GetCurrentLevel()
                     : 1;
 
                 //if (ABIAnalyticsManager.Instance != null)
@@ -442,8 +481,10 @@ namespace GamePackages
             return Data != null && Data.claimedStageIds.Contains(stageId);
         }
 
-        // EN: Claims the small chest rewards for the specified stage and saves progress.
-        // VI: Nhận phần thưởng rương nhỏ của giai đoạn chỉ định và lưu tiến độ.
+        // EN: Coordinates ClaimStageRewards using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimStageRewards qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        // EN: Coordinates ClaimStageRewards using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimStageRewards qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public void ClaimStageRewards(int stageId)
         {
             if (Data == null || IsStageClaimed(stageId)) return;
@@ -458,8 +499,8 @@ namespace GamePackages
                 ClaimReward(reward, $"MissionControl_Stage_{stageId + 1}");
             }
 
-            int currentLevel = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null
-                ? ProfileManager.instance.PlayerData.currentLevel
+            int currentLevel = ProfileManager.instance.PlayerDataManager.IsInitialized
+                ? ProfileManager.instance.PlayerDataManager.GetCurrentLevel()
                 : 1;
 
             //if (ABIAnalyticsManager.Instance != null)
@@ -479,8 +520,10 @@ namespace GamePackages
             return Data.questClaimeds.Count >= allQuestCount;
         }
 
-        // EN: Claims the grand chest rewards, marks the grand prize as claimed, and saves progress.
-        // VI: Nhận phần thưởng rương lớn, đánh dấu giải thưởng lớn là đã nhận và lưu tiến độ.
+        // EN: Coordinates ClaimGrandPrize using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimGrandPrize qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        // EN: Coordinates ClaimGrandPrize using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimGrandPrize qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public void ClaimGrandPrize()
         {
             if (Data == null || Data.isClaimedGrandChest) return;
@@ -495,8 +538,8 @@ namespace GamePackages
                 }
             }
 
-            int currentLevel = ProfileManager.instance != null && ProfileManager.instance.PlayerData != null
-                ? ProfileManager.instance.PlayerData.currentLevel
+            int currentLevel = ProfileManager.instance.PlayerDataManager.IsInitialized
+                ? ProfileManager.instance.PlayerDataManager.GetCurrentLevel()
                 : 1;
 
             //if (ABIAnalyticsManager.Instance != null)
@@ -505,9 +548,13 @@ namespace GamePackages
             //}
         }
 
+        // EN: Grants supported rewards through dedicated APIs and warns about unknown resource types.
+        // VI: Cấp thưởng hợp lệ qua API chuyên biệt và cảnh báo loại tài nguyên không xác định.
+        // EN: Coordinates ClaimReward using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối ClaimReward qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
         public void ClaimReward(ResourceGame reward, string placement = "MissionControl")
         {
-            if (reward == null || ProfileManager.instance == null || ProfileManager.instance.PlayerDataManager == null) return;
+            if (reward == null) return;
             var pdm = ProfileManager.instance.PlayerDataManager;
 
             switch (reward.type)
@@ -518,14 +565,14 @@ namespace GamePackages
                 case ResourceType.UnlimitedLives:
                     pdm.AddUnlimitedLiveTime(reward.value, placement);
                     break;
-                case ResourceType.BoosterAddSlot:
+                case ResourceType.BoosterClean:
                 case ResourceType.BoosterShuffle:
                 case ResourceType.BoosterPickup:
-                case ResourceType.BoosterSuperBear:
+                case ResourceType.BoosterAutoComplete:
                     pdm.OnAddBooster(reward.type, reward.value, placement);
                     break;
                 default:
-                    pdm.OnAddResource(reward.type, reward.value, placement);
+                    Debug.LogWarning($"Unsupported reward resource: {reward.type}");
                     break;
             }
         }
@@ -536,10 +583,10 @@ namespace GamePackages
             {
                 ResourceType.Coin => 0,             // Coin
                 ResourceType.UnlimitedLives => 1,   // UnlimitedLife
-                ResourceType.BoosterAddSlot => 2,   // Booster_1
+                ResourceType.BoosterClean => 2,   // Booster_1
                 ResourceType.BoosterShuffle => 3,   // Booster_2
                 ResourceType.BoosterPickup => 4,    // Booster_3
-                ResourceType.BoosterSuperBear => 5, // Booster_4
+                ResourceType.BoosterAutoComplete => 5, // Booster_4
                 _ => 0
             };
         }

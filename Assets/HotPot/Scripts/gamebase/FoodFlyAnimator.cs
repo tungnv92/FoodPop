@@ -9,13 +9,6 @@ namespace FoodPop
     [DisallowMultipleComponent]
     public class FoodFlyAnimator : MonoBehaviour
     {
-        [Tooltip("Cấu hình thời gian và hiệu ứng dùng chung trong màn chơi; để trống dùng asset mặc định.")]
-        [SerializeField] private IngameConfig ingameConfig;
-
-        // EN: Resolves shared gameplay tuning while supporting an explicitly assigned configuration asset.
-        // VI: Lấy thông số màn chơi dùng chung, hỗ trợ asset cấu hình được gán riêng.
-        private IngameConfig Config => IngameConfig.Resolve(ingameConfig);
-
         private sealed class Flight
         {
             public ConveyorSlot slot;
@@ -24,12 +17,41 @@ namespace FoodPop
             public int arrivalId;
         }
 
+        // EN: Shared gameplay tuning from the IngameConfig singleton (Resources asset); no per-component reference.
+        // VI: Thông số màn chơi dùng chung lấy từ singleton IngameConfig (asset trong Resources); không cần tham chiếu riêng trên component.
+        private static IngameConfig Config => IngameConfig.Instance;
+
         private readonly List<Flight> activeFlights = new List<Flight>();
         private readonly Stack<SpriteRenderer> flyerPool = new Stack<SpriteRenderer>();
         private Transform flyerRoot;
 
+        // EN: Lands only owned pending arrivals on disable, leaving newer slot reservations untouched.
+        // VI: Chỉ đáp các lượt còn sở hữu khi tắt, giữ nguyên phần giữ chỗ mới hơn của slot.
+        private void OnDisable()
+        {
+            StopAllCoroutines();
+            for (int i = activeFlights.Count - 1; i >= 0; i--)
+            {
+                Flight flight = activeFlights[i];
+                activeFlights.RemoveAt(i);
+                ReturnFlyer(flight.flyer);
+                if (flight.slot != null)
+                    flight.slot.CompleteFoodArrival(flight.arrivalId);
+            }
+        }
+
+        // EN: Destroys the flyer container together with this animator.
+        // VI: Hủy đối tượng chứa món bay cùng với animator này.
+        private void OnDestroy()
+        {
+            if (flyerRoot != null)
+                Destroy(flyerRoot.gameObject);
+        }
+
         // EN: Launches each portion with its slot's arrival identity so later slot reuse cannot steal its landing.
         // VI: Phóng từng phần cùng mã đáp của slot để việc dùng lại slot không chiếm lần đáp của nó.
+        // EN: Skips arrivals already owned by the chef to avoid launching a direct pickup twice.
+        // VI: Bỏ qua lượt nhận do đầu bếp giữ để không phóng hai lần phần lấy trực tiếp.
         public void Launch(SpriteRenderer source, Vector3 startPosition, Sprite icon, IReadOnlyList<ConveyorSlot> slots)
         {
             if (slots == null || slots.Count == 0 || icon == null || !isActiveAndEnabled)
@@ -44,7 +66,7 @@ namespace FoodPop
             for (int i = 0; i < slots.Count; i++)
             {
                 ConveyorSlot slot = slots[i];
-                if (slot == null)
+                if (slot == null || slot.IsFoodArriving)
                     continue;
                 slot.BeginFoodArrival();
                 SpriteRenderer flyer = RentFlyer(icon, sortingLayer, sortingOrder + i);
@@ -52,6 +74,35 @@ namespace FoodPop
                 activeFlights.Add(flight);
                 StartCoroutine(FlyToSlot(flight, startPosition, startScale, startRotation, Config.boardFlight.portionDelay * i));
             }
+        }
+
+        // EN: Hides a flyer and keeps it for reuse.
+        // VI: Ẩn món bay và giữ lại để tái sử dụng.
+        private void ReturnFlyer(SpriteRenderer flyer)
+        {
+            if (flyer == null)
+                return;
+            flyer.gameObject.SetActive(false);
+            flyerPool.Push(flyer);
+        }
+
+        // EN: Takes a flyer sprite from the pool (creating one if needed) and applies the icon and sorting.
+        // VI: Lấy một sprite bay từ pool (tạo mới nếu cần) và gán icon cùng thứ tự vẽ.
+        private SpriteRenderer RentFlyer(Sprite icon, int sortingLayer, int sortingOrder)
+        {
+            SpriteRenderer flyer = null;
+            while (flyer == null && flyerPool.Count > 0)
+                flyer = flyerPool.Pop();
+            if (flyer == null)
+            {
+                GameObject go = new GameObject("Flying food");
+                go.transform.SetParent(GetFlyerRoot(), false);
+                flyer = go.AddComponent<SpriteRenderer>();
+            }
+            flyer.sprite = icon;
+            flyer.sortingLayerID = sortingLayer;
+            flyer.sortingOrder = sortingOrder;
+            return flyer;
         }
 
         // EN: Flies to the moving slot only while the original arrival identity remains valid.
@@ -81,6 +132,26 @@ namespace FoodPop
             EndFlight(flight, true);
         }
 
+        // EN: Returns an unscaled scene-root container for flyers, so their world scale is not affected by the board's transform.
+        // VI: Trả về đối tượng gốc không bị scale chứa món bay, để kích thước world không bị transform của board ảnh hưởng.
+        private Transform GetFlyerRoot()
+        {
+            if (flyerRoot == null)
+                flyerRoot = new GameObject("FoodFlyers").transform;
+            return flyerRoot;
+        }
+
+        // EN: Returns the flyer and completes only its own arrival, never a replacement portion's landing.
+        // VI: Trả sprite bay và chỉ hoàn tất mã đáp của nó, không hoàn tất lần đáp của phần thay thế.
+        private void EndFlight(Flight flight, bool landed)
+        {
+            activeFlights.Remove(flight);
+            ReturnFlyer(flight.flyer);
+            if (!landed || flight.slot == null || !flight.slot.CompleteFoodArrival(flight.arrivalId))
+                return;
+            IngameSoundManager.Instance?.PlayFoodLand(flight.pitch);
+        }
+
         // EN: Places the flyer at time t on the arc: eased travel, an added parabolic height, a pop in scale at the peak and an optional spin.
         // VI: Đặt món bay tại thời điểm t trên vòng cung: di chuyển theo đường cong, cộng độ cao parabol, phóng to ở đỉnh và xoay (tùy chọn).
         private void ApplyArcPose(Transform flyer, ConveyorSlot slot, Vector3 start, Vector3 startScale, Quaternion startRotation, float t)
@@ -95,76 +166,5 @@ namespace FoodPop
             flyer.localScale = Vector3.LerpUnclamped(startScale, slot.LandingScale, progress) * pop;
         }
 
-        // EN: Returns the flyer and completes only its own arrival, never a replacement portion's landing.
-        // VI: Trả sprite bay và chỉ hoàn tất mã đáp của nó, không hoàn tất lần đáp của phần thay thế.
-        private void EndFlight(Flight flight, bool landed)
-        {
-            activeFlights.Remove(flight);
-            ReturnFlyer(flight.flyer);
-            if (!landed || flight.slot == null || !flight.slot.CompleteFoodArrival(flight.arrivalId))
-                return;
-            IngameSoundManager.Instance?.PlayFoodLand(flight.pitch);
-        }
-
-        // EN: Takes a flyer sprite from the pool (creating one if needed) and applies the icon and sorting.
-        // VI: Lấy một sprite bay từ pool (tạo mới nếu cần) và gán icon cùng thứ tự vẽ.
-        private SpriteRenderer RentFlyer(Sprite icon, int sortingLayer, int sortingOrder)
-        {
-            SpriteRenderer flyer = null;
-            while (flyer == null && flyerPool.Count > 0)
-                flyer = flyerPool.Pop();
-            if (flyer == null)
-            {
-                GameObject go = new GameObject("Flying food");
-                go.transform.SetParent(GetFlyerRoot(), false);
-                flyer = go.AddComponent<SpriteRenderer>();
-            }
-            flyer.sprite = icon;
-            flyer.sortingLayerID = sortingLayer;
-            flyer.sortingOrder = sortingOrder;
-            return flyer;
-        }
-
-        // EN: Hides a flyer and keeps it for reuse.
-        // VI: Ẩn món bay và giữ lại để tái sử dụng.
-        private void ReturnFlyer(SpriteRenderer flyer)
-        {
-            if (flyer == null)
-                return;
-            flyer.gameObject.SetActive(false);
-            flyerPool.Push(flyer);
-        }
-
-        // EN: Returns an unscaled scene-root container for flyers, so their world scale is not affected by the board's transform.
-        // VI: Trả về đối tượng gốc không bị scale chứa món bay, để kích thước world không bị transform của board ảnh hưởng.
-        private Transform GetFlyerRoot()
-        {
-            if (flyerRoot == null)
-                flyerRoot = new GameObject("FoodFlyers").transform;
-            return flyerRoot;
-        }
-
-        // EN: Lands only owned pending arrivals on disable, leaving newer slot reservations untouched.
-        // VI: Chỉ đáp các lượt còn sở hữu khi tắt, giữ nguyên phần giữ chỗ mới hơn của slot.
-        private void OnDisable()
-        {
-            StopAllCoroutines();
-            for (int i = activeFlights.Count - 1; i >= 0; i--)
-            {
-                Flight flight = activeFlights[i];
-                activeFlights.RemoveAt(i);
-                ReturnFlyer(flight.flyer);
-                if (flight.slot != null)
-                    flight.slot.CompleteFoodArrival(flight.arrivalId);
-            }
-        }
-
-        // EN: Destroys the flyer container together with this animator.
-        // VI: Hủy đối tượng chứa món bay cùng với animator này.
-        private void OnDestroy()
-        {
-            if (flyerRoot != null)
-                Destroy(flyerRoot.gameObject);
-        }
     }
 }
