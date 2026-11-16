@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
@@ -12,9 +13,11 @@ namespace FoodPop
     {
         [Header("Nội dung")]
         [Tooltip("Text tên booster.")]
-        [SerializeField] private Text boosterName;
+        [FormerlySerializedAs("boosterName")]
+        [SerializeField] private Text boosterNameLabel;
         [Tooltip("Text mô tả tác dụng của booster.")]
-        [SerializeField] private Text description;
+        [FormerlySerializedAs("description")]
+        [SerializeField] private Text descriptionLabel;
         [Tooltip("Hình icon booster; cũng là điểm bắt đầu khi icon bay xuống nút.")]
         [SerializeField] private Image boosterIcon;
 
@@ -30,9 +33,11 @@ namespace FoodPop
 
         [Header("Xuất hiện")]
         [Tooltip("Lớp nền tối phía sau khung; mờ dần vào trước khi khung bật ra.")]
-        [SerializeField] private Graphic scrim;
+        [FormerlySerializedAs("scrim")]
+        [SerializeField] private Graphic blackBackground;
         [Tooltip("Thời gian nền tối mờ dần vào, tính bằng giây.")]
-        [SerializeField, Min(0.01f)] private float scrimFade = 0.3f;
+        [FormerlySerializedAs("scrimFade")]
+        [SerializeField, Min(0.01f)] private float blackFadeDuration = 0.3f;
         [Tooltip("Thời điểm khung bắt đầu bật ra, tính từ lúc mở popup (giây).")]
         [SerializeField, Min(0f)] private float cardDelay = 0.15f;
         [Tooltip("Thời gian khung phóng từ nhỏ lên đúng cỡ (có vượt nhẹ), tính bằng giây.")]
@@ -45,7 +50,7 @@ namespace FoodPop
         private Vector2 iconRest;
         private bool hasIconRest;
         private Vector3 cardRest;
-        private float scrimAlpha;
+        private float blackAlpha;
         private bool hasEntranceRest;
 
         // EN: Spins the rays and bobs the icon with unscaled time.
@@ -66,8 +71,8 @@ namespace FoodPop
         // VI: Điền nội dung cho một booster rồi mở popup; gotIt chạy khi người chơi bấm "Got it" (nơi gọi tự đóng popup).
         public void Show(Sprite icon, string title, string info, UnityAction gotIt)
         {
-            if (boosterName != null) boosterName.text = title;
-            if (description != null) description.text = info;
+            if (boosterNameLabel != null) boosterNameLabel.text = title;
+            if (descriptionLabel != null) descriptionLabel.text = info;
             if (boosterIcon != null)
             {
                 if (!hasIconRest)
@@ -100,6 +105,13 @@ namespace FoodPop
             return true;
         }
 
+        // EN: Hides the popup icon (the flying copy takes over) before the popup closes.
+        // VI: Ẩn icon của popup (bản bay thay thế) trước khi popup đóng.
+        public void HideIcon()
+        {
+            if (boosterIcon != null) boosterIcon.enabled = false;
+        }
+
         // EN: Staged entrance on unscaled time: the scrim fades in, then the card grows with a slight overshoot, then the icon pops; "Got it" stays inactive until the entrance ends so an early tap cannot skip it.
         // VI: Xuất hiện theo từng bước bằng thời gian không phụ thuộc tốc độ game: nền tối mờ dần vào, rồi khung phóng to có vượt nhẹ, rồi icon nảy ra; "Got it" chỉ bấm được khi xuất hiện xong để không bị chạm sớm bỏ qua.
         private IEnumerator Entrance()
@@ -107,18 +119,18 @@ namespace FoodPop
             if (!hasEntranceRest)
             {
                 cardRest = card.localScale;
-                scrimAlpha = scrim != null ? scrim.color.a : 0f;
+                blackAlpha = blackBackground != null ? blackBackground.color.a : 0f;
                 hasEntranceRest = true;
             }
             canvasGroup.interactable = false;
-            float end = Mathf.Max(scrimFade, cardDelay + cardDuration, iconDelay + iconDuration);
+            float end = Mathf.Max(blackFadeDuration, cardDelay + cardDuration, iconDelay + iconDuration);
             for (float elapsed = 0f; ; elapsed += Time.unscaledDeltaTime)
             {
-                if (scrim != null)
+                if (blackBackground != null)
                 {
-                    Color color = scrim.color;
-                    color.a = scrimAlpha * Mathf.Clamp01(elapsed / scrimFade);
-                    scrim.color = color;
+                    Color color = blackBackground.color;
+                    color.a = blackAlpha * Mathf.Clamp01(elapsed / blackFadeDuration);
+                    blackBackground.color = color;
                 }
                 card.localScale = cardRest * BackOut(Mathf.Clamp01((elapsed - cardDelay) / cardDuration));
                 if (boosterIcon != null)
@@ -137,13 +149,6 @@ namespace FoodPop
             const float c = 1.70158f;
             float u = t - 1f;
             return 1f + (c + 1f) * u * u * u + c * u * u;
-        }
-
-        // EN: Hides the popup icon (the flying copy takes over) before the popup closes.
-        // VI: Ẩn icon của popup (bản bay thay thế) trước khi popup đóng.
-        public void HideIcon()
-        {
-            if (boosterIcon != null) boosterIcon.enabled = false;
         }
     }
 }

@@ -48,7 +48,7 @@
 
 ## Giới thiệu booster mở khóa
 - `BoosterUnlockIntro` trên object BoosterController. Khi `LevelLoaded` với level ≥ 2, chọn booster có `unlockLevel` đúng level và chưa xem (PlayerPrefs `FoodPop.BoosterIntro.<BoosterType>`; menu ngữ cảnh `Test/Xóa cờ đã xem giới thiệu booster`).
-- Luồng: chờ không booster nào chạy → pause → nút hiện dáng khóa → chờ `popupDelay` 0,8 s → `CanvasBoosterIntro` (tia sáng xoay, icon nhấp nhô, "NEW BOOSTER!", tên, mô tả, "Got it"; xuất hiện theo bước scrim → card → icon, unscaled) → icon bay vòng cung xuống nút (`flyDuration` 0,65 s), ổ khóa thu nhỏ, nút nảy → đánh dấu đã xem → tặng `unlockGift` lượt (`Booster.Grant`) → lượt dùng thử.
+- Luồng: chờ không booster nào chạy → pause → nút hiện dáng khóa → chờ `popupDelay` 0,8 s → `CanvasBoosterIntro` (tia sáng xoay, icon nhấp nhô, "NEW BOOSTER!", tên, mô tả, "Got it"; xuất hiện theo bước nền tối `blackBackground` → khung `Root` → icon, unscaled) → icon bay vòng cung xuống nút (`flyDuration` 0,65 s), ổ khóa thu nhỏ, nút nảy → đánh dấu đã xem → tặng `unlockGift` lượt (`Booster.Grant`) → lượt dùng thử.
 - Lượt dùng thử: `BoosterTrialOverlay` (canvas riêng `sortingOrder` 32767, tối toàn màn trừ lỗ tròn quanh nút, bàn tay Spine, dòng `TryPrompt`); nút phập phồng `pulseScale`; `BoosterController.BeginTrial` chỉ nhận chạm đúng nút đó → nhả pause → `TryActivate` như thường (**trừ một lượt**).
 - Hủy giữa chừng (`OnDisable`, nạp lại màn) → `StopIntro()` dọn mọi thứ; chưa đánh dấu xem thì lần nạp sau chạy lại.
 

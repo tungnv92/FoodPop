@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 1172600305705623443}
   - component: {fileID: 424742975596255742}
   m_Layer: 0
-  m_Name: BtnReviveCoin
+  m_Name: BtnNext
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -193,7 +193,7 @@ GameObject:
   - component: {fileID: 3621089018189754675}
   - component: {fileID: 4222793186877925722}
   m_Layer: 0
-  m_Name: Text_Price
+  m_Name: Text_Next
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -712,7 +712,7 @@ GameObject:
   - component: {fileID: 3358064762320395375}
   - component: {fileID: 1569426475529999334}
   m_Layer: 0
-  m_Name: Ic_coin
+  m_Name: icon_coin_reward
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -787,7 +787,7 @@ GameObject:
   - component: {fileID: 7136982647035677663}
   - component: {fileID: 8232002844624089287}
   m_Layer: 0
-  m_Name: Glow
+  m_Name: fx_glow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -862,7 +862,7 @@ GameObject:
   - component: {fileID: 7994848443826113484}
   - component: {fileID: 5013071184232559047}
   m_Layer: 0
-  m_Name: SkeletonGraphic (Win)
+  m_Name: Spine_Win
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1338,10 +1338,12 @@ MonoBehaviour:
   closeDuration: 0.16
   titleAnimation: {fileID: 5013071184232559047}
   curtainAnimation: {fileID: 5383308917842229624}
+  curtainHoldDelay: 0.5
   blackBackground: {fileID: 2250703034026218306}
   blackFadeDuration: 0.3
   titleClaimDelay: 0.5
   glow: {fileID: 3791114657256240261}
+  glowRevealDuration: 0.3
   nextButton: {fileID: 1172600305705623443}
   watchButton: {fileID: 4352201376549284332}
   rewardLabel: {fileID: 8798169418907446897}
@@ -1775,7 +1777,7 @@ GameObject:
   - component: {fileID: 7396736755394718505}
   - component: {fileID: 5383308917842229624}
   m_Layer: 0
-  m_Name: SkeletonGraphic (Curtain)
+  m_Name: Spine_Curtain
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2094,7 +2096,7 @@ GameObject:
   - component: {fileID: 5497879432513843922}
   - component: {fileID: 893705141157093232}
   m_Layer: 0
-  m_Name: icon
+  m_Name: icon_coin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2169,6 +2171,10 @@ PrefabInstance:
       propertyPath: _attractorTarget
       value: 
       objectReference: {fileID: 3505916779717522065}
+    - target: {fileID: 4596038176438582092, guid: 787e53981f0584fa08a05b1cc3eba0fb, type: 3}
+      propertyPath: m_Name
+      value: CoinParticles
+      objectReference: {fileID: 0}
     - target: {fileID: 4974518237577479983, guid: 787e53981f0584fa08a05b1cc3eba0fb, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5

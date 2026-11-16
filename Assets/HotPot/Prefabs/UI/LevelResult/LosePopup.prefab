@@ -174,8 +174,8 @@ MonoBehaviour:
   openDuration: 0.24
   closeDuration: 0.16
   titleAnimation: {fileID: 321712372997883771}
-  lossMessage: {fileID: 1598256129399847607}
-  choiceButtons: {fileID: 7469163952702759347}
+  messageRoot: {fileID: 1598256129399847607}
+  buttonsRoot: {fileID: 7469163952702759347}
   choiceRevealDuration: 0.3
   homeButton: {fileID: 7569322863446650728}
   retryButton: {fileID: 3257907995912551087}
@@ -461,7 +461,7 @@ GameObject:
   - component: {fileID: 4177603765853964859}
   - component: {fileID: 9198780861069305609}
   m_Layer: 0
-  m_Name: Text_Reward
+  m_Name: Text_Home
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -598,7 +598,7 @@ GameObject:
   - component: {fileID: 7576988095641589488}
   - component: {fileID: 321712372997883771}
   m_Layer: 0
-  m_Name: SkeletonGraphic (Lose)
+  m_Name: Spine_Lose
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -620,7 +620,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 71}
+  m_AnchoredPosition: {x: 0, y: 159}
   m_SizeDelta: {x: 712.00006, y: 595}
   m_Pivot: {x: 0.5014045, y: 0.13445379}
 --- !u!222 &7576988095641589488
@@ -706,7 +706,7 @@ GameObject:
   - component: {fileID: 2816146385179741666}
   - component: {fileID: 1963986019036961149}
   m_Layer: 0
-  m_Name: Text_Lose
+  m_Name: Text_Info
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -728,7 +728,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -407}
+  m_AnchoredPosition: {x: 0, y: -319}
   m_SizeDelta: {x: 1000, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2816146385179741666
@@ -866,7 +866,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -640}
+  m_AnchoredPosition: {x: 0, y: -552}
   m_SizeDelta: {x: 1000, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2802867595269653404

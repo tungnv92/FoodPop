@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 6031852054679927873}
   - component: {fileID: 1718139819576495130}
   m_Layer: 5
-  m_Name: Label
+  m_Name: Text_GotIt
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -180,7 +180,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1231859803663111364}
   m_Layer: 5
-  m_Name: Card
+  m_Name: Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -231,7 +231,7 @@ GameObject:
   - component: {fileID: 5550593031308437278}
   - component: {fileID: 7644176957226498043}
   m_Layer: 5
-  m_Name: Frame Shadow
+  m_Name: FrameShadow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -306,7 +306,7 @@ GameObject:
   - component: {fileID: 1878949581980806732}
   - component: {fileID: 106950568490607713}
   m_Layer: 5
-  m_Name: Twinkle 1
+  m_Name: fx_twinkle_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -381,7 +381,7 @@ GameObject:
   - component: {fileID: 3721365694576715597}
   - component: {fileID: 8012128296386479187}
   m_Layer: 5
-  m_Name: Twinkle 3
+  m_Name: fx_twinkle_3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -457,7 +457,7 @@ GameObject:
   - component: {fileID: 7128595032035070656}
   - component: {fileID: 4076873307412625861}
   m_Layer: 5
-  m_Name: Got It
+  m_Name: BtnGotIt
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -698,6 +698,8 @@ MonoBehaviour:
   canvasGroup: {fileID: 3519852560387589137}
   card: {fileID: 1231859803663111364}
   isDestroyOnClose: 0
+  openDuration: 0.24
+  closeDuration: 0.16
   primaryButton: {fileID: 4076873307412625861}
   secondaryButton: {fileID: 0}
   statusLabel: {fileID: 0}
@@ -727,7 +729,7 @@ GameObject:
   - component: {fileID: 1733103716322229076}
   - component: {fileID: 2880101131273761704}
   m_Layer: 5
-  m_Name: Ribbon Tail R
+  m_Name: RibbonTailR
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -804,7 +806,7 @@ GameObject:
   - component: {fileID: 3523836583177920381}
   - component: {fileID: 2046507220391845460}
   m_Layer: 5
-  m_Name: Name
+  m_Name: Text_Name
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -913,7 +915,7 @@ GameObject:
   - component: {fileID: 3213780264446295766}
   - component: {fileID: 3345248170241842817}
   m_Layer: 5
-  m_Name: Scrim
+  m_Name: BlackBG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -988,7 +990,7 @@ GameObject:
   - component: {fileID: 3955620317874433258}
   - component: {fileID: 5921385830814628129}
   m_Layer: 5
-  m_Name: Ribbon
+  m_Name: TitleRibbon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1140,7 +1142,7 @@ GameObject:
   - component: {fileID: 1554186097693344197}
   - component: {fileID: 7124864550279546754}
   m_Layer: 5
-  m_Name: Halo
+  m_Name: fx_halo
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1215,7 +1217,7 @@ GameObject:
   - component: {fileID: 5698434228807832120}
   - component: {fileID: 1818566514731330097}
   m_Layer: 5
-  m_Name: Booster Icon
+  m_Name: icon_booster
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1290,7 +1292,7 @@ GameObject:
   - component: {fileID: 3584560092753909232}
   - component: {fileID: 887487382403066991}
   m_Layer: 5
-  m_Name: Twinkle 2
+  m_Name: fx_twinkle_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1365,7 +1367,7 @@ GameObject:
   - component: {fileID: 4899152992474845533}
   - component: {fileID: 422218608042010043}
   m_Layer: 5
-  m_Name: Info
+  m_Name: Text_Info
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1444,7 +1446,7 @@ GameObject:
   - component: {fileID: 8770904649893882787}
   - component: {fileID: 4857907564467030458}
   m_Layer: 5
-  m_Name: Rays
+  m_Name: fx_rays
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1519,7 +1521,7 @@ GameObject:
   - component: {fileID: 8106580650372573181}
   - component: {fileID: 434956644855973484}
   m_Layer: 5
-  m_Name: Ribbon Tail L
+  m_Name: RibbonTailL
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1594,7 +1596,7 @@ GameObject:
   - component: {fileID: 6277552261036737193}
   - component: {fileID: 4377001206816551706}
   m_Layer: 5
-  m_Name: Info Box
+  m_Name: InfoPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1672,7 +1674,7 @@ GameObject:
   - component: {fileID: 5332230712333152052}
   - component: {fileID: 5276180166171697061}
   m_Layer: 5
-  m_Name: Ribbon Label
+  m_Name: Text_Title
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

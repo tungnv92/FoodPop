@@ -31,7 +31,8 @@ namespace FoodPop
         [Tooltip("Thời gian từ lúc Win Start bắt đầu đến khi hiện ví, ánh sáng, thưởng và nút, tính bằng giây unscaled.")]
         [SerializeField, Min(0f)] private float titleClaimDelay = 2f;
         [Tooltip("Ánh sáng hiện khi title chiến thắng chuyển sang animation Idle.")]
-        [SerializeField] private GameObject glow;
+        [FormerlySerializedAs("glow")]
+        [SerializeField] private GameObject glowRoot;
         [Tooltip("Thời gian ánh sáng hiện mờ dần và phóng nhẹ từ 0.8 lên kích thước gốc, tính bằng giây unscaled.")]
         [SerializeField, Min(0.01f)] private float glowRevealDuration = 0.3f;
 
@@ -47,7 +48,8 @@ namespace FoodPop
         [Tooltip("Nhóm phần thưởng sẽ ẩn khi bắt đầu nhận.")]
         [SerializeField] private GameObject rewardRoot;
         [Tooltip("Nhóm chứa các nút nhận thưởng, dùng để chạy hiệu ứng hiện mà không ảnh hưởng scale khi bấm nút.")]
-        [SerializeField] private Transform claimButtons;
+        [FormerlySerializedAs("claimButtons")]
+        [SerializeField] private Transform buttonsRoot;
         [Tooltip("Thời gian phóng nhẹ khi hiện phần thưởng và các nút, tính bằng giây unscaled.")]
         [SerializeField, Min(0.01f)] private float claimRevealDuration = 0.3f;
         [Tooltip("Hiệu ứng xu bay về ví, hoàn tất rồi mới cộng xu.")]
@@ -114,7 +116,7 @@ namespace FoodPop
             ResetClaimReveal();
             rewardReady = !Application.isPlaying;
             SetClaimVisible(rewardReady);
-            glow.SetActive(rewardReady);
+            glowRoot.SetActive(rewardReady);
             if (Application.isPlaying) coinAttraction.Stop(true);
             rewardLabel.text = Reward.coin.ToString();
             watchRewardLabel.text = "+" + Reward.watchAdsCoin;
@@ -145,13 +147,13 @@ namespace FoodPop
             if (!capturedClaimScales)
             {
                 rewardRestScale = rewardRoot.transform.localScale;
-                buttonsRestScale = claimButtons.localScale;
+                buttonsRestScale = buttonsRoot.localScale;
                 capturedClaimScales = true;
             }
             claimReveal?.Kill();
             claimReveal = null;
             rewardRoot.transform.localScale = rewardRestScale;
-            claimButtons.localScale = buttonsRestScale;
+            buttonsRoot.localScale = buttonsRestScale;
         }
 
         // EN: Show or hide the wallet, reward and claim buttons together after Win Start; the glow follows the title Idle instead.
@@ -249,18 +251,18 @@ namespace FoodPop
             if (!isActiveAndEnabled || closing) return;
             if (glowGraphic == null)
             {
-                glowGraphic = glow.GetComponent<Graphic>();
+                glowGraphic = glowRoot.GetComponent<Graphic>();
                 glowAlpha = glowGraphic.color.a;
-                glowRestScale = glow.transform.localScale;
+                glowRestScale = glowRoot.transform.localScale;
             }
             Color color = glowGraphic.color;
             color.a = 0f;
             glowGraphic.color = color;
-            glow.transform.localScale = glowRestScale * 0.8f;
-            glow.SetActive(true);
+            glowRoot.transform.localScale = glowRestScale * 0.8f;
+            glowRoot.SetActive(true);
             glowReveal = DOTween.Sequence().SetUpdate(true)
                 .Join(glowGraphic.DOFade(glowAlpha, glowRevealDuration))
-                .Join(glow.transform.DOScale(glowRestScale, glowRevealDuration).SetEase(Ease.OutBack))
+                .Join(glowRoot.transform.DOScale(glowRestScale, glowRevealDuration).SetEase(Ease.OutBack))
                 .OnComplete(() => glowReveal = null);
         }
 
@@ -272,10 +274,10 @@ namespace FoodPop
             if (!isActiveAndEnabled || closing) return;
             SetClaimVisible(true);
             rewardRoot.transform.localScale = rewardRestScale * 0.8f;
-            claimButtons.localScale = buttonsRestScale * 0.8f;
+            buttonsRoot.localScale = buttonsRestScale * 0.8f;
             claimReveal = DOTween.Sequence().SetUpdate(true)
                 .Append(rewardRoot.transform.DOScale(rewardRestScale, claimRevealDuration).SetEase(Ease.OutBack))
-                .Insert(0.08f, claimButtons.DOScale(buttonsRestScale, claimRevealDuration).SetEase(Ease.OutBack))
+                .Insert(0.08f, buttonsRoot.DOScale(buttonsRestScale, claimRevealDuration).SetEase(Ease.OutBack))
                 .OnComplete(CompleteClaimReveal);
         }
 

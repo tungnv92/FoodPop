@@ -46,21 +46,32 @@ Playing → ReviveOffered → CanvasRevive → Reviving → Playing
 
 ## Popup
 ### CanvasWin
-- Mở: ẩn title, UICoin, Glow, Reward, nút; Curtain (`Assets/Spines/Curtain`, `curtainAnimation`) chạy Close (unscaled); khi Close **Complete** thì giữ rèm thêm `curtainHoldDelay` (0.5 s, unscaled) rồi nền đen `blackBackground` fade từ 0 lên alpha thiết kế trong `blackFadeDuration` (0.3 s, unscaled); fade xong mới chạy Win title Spine (`Assets/Spines/win`, Start 1.33 s → Idle lặp, unscaled); Glow hiện khi Idle bắt đầu (`TrackEntry.Start`): fade alpha 0 → alpha thiết kế và scale 0.8 → 1 (OutBack) trong `glowRevealDuration` (0.3 s, unscaled). Sau `titleClaimDelay` (2 s từ Win Start) hiện UICoin, Reward và `claimButtons` scale 0.8 → 1 (OutBack, `claimRevealDuration` 0.3 s, nút trễ 0.08 s); xong tween mới cho bấm. Curtain là con đầu của nhóm nội dung (nằm sau).
+- Mở: ẩn title (`Spine_Win`), UICoin, glow (`fx_glow`), Reward, nút; Curtain (`Assets/Spines/Curtain`, `curtainAnimation`) chạy Close (unscaled); khi Close **Complete** thì giữ rèm thêm `curtainHoldDelay` (0.5 s, unscaled) rồi nền đen `blackBackground` fade từ 0 lên alpha thiết kế trong `blackFadeDuration` (0.3 s, unscaled); fade xong mới chạy Win title Spine (`Assets/Spines/win`, Start 1.33 s → Idle lặp, unscaled); Glow hiện khi Idle bắt đầu (`TrackEntry.Start`): fade alpha 0 → alpha thiết kế và scale 0.8 → 1 (OutBack) trong `glowRevealDuration` (0.3 s, unscaled). Sau `titleClaimDelay` (2 s từ Win Start) hiện UICoin, Reward và `buttonsRoot` scale 0.8 → 1 (OutBack, `claimRevealDuration` 0.3 s, nút trễ 0.08 s); xong tween mới cho bấm. Curtain là con đầu của nhóm nội dung (nằm sau).
 - Next = `IngameConfig.winReward.coin` (100), Watch = `winReward.watchAdsCoin` (200) (Watch tạm gọi thẳng `OnWatchAdsSuccess`, chưa có SDK). Chọn một lần; khóa nút, ẩn Reward, `CoinAttraction` bay về UICoin; `OnAddCoin(..., "win_reward")` cộng và lưu ngay lúc bấm (thoát game khi xu đang bay không mất thưởng); sự kiện Coin chạy trước, rồi `UICoin.AnimateReward(số dư cũ, ...)` đếm từ số dư cũ lên số dư đã lưu sau `coinCountDelay` (0.4 s). Hẹn giờ unscaled `coinAttraction.duration + lifetime.constantMax` (không dựa vào `onLastParticleFinish`) rồi đóng và Next (màn cuối: nhận thưởng nhưng không Next).
 - Đóng/mở lại hủy timer (`StopTitleSequence`) và tween.
 
 ### CanvasLose
-- Title Spine (`Assets/Spines/lose`, 0.57 s, không lặp, unscaled); khi xong mới hiện `lossMessage` và `choiceButtons` (scale 0.8 → 1, `choiceRevealDuration` 0.3 s).
+- Title Spine (`Assets/Spines/lose`, 0.57 s, không lặp, unscaled); khi xong mới hiện `messageRoot` và `buttonsRoot` (scale 0.8 → 1, `choiceRevealDuration` 0.3 s).
 - Home/Retry: chống nhấn lặp, `UseHeart` một lần (vô hạn không trừ), `ResetStatePlaying`, rồi Retry (`RetryLevel`) hoặc nạp Home sau tween. Mở popup không trừ mạng.
+
+### Quy ước đặt tên popup
+- Khung chung: `BlackBG`, `Root` (= `card`), `PopupBG` (thân), `TitleRibbon/Text_Title`, `BtnClose`, `PopupBG/RootButtons` (hàng nút).
+- Nút `Btn<Tên>`, chữ `Text_<Tên>`, hình nội dung `icon_<tên>`, hình trang trí/hiệu ứng `fx_<tên>` (`fx_glow`, `fx_rays`, `fx_twinkle_1`), Spine `Spine_<Tên>` (`Spine_Win`, `Spine_Curtain`), khung/nhóm PascalCase (`SettingList`, `BoosterPanel`, `InfoPanel`, `OutOfSlot`). Biến thể trạng thái ghi rõ chủ thể (`On_Music`, `Text_InfoOutOfTime`), không để trùng tên giữa các nhóm. Con `Renderer0..n` do Spine sinh thì giữ nguyên.
+- Áp dụng cho cả 7 popup (16/11/2026): Pause, Revive, BuyBooster, WarningQuit, Win, Lose, BoosterIntro. BoosterIntro dùng `BlackBG` (trước là Scrim) và `Root` (trước là Card), không có `PopupBG`. Code không tìm các object này theo tên.
+- Tên field serialize theo hậu tố kiểu: `…Button`, `…Label` (TMP_Text/Text), `…Icon` (Image), `…Root` (GameObject/Transform là nhóm), `…Animation` (SkeletonGraphic), `…Duration`/`…Delay` (thời gian), `…Title`/`…Message` (string). Cùng vai trò dùng cùng tên giữa các popup: `closeButton` (nút X), `coinButton` (mua/hồi sinh bằng Coin), `buttonsRoot` (`RootButtons`), `blackBackground` + `blackFadeDuration` (nền đen). Field đổi tên giữ `[FormerlySerializedAs("tênCũ")]` để không mất giá trị Inspector (16/11/2026: BuyBooster/BoosterIntro `boosterNameLabel`, `descriptionLabel`; BuyBooster `coinButton`; WarningQuit `closeButton`; Revive `outOfSlotRoot`, `outOfTimeRoot`, `outOfSlotTitle`; Win `buttonsRoot`, `glowRoot`; Lose `buttonsRoot`, `messageRoot`; BoosterIntro `blackBackground`, `blackFadeDuration`).
 
 ### CanvasRevive
 - Hai nhóm nội dung `OutOfSlot`/`OutOfTime` trong prefab, bật một nhóm theo `ReviveCase`; tiêu đề đổi theo case.
 - Lần đầu mỗi màn: Watch Ads hoặc Coin 900. Sau lần hồi sinh thành công đầu, ẩn và chặn Ads. Giá Coin = 900 + 1000 × số lần hồi sinh thành công (gồm Ads). Bộ đếm reset khi `LevelLoaded` hoặc Won/Lost (đăng ký ở Awake, gỡ OnDestroy); `isDestroyOnClose = false`.
 - Coin kiểm tra đủ tiền, trừ sau hiệu ứng đóng; lỗi thì hiện lại popup. Watch tạm gọi thẳng thành công (không SDK). X → `DeclineRevive`. `available = false` khóa Coin/Watch nhưng vẫn cho X. `LevelController` giữ pause.
+- Chữ dài (ưu tiên hiện đủ, "…" chỉ là lưới an toàn, đều Overflow Ellipsis): `Text_Watch` 300×100, Auto Size 36–60, tối đa 2 dòng; `Text_Price` 160×100 tâm x=36 (bắt đầu sau `icon_coin`, không chồng icon), Auto Size 36–60, 1 dòng; `Text_InfoOutOfSlot`/`Text_InfoOutOfTime` 800×200, Auto Size 36–50, tối đa 3 dòng (icon tương ứng `icon_out_of_slot`/`icon_out_of_time`); `Text_Title` 600×100, Auto Size 40–70, 1 dòng. Đã thử trong Editor: giá "123,900", "Смотреть рекламу", câu mô tả tiếng Đức 3 dòng, "Keine freien Plätze mehr!" đều hiện đủ. Chưa kiểm tra bằng ảnh chụp/Play Mode.
 
 ### CanvasPause
-- Nút Home (object Resume), Restart (object Replay), đóng (Root/Button), ba hàng Sound/Music/Vibarate (giữ tên asset) với On/Off loại trừ nhau. Ba hàng setting không có `UIButtonScaleEffect`.
+- Nút Home (`Root/PopupBG/RootButtons/BtnHome`), Restart (`RootButtons/BtnReplay`) xếp bằng `HorizontalLayoutGroup` (spacing 26, giữ tâm ±188), đóng (`Root/BtnClose`). Ba hàng `SettingList/RowSound`, `RowMusic`, `RowVibration` (con `icon_<x>`, `Text_<X>`, `On_<X>`/`Off_<X>` loại trừ nhau, núm `Knob_<X>_On`/`Knob_<X>_Off`, ví dụ `On_Music`, `Knob_Music_On`). Ba hàng rộng 775 khớp `SettingList`. Quy tắc chữ dài (ưu tiên hiện đủ, "…" chỉ là lưới an toàn), đều Overflow Ellipsis:
+  - Nhãn `Text_<X>`: khung x −184..95 (279×100), Auto Size 30–50, tối đa 2 dòng.
+  - `Text_Home`/`Text_Replay`: khung 300×130, Auto Size 36–60, tối đa 2 dòng.
+  - `Text_Title`: khung 600×100, Auto Size 40–70, 1 dòng (ribbon chỉ chứa một dòng).
+  - Đã thử trong Editor: "Chơi lại màn này", "Начать уровень заново", "Hiệu ứng rung khi chạm", "Vibrationsrückmeldung", "Settings & Options Menu" đều hiện đủ, không bị cắt. Chưa kiểm tra bằng ảnh chụp/Play Mode. Ba hàng setting không có `UIButtonScaleEffect`. Tiêu đề: `TitleRibbon/Text_Title`.
 - `OnEnable` cache `PlayerDataManager`/`LevelController`, đọc cài đặt, nghe `StateChanged`; `OnDisable` gỡ.
 - Đóng: tiếp tục màn. Home/Restart: xem cảnh báo thoát bên dưới.
 

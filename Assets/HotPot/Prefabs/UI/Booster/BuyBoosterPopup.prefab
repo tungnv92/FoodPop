@@ -223,7 +223,7 @@ GameObject:
   - component: {fileID: 1694565460968807808}
   - component: {fileID: 464853784029983264}
   m_Layer: 0
-  m_Name: TextBoosterName
+  m_Name: Text_Title
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -499,7 +499,7 @@ GameObject:
   - component: {fileID: 8927594851403115251}
   - component: {fileID: 8172247996334191087}
   m_Layer: 0
-  m_Name: ButtonClose
+  m_Name: BtnClose
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -768,7 +768,7 @@ GameObject:
   - component: {fileID: 310664263305593316}
   - component: {fileID: 7583346924905397329}
   m_Layer: 0
-  m_Name: TextBoosterInfo
+  m_Name: Text_Info
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1041,7 +1041,7 @@ GameObject:
   - component: {fileID: 4715978018483795734}
   - component: {fileID: 473101861373257130}
   m_Layer: 0
-  m_Name: Image
+  m_Name: BoosterPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1241,6 +1241,8 @@ MonoBehaviour:
   canvasGroup: {fileID: 699315763081738757}
   card: {fileID: 3095951157227096711}
   isDestroyOnClose: 0
+  openDuration: 0.24
+  closeDuration: 0.16
   boosterName: {fileID: 464853784029983264}
   description: {fileID: 7583346924905397329}
   boosterIcon: {fileID: 6557607632783585587}
@@ -1261,8 +1263,6 @@ MonoBehaviour:
     icon: {fileID: -6935565481873381701, guid: 08b3fbdab5e42054da0dad0f56d40e12, type: 3}
   - type: 3
     icon: {fileID: 7540476779966992265, guid: b246005590c11594a82867b37147a4d0, type: 3}
-  openDuration: 0.24
-  closeDuration: 0.16
 --- !u!1 &3987673910560164628
 GameObject:
   m_ObjectHideFlags: 0
@@ -1275,7 +1275,7 @@ GameObject:
   - component: {fileID: 3176474224193889351}
   - component: {fileID: 8834303706193271610}
   m_Layer: 0
-  m_Name: popbg
+  m_Name: PopupBG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1566,7 +1566,7 @@ GameObject:
   - component: {fileID: 2641154960613763322}
   - component: {fileID: 1303718284413358954}
   m_Layer: 0
-  m_Name: grow
+  m_Name: fx_glow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1641,7 +1641,7 @@ GameObject:
   - component: {fileID: 4493307274934705986}
   - component: {fileID: 2957520234745004802}
   m_Layer: 0
-  m_Name: panelTitle
+  m_Name: TitleRibbon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1839,7 +1839,7 @@ GameObject:
   - component: {fileID: 5551108224178373959}
   - component: {fileID: 4455863780440224949}
   m_Layer: 0
-  m_Name: TextAmount
+  m_Name: Text_Amount
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

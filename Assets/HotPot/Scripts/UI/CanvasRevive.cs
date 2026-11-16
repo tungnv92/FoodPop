@@ -1,6 +1,7 @@
 using GamePackages;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
@@ -17,9 +18,11 @@ namespace FoodPop
         [Tooltip("Tiêu đề lời mời hồi sinh.")]
         [SerializeField] private TMP_Text titleLabel;
         [Tooltip("Nhóm nội dung đã thiết kế cho trường hợp băng chuyền hết chỗ.")]
-        [SerializeField] private GameObject outOfSlot;
+        [FormerlySerializedAs("outOfSlot")]
+        [SerializeField] private GameObject outOfSlotRoot;
         [Tooltip("Nhóm nội dung đã thiết kế cho trường hợp hết thời gian phục vụ.")]
-        [SerializeField] private GameObject outOfTime;
+        [FormerlySerializedAs("outOfTime")]
+        [SerializeField] private GameObject outOfTimeRoot;
         [Tooltip("Chữ giá hồi sinh bằng Coin.")]
         [SerializeField] private TMP_Text priceLabel;
         [Tooltip("Nút hồi sinh bằng Coin.")]
@@ -29,7 +32,8 @@ namespace FoodPop
         [Tooltip("Nút từ chối hồi sinh và xác nhận thua.")]
         [SerializeField] private Button closeButton;
         [Tooltip("Tiêu đề khi băng chuyền hết chỗ.")]
-        [SerializeField] private string title = "Out Of Slots!";
+        [FormerlySerializedAs("title")]
+        [SerializeField] private string outOfSlotTitle = "Out Of Slots!";
         [Tooltip("Tiêu đề khi khách hết thời gian phục vụ.")]
         [SerializeField] private string outOfTimeTitle = "Out Of Time!";
 
@@ -97,9 +101,9 @@ namespace FoodPop
             declineAction = decline;
             this.available = available;
             CaptureLayout();
-            titleLabel.text = reason == ReviveCase.OutOfTime ? outOfTimeTitle : title;
-            outOfSlot.SetActive(reason == ReviveCase.OutOfSlots);
-            outOfTime.SetActive(reason == ReviveCase.OutOfTime);
+            titleLabel.text = reason == ReviveCase.OutOfTime ? outOfTimeTitle : outOfSlotTitle;
+            outOfSlotRoot.SetActive(reason == ReviveCase.OutOfSlots);
+            outOfTimeRoot.SetActive(reason == ReviveCase.OutOfTime);
             revivePrice = FirstCoinPrice + CoinPriceStep * completedRevives;
             priceLabel.text = revivePrice.ToString("N0");
             bool firstRevive = completedRevives == 0;

@@ -2,6 +2,7 @@ using System;
 using GamePackages;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
@@ -24,9 +25,11 @@ namespace FoodPop
         public BoosterType SelectedType { get; private set; }
 
         [Tooltip("Tên booster đang được mua.")]
-        [SerializeField] private TMP_Text boosterName;
+        [FormerlySerializedAs("boosterName")]
+        [SerializeField] private TMP_Text boosterNameLabel;
         [Tooltip("Mô tả tác dụng của booster.")]
-        [SerializeField] private TMP_Text description;
+        [FormerlySerializedAs("description")]
+        [SerializeField] private TMP_Text descriptionLabel;
         [Tooltip("Icon booster đang chọn.")]
         [SerializeField] private Image boosterIcon;
         [Tooltip("Chữ giá Coin trên nút mua.")]
@@ -40,7 +43,8 @@ namespace FoodPop
         [Tooltip("Chữ nút quảng cáo, hiển thị rõ phần thưởng một lượt.")]
         [SerializeField] private TMP_Text watchRewardLabel;
         [Tooltip("Nút mua bằng Coin.")]
-        [SerializeField] private Button buyButton;
+        [FormerlySerializedAs("buyButton")]
+        [SerializeField] private Button coinButton;
         [Tooltip("Nút nhận booster bằng quảng cáo.")]
         [SerializeField] private Button watchButton;
         [Tooltip("Nút đóng popup.")]
@@ -49,7 +53,7 @@ namespace FoodPop
         [SerializeField] private Presentation[] presentations;
 
         private UnityAction closeAction;
-        private Vector2 buyPosition;
+        private Vector2 coinPosition;
         private bool capturedLayout;
         private bool isObservingCoin;
         private bool purchaseInProgress;
@@ -62,7 +66,7 @@ namespace FoodPop
             CaptureLayout();
             if (!Application.isPlaying) return;
             CacheFeedbackManagers();
-            buyButton.onClick.AddListener(Purchase);
+            coinButton.onClick.AddListener(Purchase);
             watchButton.onClick.AddListener(WatchAds);
             closeButton.onClick.AddListener(RequestClose);
             playerData.RegisterResourceChange(ResourceType.Coin, OnCoinChanged);
@@ -76,7 +80,7 @@ namespace FoodPop
         {
             ResetAnimation();
             if (!isObservingCoin) return;
-            buyButton.onClick.RemoveListener(Purchase);
+            coinButton.onClick.RemoveListener(Purchase);
             watchButton.onClick.RemoveListener(WatchAds);
             closeButton.onClick.RemoveListener(RequestClose);
             playerData.RemoveResourceChange(ResourceType.Coin, OnCoinChanged);
@@ -92,14 +96,14 @@ namespace FoodPop
             purchaseInProgress = false;
             BoosterConfig config = IngameConfig.Instance.Boosters;
             price = config.GetPrice(type);
-            boosterName.text = config.GetName(type);
-            description.text = config.GetInfo(type);
+            boosterNameLabel.text = config.GetName(type);
+            descriptionLabel.text = config.GetInfo(type);
             priceLabel.text = price.ToString("N0");
             amountLabel.text = $"x{AmountPerPurchase}";
             watchButton.gameObject.SetActive(activeAdsBooster);
             watchRewardLabel.text = $"Watch +{AmountPerAd}";
             CaptureLayout();
-            ((RectTransform)buyButton.transform).anchoredPosition = activeAdsBooster ? buyPosition : new Vector2(0f, buyPosition.y);
+            ((RectTransform)coinButton.transform).anchoredPosition = activeAdsBooster ? coinPosition : new Vector2(0f, coinPosition.y);
             Presentation item = Array.Find(presentations, entry => entry.type == type);
             boosterIcon.sprite = item.icon;
             base.Open();
@@ -141,7 +145,7 @@ namespace FoodPop
         private void CaptureLayout()
         {
             if (capturedLayout) return;
-            buyPosition = ((RectTransform)buyButton.transform).anchoredPosition;
+            coinPosition = ((RectTransform)coinButton.transform).anchoredPosition;
             capturedLayout = true;
         }
 
