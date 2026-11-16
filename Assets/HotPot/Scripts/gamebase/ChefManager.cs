@@ -39,7 +39,6 @@ namespace FoodPop
         // VI: Transform của nhân vật đầu bếp (ngôi sao AutoComplete hiện phía trên).
         public Transform ChefTransform => ChefAnims != null ? ChefAnims.transform : transform;
 
-
         [Tooltip("Anims đầu bếp.")]
         [SerializeField] private ChefAnims ChefAnims;
         [Tooltip("Component điều khiển đường đi và chuyển động các đĩa trên băng chuyền.")]
@@ -61,7 +60,13 @@ namespace FoodPop
         [Tooltip("Prefab particle (tùy chọn) chạy một lần tại món trước mặt đầu bếp ngay khi sơ chế xong (lúc hiện ảnh đã sơ chế).")]
         [SerializeField] private ParticleEffect preparedEffectPrefab;
 
+        // EN: Shared gameplay tuning from the IngameConfig singleton (Resources asset); no per-component reference.
+        // VI: Thông số màn chơi dùng chung lấy từ singleton IngameConfig (asset trong Resources); không cần tham chiếu riêng trên component.
+        private IngameConfig Config => IngameConfig.Instance;
         private static ChefManager instance;
+        private bool levelWon;
+        private Coroutine shrinkDishesRoutine;
+        private readonly Dictionary<ConveyorSlot, Vector3> dishBaseScales = new Dictionary<ConveyorSlot, Vector3>();
         private Coroutine preparationRoutine;
         private Food preparingFood;
         private ConveyorSlot preparingSlot;
@@ -91,11 +96,11 @@ namespace FoodPop
                 boardBaseScale = cuttingBoard.localScale;
         }
 
-        // EN: Starts a station job only while idle, keeping its source plate reserved.
-        // VI: Bắt đầu sơ chế khi rảnh, giữ chỗ trên đĩa nguồn.
+        // EN: Starts preparation only while idle and before victory, keeping the source plate reserved.
+        // VI: Chỉ bắt đầu sơ chế khi rảnh và chưa thắng, giữ chỗ trên đĩa nguồn.
         private void Update()
         {
-            if (BoosterPaused || !autoPrepareInStation || IsBusy || conveyorMovement == null)
+            if (levelWon || BoosterPaused || !autoPrepareInStation || IsBusy || conveyorMovement == null)
                 return;
             ConveyorSlot slot = FindSlotToPrepare();
             if (slot != null)
@@ -125,6 +130,33 @@ namespace FoodPop
             OnDestroyRuntimeObjects();
             if (instance == this)
                 instance = null;
+        }
+
+
+        // EN: Cancels preparation, starts shrinking every conveyor plate away without releasing food, and starts victory animation.
+        // VI: Hủy sơ chế, bắt đầu thu nhỏ dần toàn bộ đĩa băng chuyền không trả food và bắt đầu animation thắng.
+        public void PlayWin()
+        {
+            levelWon = true;
+            CancelPreparation();
+            shrinkDishesRoutine = StartCoroutine(ShrinkAllDishes(Config.preWin.plateShrinkDuration));
+            ChefAnims.PlayWin();
+        }
+
+        // EN: Stops a running plate shrink, restores plate scale and visibility and normal chef animation before the existing level reset clears food.
+        // VI: Dừng hiệu ứng thu nhỏ đĩa đang chạy, khôi phục scale và hiển thị đĩa cùng animation đầu bếp bình thường trước khi luồng đặt lại màn xóa món.
+        public void ResetForLevel()
+        {
+            levelWon = false;
+            if (shrinkDishesRoutine != null)
+                StopCoroutine(shrinkDishesRoutine);
+            shrinkDishesRoutine = null;
+            foreach (KeyValuePair<ConveyorSlot, Vector3> entry in dishBaseScales)
+                if (entry.Key != null) entry.Key.transform.localScale = entry.Value;
+            dishBaseScales.Clear();
+            foreach (ConveyorSlot slot in Slots)
+                if (slot != null) slot.gameObject.SetActive(true);
+            ChefAnims.ResetForLevel();
         }
 
         // EN: Takes matching belt food or the chef portion for a booster, cancelling its reservation before clearing the original plate.
@@ -310,17 +342,23 @@ namespace FoodPop
             FinishPreparation();
         }
 
-        // EN: Shared gameplay tuning from the IngameConfig singleton (Resources asset); no per-component reference.
-        // VI: Thông số màn chơi dùng chung lấy từ singleton IngameConfig (asset trong Resources); không cần tham chiếu riêng trên component.
-        private IngameConfig Config => IngameConfig.Instance;
-
-
-        // EN: Clears stale static state when entering Play Mode, including with domain reload disabled.
-        // VI: Xóa trạng thái tĩnh cũ khi vào Play Mode, kể cả khi tắt tải lại miền mã.
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetInstance()
+        // EN: Shrinks every visible plate (with its food) to zero on unscaled time so it runs while gameplay is paused, then hides it; base scales are kept for the next level.
+        // VI: Thu nhỏ dần mọi đĩa đang hiện (kèm món) về 0 theo thời gian không phụ thuộc timeScale để chạy cả khi gameplay tạm dừng, rồi ẩn đĩa; scale gốc được giữ cho màn sau.
+        private IEnumerator ShrinkAllDishes(float duration)
         {
-            instance = null;
+            dishBaseScales.Clear();
+            foreach (ConveyorSlot slot in Slots)
+                if (slot != null && slot.gameObject.activeSelf) dishBaseScales[slot] = slot.transform.localScale;
+            for (float elapsed = 0f; elapsed < duration; elapsed += Time.unscaledDeltaTime)
+            {
+                float scale = 1f - Mathf.SmoothStep(0f, 1f, elapsed / duration);
+                foreach (KeyValuePair<ConveyorSlot, Vector3> entry in dishBaseScales)
+                    entry.Key.transform.localScale = entry.Value * scale;
+                yield return null;
+            }
+            foreach (KeyValuePair<ConveyorSlot, Vector3> entry in dishBaseScales)
+                entry.Key.gameObject.SetActive(false);
+            shrinkDishesRoutine = null;
         }
 
         // EN: Picks the next raw, already landed portion anywhere on the belt (not only inside the station). First by customer need: the ingredient that comes earliest in CustomerManager's serving priority (earliest customer, card order, base first); then by position: a slot inside the station that is about to leave it, otherwise the slot that reaches the station soonest. Returns null when there is nothing raw.
@@ -403,6 +441,14 @@ namespace FoodPop
             return conveyorMovement.GetDistanceToStation(index);
         }
 
+        // EN: Checks that a slot is active and holds raw food that has finished flying in.
+        // VI: Kiểm tra slot đang hoạt động và chứa món thô đã bay tới xong.
+        private static bool CanPrepare(ConveyorSlot slot)
+        {
+            return slot != null && slot.isActiveAndEnabled && !slot.isEmpty && !slot.IsFoodArriving &&
+                   slot.food != null && slot.food.IsRaw;
+        }
+
         // EN: Prepare the reusable cutting sprite at an explicit source pose for belt or slot-free preparation.
         // VI: Chuẩn bị sprite cắt dùng lại tại tư thế nguồn tường minh cho lượt trên băng hoặc đi thẳng.
         private SpriteRenderer SetupCuttingFood(SpriteRenderer source, Sprite sprite, Vector3 position, Quaternion rotation, Vector3 scale)
@@ -474,14 +520,6 @@ namespace FoodPop
                 customers.GetNeededIngredients(neededIngredients, false);
             else
                 neededIngredients.Clear();
-        }
-
-        // EN: Checks that a slot is active and holds raw food that has finished flying in.
-        // VI: Kiểm tra slot đang hoạt động và chứa món thô đã bay tới xong.
-        private static bool CanPrepare(ConveyorSlot slot)
-        {
-            return slot != null && slot.isActiveAndEnabled && !slot.isEmpty && !slot.IsFoodArriving &&
-                   slot.food != null && slot.food.IsRaw;
         }
 
         // EN: Position of the food type in the customers' serving priority (0 = most urgent); int.MaxValue when no customer needs it.
@@ -695,5 +733,14 @@ namespace FoodPop
                 return;
             OneShotEffects.PlayParticle(preparedEffectPrefab, food.transform.position, food.sortingLayerID, food.sortingOrder + 1);
         }
+
+        // EN: Clears stale static state when entering Play Mode, including with domain reload disabled.
+        // VI: Xóa trạng thái tĩnh cũ khi vào Play Mode, kể cả khi tắt tải lại miền mã.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetInstance()
+        {
+            instance = null;
+        }
+
     }
 }

@@ -1,0 +1,12 @@
+# Revised progression concept boards
+
+Tool: built-in image_gen.
+
+Edit the provided FoodPop sushi progression concept board. Preserve exactly the title, all Vietnamese text, five column headers 2/3/4/5/6 ingredients, four row labels, all captions, grid layout, arrows, warm ivory background, and polished colorful casual game illustration style. IMPORTANT ART CHANGES throughout EVERY affected food cell:
+1. All sushi remain elongated oval NIGIRI with pearly WHITE RICE exposed as a broad visible lower layer on BOTH LONG SIDES, even at 5 and 6 ingredients. Replace every dark gunkan cup/wall and every crosswise seaweed belt with ONE NARROW LENGTHWISE NORI RIBBON. Ribbon follows the LONG AXIS of the sushi from the front short end across the top to the far short end, folding under the two SHORT ENDS. In this three-quarter camera it runs diagonally lower-left to upper-right, PARALLEL TO THE LONG EDGES of the rice oval, NEVER a transverse strip across the short width. Width only 15-20% of sushi width. It must not cover the long side rice faces. Keep most fish visible alongside ribbon. No seaweed cup, no seaweed cylinder, no circumferential sidewall. Rice must remain conspicuous and identifiable in ALL cells.
+2. Keep the exact cumulative ingredient recipes of every cell and all previous ingredients visible. All roe, cucumber, wasabi and other toppings placed ON the elongated nigiri instead of hidden in cups. Do not add ingredients to earlier tiers. Cells without seaweed must stay without seaweed.
+3. Every soy sauce ingredient currently in a SEPARATE BOWL must instead be a small highly visible glossy DARK BROWN ZIGZAG DRIZZLE directly ON TOP of that sushi, narrow dark lines leaving the topping and white rice recognizable. REMOVE ALL bowls and all side servings. Do NOT add sauce anywhere that didn't already have it in the recipe.
+4. Every pink pickled ginger side mound must instead become 2-3 small pale pink folded ginger petals ON TOP of its sushi, clearly visible yet leaving other toppings readable. No ginger beside sushi. Do NOT add ginger to dishes whose recipe did not contain it.
+Do not add plates, utensils, extra sauces, extra toppings, or text. Keep all objects inside cells, maintain coherent portion sizes. The key goal is that rice remains visible as an ingredient and every condiment is part of the assembled sushi.
+
+Final correction: egg row tiers 5 and 6 also use a narrow lengthwise ribbon; preserve all recipe ingredients.

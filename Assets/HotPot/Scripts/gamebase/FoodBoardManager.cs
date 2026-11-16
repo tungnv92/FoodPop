@@ -73,6 +73,10 @@ namespace FoodPop
         // VI: Khi true, board bỏ qua thao tác chạm (BoosterController bật khi booster đang chạy hiệu ứng trên board).
         public bool InputLocked { get; set; }
 
+        // EN: When true the board ignores taps because the level has a result (set and cleared only by LevelController, independent of booster locks).
+        // VI: Khi true, board bỏ qua thao tác chạm vì màn đã có kết quả (chỉ LevelController bật/tắt, độc lập với khóa của booster).
+        public bool ResultLocked { get; set; }
+
         // EN: True while a column is still sliding or a lid is still opening.
         // VI: True khi còn cột đang trượt hoặc nắp đang mở.
         public bool IsAnimating => columnShifts.Count > 0 || lidReveals.Count > 0;
@@ -204,11 +208,11 @@ namespace FoodPop
         }
 #endif
 
-        // EN: Reads the pointer each frame and picks the head dish under it; with logPickFailures on, a tap ignored because input is locked is logged.
-        // VI: Đọc con trỏ/chạm mỗi frame và chọn đĩa đầu cột nằm dưới vị trí đó; khi bật logPickFailures, lượt chạm bị bỏ qua do khóa input sẽ được ghi log.
+        // EN: Reads the pointer each frame and picks the head dish under it; taps are ignored once the level has a result, and with logPickFailures on a tap ignored by a booster input lock is logged.
+        // VI: Đọc con trỏ/chạm mỗi frame và chọn đĩa đầu cột nằm dưới vị trí đó; bỏ qua chạm khi màn đã có kết quả, và khi bật logPickFailures thì lượt chạm bị bỏ qua do khóa input của booster sẽ được ghi log.
         private void Update()
         {
-            if (!TryGetPointerDown(out Vector2 worldPoint))
+            if (!TryGetPointerDown(out Vector2 worldPoint) || ResultLocked)
                 return;
             if (InputLocked)
             {

@@ -78,7 +78,7 @@ public void ExampleFunction()
 ## Mandatory file and asset organization
 
 - Every newly created, generated, imported, or copied project file must be placed in the correct folder for its type and gameplay feature. This is mandatory alongside bilingual function comments.
-- Main game content belongs under `Assets/HotPot`. Follow `Assets/HotPot/Documentation/AssetFolders.md` and the existing feature subfolders:
+- Main game content belongs under `Assets/HotPot`. Follow `Documentation/Features/HotPot/AssetFolders.md` and the existing feature subfolders:
   - Sprites/textures: `Art/Sprites/<feature>`.
   - Source fonts and TMP font assets: `Art/Fonts`; font material presets: `Art/Fonts/Materials`.
   - Shaders: `Art/Shaders/<feature>`.
@@ -96,13 +96,26 @@ public void ExampleFunction()
 ## Mandatory automatic Markdown documentation updates
 
 - Whenever a change affects behavior, configuration, assets, workflows, or rules described in an existing `.md` file, automatically update the relevant Markdown documentation in the same task, without waiting for the user to request it.
-- Find and read the relevant documentation before updating it, including feature documents under `claude` and `Assets/HotPot/Documentation`. Update existing documents in place instead of creating duplicate descriptions.
+- Find and read the relevant documentation before updating it; all project documentation lives under `Documentation/` (see "Documentation layout" below). Update existing documents in place instead of creating duplicate descriptions.
 - Keep documentation consistent with the final implementation: revise outdated behavior, relevant usage instructions and references; record meaningful verification results and distinguish verified behavior from untested expectations. Do not claim tests that were not run.
 - Documentation updates are part of completing the change. Briefly mention the updated document in the completion response. If a feature has no existing document, follow the project's file organization rules when creating documentation that is needed.
 - VI: Mỗi khi thay đổi hành vi, cấu hình, asset, quy trình hoặc quy tắc đã được mô tả trong file `.md`, bắt buộc tự cập nhật tài liệu liên quan ngay trong cùng nhiệm vụ, không chờ người dùng yêu cầu.
-- VI: Tìm và đọc tài liệu liên quan trước khi cập nhật, gồm tài liệu tính năng trong `claude` và `Assets/HotPot/Documentation`; sửa trực tiếp tài liệu hiện có, tránh tạo bản mô tả trùng lặp.
+- VI: Tìm và đọc tài liệu liên quan trước khi cập nhật; toàn bộ tài liệu của dự án nằm trong `Documentation/` (xem mục "Documentation layout" bên dưới); sửa trực tiếp tài liệu hiện có, tránh tạo bản mô tả trùng lặp.
 - VI: Tài liệu phải khớp triển khai cuối cùng: sửa nội dung lỗi thời, hướng dẫn sử dụng và tham chiếu liên quan; ghi kết quả kiểm tra có ý nghĩa, phân biệt phần đã kiểm chứng với phần chưa kiểm tra. Không ghi đã chạy kiểm tra nếu thực tế chưa chạy.
 - VI: Cập nhật tài liệu là một phần bắt buộc để hoàn tất thay đổi; nhắc ngắn gọn file đã cập nhật khi báo hoàn tất. Nếu tính năng chưa có tài liệu, tuân thủ quy tắc tổ chức file của dự án khi cần tạo tài liệu mới.
+
+## Documentation layout (mandatory)
+
+- Every Markdown document or rule file (new or existing) lives under `Documentation/` at the project root. Never create `.md` files anywhere else (not in `Assets/`, `claude/`, `output/`, `design/`, …). Exceptions: `AGENTS.md`, `CLAUDE.md` and `README.md` at the root, and a `README.md` next to a standalone tool such as `Web/LevelStudio/`.
+- `Documentation/Rules/` — project rules; every file here is binding for all agents (Codex, Claude, Multi Agents workers).
+- `Documentation/Features/<Area>/` — feature and system documentation (current gameplay docs: `Documentation/Features/HotPot/`).
+- `Documentation/Handoff/` — handoff notes between agents and sessions (formerly `claude/`).
+- `Documentation/Design/<feature>/` — UI/art specs and mockups from the artist; image-generation prompts in `Documentation/Design/Prompts/`.
+- `Documentation/Chats/` — chat records written by Multi Agents (`/document`). `Documentation/INDEX.md` is an auto-generated index (statistics + tree); do not edit it by hand.
+- Docs were moved here on 2026-11-13 (`claude/*` → `Documentation/Handoff/`, `Assets/HotPot/Documentation/*` → `Documentation/Features/HotPot/`, `output/**/prompts*.md` → `Documentation/Design/Prompts/`). Use the new paths in all references.
+- VI: Mọi tài liệu Markdown và file quy tắc (mới hay cũ) nằm trong `Documentation/` ở gốc dự án; không tạo `.md` ở nơi khác (không đặt trong `Assets/`, `claude/`, `output/`, `design/`…). Ngoại lệ: `AGENTS.md`, `CLAUDE.md`, `README.md` ở gốc và `README.md` đi kèm công cụ độc lập như `Web/LevelStudio/`.
+- VI: `Rules/` = quy tắc (bắt buộc với mọi agent), `Features/<Khu vực>/` = tài liệu tính năng/hệ thống, `Handoff/` = ghi chú bàn giao (trước đây là `claude/`), `Design/<tính năng>/` = spec + mockup của Artist, `Design/Prompts/` = prompt tạo ảnh, `Chats/` = tài liệu chat của Multi Agents. `INDEX.md` do app tự sinh, không sửa tay.
+- VI: Tài liệu đã được chuyển vào đây ngày 13/11/2026; mọi tham chiếu phải dùng đường dẫn mới.
 
 
 

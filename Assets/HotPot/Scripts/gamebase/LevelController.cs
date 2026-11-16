@@ -1,6 +1,7 @@
 using GamePackages;
 using Lofelt.NiceVibrations;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -21,10 +22,6 @@ namespace FoodPop
         // VI: Cung cấp cấu hình màn hiện tại cho HUD cập nhật theo sự kiện.
         public LevelConfig CurrentLevel => levelConfig;
 
-        // EN: Reads the active level number for progression and tracking.
-        // VI: Lấy số màn hiện tại để xử lý tiến độ và thống kê.
-        private int LevelIndex => CurrentLevel.levelNumber;
-
         [Tooltip("Manager bảng nguyên liệu của scene.")]
         [SerializeField] private FoodBoardManager boardManager;
         [Tooltip("Manager khách hàng và order của scene.")]
@@ -35,6 +32,9 @@ namespace FoodPop
         [SerializeField] private bool showResultPanel = true;
         [SerializeField] private UnityEvent onWon = new UnityEvent();
         [SerializeField] private UnityEvent onLost = new UnityEvent();
+        // EN: Reads the active level number for progression and tracking.
+        // VI: Lấy số màn hiện tại để xử lý tiến độ và thống kê.
+        private int LevelIndex => CurrentLevel.levelNumber;
         private LevelConfig levelConfig;
         private LevelConfig nextLevelConfig;
         private float previousTimeScale = 1f;
@@ -42,6 +42,7 @@ namespace FoodPop
         private CanvasRevive.ReviveCase reviveCase;
         private bool preWinActive;
         private float preWinBaseTimeScale = 1f;
+        private Coroutine winRoutine;
         private bool isQuitLoseLife;
         private PlayerDataManager PlayerDataManager;
         private RecordTrackingManager RecordManager;
@@ -78,18 +79,20 @@ namespace FoodPop
                 EnterPreWin();
         }
 
-        // EN: Releases the owned global pause and the pre-win speed-up when the controller is disabled.
-        // VI: Giải phóng tạm dừng toàn cục và mức tăng tốc pre-win khi controller bị tắt.
+        // EN: Cancels a pending win presentation and releases the owned global pause and the pre-win speed-up when the controller is disabled.
+        // VI: Hủy phần trình diễn thắng đang chờ và giải phóng tạm dừng toàn cục cùng mức tăng tốc pre-win khi controller bị tắt.
         private void OnDisable()
         {
+            StopWinPresentation();
             RestoreTimeScale();
             ExitPreWin();
         }
 
-        // EN: Resolves authored Hard levels against the saved retry count before resetting gameplay; Edit Mode does not read the runtime profile.
-        // VI: Chọn bản màn Hard theo số lần chơi lại đã lưu trước khi đặt lại gameplay; Edit Mode không đọc hồ sơ runtime.
+        // EN: Resolves retry difficulty and resets gameplay, cancelling a pending win presentation, unlocking board taps and restoring plates and chef animation after a result.
+        // VI: Chọn độ khó theo lần chơi lại và đặt lại gameplay, hủy phần trình diễn thắng đang chờ, mở lại chạm board, khôi phục đĩa và animation đầu bếp sau khi có kết quả.
         public void LoadLevel(LevelConfig config)
         {
+            StopWinPresentation();
             if (config != null && Application.isPlaying)
                 config = config.ForRetry(RecordManager.GetRetryCount(config.levelNumber));
             if (config == null)
@@ -113,13 +116,17 @@ namespace FoodPop
             if (ChefManager.Instance != null)
             {
                 ChefManager.Instance.CancelPreparation();
+                if (Application.isPlaying) ChefManager.Instance.ResetForLevel();
                 foreach (ConveyorSlot slot in ChefManager.Instance.Slots)
                     if (slot != null) slot.ClearFood();
             }
             FoodHoldingStorage storage = FindFirstObjectByType<FoodHoldingStorage>();
             if (storage != null) storage.ResetForLevel();
             if (boardManager != null)
+            {
+                boardManager.ResultLocked = false;
                 boardManager.LoadIngredientBoard(config.ingredientBoard, config.dishLinks);
+            }
             else
                 Debug.LogWarning("[LevelController] Chưa gán FoodBoardManager.", this);
             if (customerManager != null)
@@ -199,6 +206,15 @@ namespace FoodPop
             if (PlayerDataManager.isVibrateOn) HapticPatterns.PlayEmphasis(0.8f, 0.5f);
         }
 
+        // EN: Stops the delayed win presentation if it has not started yet.
+        // VI: Dừng phần trình diễn thắng bị trì hoãn nếu nó chưa bắt đầu.
+        private void StopWinPresentation()
+        {
+            if (winRoutine != null)
+                StopCoroutine(winRoutine);
+            winRoutine = null;
+        }
+
         // EN: Loads only the Resources level matching the saved PlayerData.currentLevel; past the last existing level it steps back to the highest level that exists.
         // VI: Chỉ nạp level trong Resources đúng với PlayerData.currentLevel đã lưu; nếu vượt quá level cuối thì lùi về level cao nhất còn tồn tại.
         private LevelConfig LoadSavedLevel()
@@ -223,17 +239,36 @@ namespace FoodPop
             StateChanged?.Invoke(State);
         }
 
-        // EN: Publishes victory or a declined defeat once, retaining the original time scale across the revive offer.
-        // VI: Phát chiến thắng hoặc thất bại đã từ chối hồi sinh một lần, giữ tốc độ thời gian gốc qua lời mời hồi sinh.
+        // EN: Publishes the result and locks board taps at once; defeat pauses and shows at once, victory first restores the pre-win speed and defers its presentation.
+        // VI: Phát kết quả và khóa chạm board ngay; thua thì tạm dừng và hiện ngay, thắng thì trả tốc độ pre-win về bình thường rồi mới trình diễn sau.
         private void FinishLevel(LevelState result)
         {
             if (State != LevelState.Playing && !(State == LevelState.ReviveOffered && result == LevelState.Lost)) return;
             State = result;
+            boardManager.ResultLocked = true;
+            if (result == LevelState.Won)
+            {
+                ExitPreWin();
+                StateChanged?.Invoke(State);
+                winRoutine = StartCoroutine(PresentWin());
+                return;
+            }
             PauseGameplay();
             ShowResult(result);
             StateChanged?.Invoke(State);
-            if (result == LevelState.Won) onWon.Invoke();
-            else onLost.Invoke();
+            onLost.Invoke();
+        }
+
+        // EN: Waits the configured delay at normal speed, then pauses, shrinks the plates away with the chef's unscaled celebration and shows the win panel.
+        // VI: Chờ khoảng trễ cấu hình ở tốc độ thường, rồi tạm dừng, thu nhỏ dần đĩa cùng animation thắng không phụ thuộc timeScale và hiện bảng thắng.
+        private IEnumerator PresentWin()
+        {
+            yield return new WaitForSeconds(IngameConfig.Instance.preWin.hidePlatesDelay);
+            winRoutine = null;
+            PauseGameplay();
+            ChefManager.Instance.PlayWin();
+            ShowResult(LevelState.Won);
+            onWon.Invoke();
         }
 
         // EN: Pauses and offers the matching timeout or conveyor revive without resetting progress.
@@ -411,16 +446,16 @@ namespace FoodPop
             ResetQuitLoseStreak();
         }
 
-        private void RetryLevel()
-        {
-            LoadLevel(levelConfig);
-            //SDKBridge.ShowInter(placementBack, InterPlacement.BackHome, LevelIndex);
-        }
-
         private void ResetQuitLoseStreak()
         {
             isQuitLoseLife = false;
             PlayerDataManager.isLoseStreakQuit = false;
+        }
+
+        private void RetryLevel()
+        {
+            LoadLevel(levelConfig);
+            //SDKBridge.ShowInter(placementBack, InterPlacement.BackHome, LevelIndex);
         }
 
         private void MarkQuitLoseStreak()
@@ -428,5 +463,6 @@ namespace FoodPop
             isQuitLoseLife = true;
             PlayerDataManager.isLoseStreakQuit = true;
         }
+
     }
 }

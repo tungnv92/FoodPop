@@ -1,9 +1,11 @@
 using DG.Tweening;
+using GamePackages;
 using Spine.Unity;
 using AssetKits.ParticleImage;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace FoodPop
@@ -11,19 +13,27 @@ namespace FoodPop
     [DisallowMultipleComponent]
     public sealed class CanvasWin : UICanvasPrime
     {
-        private const int WinReward = 100;
-        private const int WatchReward = WinReward * 2;
+        // EN: Reads the win coin rewards (normal and watch-ads) from IngameConfig.
+        // VI: Lấy số xu thưởng thắng (thường và xem quảng cáo) từ IngameConfig.
+        private static IngameConfig.WinRewardSettings Reward => IngameConfig.Instance.winReward;
 
         [Tooltip("Animation Spine cho tiêu đề chiến thắng.")]
         [SerializeField] private SkeletonGraphic titleAnimation;
-        [Tooltip("Logo phát Start_End trước khi bắt đầu title chiến thắng.")]
-        [SerializeField] private SkeletonGraphic logoAnimation;
-        [Tooltip("Số giây cuối của logo bắt đầu chạy chồng với Win Start.")]
-        [SerializeField, Min(0f)] private float titleOverlap = 0.2f;
+        [Tooltip("Băng curtain chạy animation Close cùng lúc đầu bếp thắng; đóng xong thì hiện nền đen rồi chạy title chiến thắng.")]
+        [FormerlySerializedAs("logoAnimation")]
+        [SerializeField] private SkeletonGraphic curtainAnimation;
+        [Tooltip("Thời gian giữ rèm đã đóng trước khi nền đen bắt đầu hiện, tính bằng giây unscaled.")]
+        [SerializeField, Min(0f)] private float curtainHoldDelay = 0.5f;
+        [Tooltip("Nền đen hiện mờ dần sau khi rèm đóng, rồi mới chạy animation chiến thắng.")]
+        [SerializeField] private Image blackBackground;
+        [Tooltip("Thời gian nền đen hiện mờ dần, tính bằng giây unscaled.")]
+        [SerializeField, Min(0f)] private float blackFadeDuration = 0.3f;
         [Tooltip("Thời gian từ lúc Win Start bắt đầu đến khi hiện ví, ánh sáng, thưởng và nút, tính bằng giây unscaled.")]
         [SerializeField, Min(0f)] private float titleClaimDelay = 2f;
-        [Tooltip("Ánh sáng hiện cùng phần thưởng sau khoảng chờ tính từ Win Start.")]
+        [Tooltip("Ánh sáng hiện khi title chiến thắng chuyển sang animation Idle.")]
         [SerializeField] private GameObject glow;
+        [Tooltip("Thời gian ánh sáng hiện mờ dần và phóng nhẹ từ 0.8 lên kích thước gốc, tính bằng giây unscaled.")]
+        [SerializeField, Min(0.01f)] private float glowRevealDuration = 0.3f;
 
         [Tooltip("Nút nhận thưởng và sang màn tiếp theo.")]
         [SerializeField] private Button nextButton;
@@ -50,25 +60,30 @@ namespace FoodPop
         private UnityAction nextAction;
         private bool hasNextLevel;
         private bool claimed;
-        private int pendingReward;
+        private Tween curtainHold;
         private Tween claimDelay;
-        private Spine.TrackEntry logoEntry;
-        private bool winTitleStarted;
+        private Tween blackFade;
+        private Tween rewardFlight;
+        private Sequence glowReveal;
+        private Graphic glowGraphic;
+        private float glowAlpha;
+        private Vector3 glowRestScale;
+        private float blackAlpha;
+        private bool capturedBlackAlpha;
         private bool rewardReady;
         private Sequence claimReveal;
         private Vector3 rewardRestScale;
         private Vector3 buttonsRestScale;
         private bool capturedClaimScales;
 
-        // EN: Caches feedback managers and binds reward buttons and particle completion while visible.
-        // VI: Cache manager phản hồi, nối nút nhận thưởng và sự kiện hiệu ứng hoàn tất khi đang hiện.
+        // EN: Caches feedback managers and binds reward buttons while visible.
+        // VI: Cache manager phản hồi và nối nút nhận thưởng khi đang hiện.
         private void OnEnable()
         {
             if (!Application.isPlaying) return;
             CacheFeedbackManagers();
             nextButton.onClick.AddListener(ClaimNext);
             watchButton.onClick.AddListener(WatchAds);
-            coinAttraction.onLastParticleFinish.AddListener(CompleteReward);
         }
 
         // EN: Cancel popup/reveal tweens, logo/title callbacks, particles and pending reward/navigation.
@@ -81,35 +96,36 @@ namespace FoodPop
             {
                 nextButton.onClick.RemoveListener(ClaimNext);
                 watchButton.onClick.RemoveListener(WatchAds);
-                coinAttraction.onLastParticleFinish.RemoveListener(CompleteReward);
+                rewardFlight?.Kill();
+                rewardFlight = null;
                 coinAttraction.Stop(true);
                 StopTitleSequence();
             }
             nextAction = null;
-            pendingReward = 0;
         }
 
-        // EN: Restart logo then win title, keeping wallet and claims hidden until the configured delay from Win Start.
-        // VI: Chạy lại logo rồi title thắng, ẩn ví và thưởng tới hết khoảng chờ tính từ Win Start.
+        // EN: Restart curtain Close (with the chef win already playing) then the win title, keeping wallet and claims hidden until the configured delay from Win Start.
+        // VI: Chạy lại curtain Close (đầu bếp đã phát thắng) rồi title thắng, ẩn ví và thưởng tới hết khoảng chờ tính từ Win Start.
         public void Show(UnityAction next, bool hasNextLevel = true, bool animate = true)
         {
             nextAction = next;
             this.hasNextLevel = hasNextLevel;
             claimed = false;
-            pendingReward = 0;
             ResetClaimReveal();
             rewardReady = !Application.isPlaying;
             SetClaimVisible(rewardReady);
+            glow.SetActive(rewardReady);
             if (Application.isPlaying) coinAttraction.Stop(true);
-            rewardLabel.text = WinReward.ToString();
-            watchRewardLabel.text = "+" + WatchReward;
+            rewardLabel.text = Reward.coin.ToString();
+            watchRewardLabel.text = "+" + Reward.watchAdsCoin;
             nextButton.interactable = rewardReady;
             watchButton.interactable = rewardReady;
             base.Open();
-            if (Application.isPlaying) PlayLogoAnimation();
+            if (Application.isPlaying) PlayCurtainClose();
             else
             {
-                logoAnimation.gameObject.SetActive(false);
+                curtainAnimation.gameObject.SetActive(false);
+                blackBackground.gameObject.SetActive(true);
                 titleAnimation.gameObject.SetActive(true);
             }
             AnimateOpen(animate);
@@ -119,7 +135,7 @@ namespace FoodPop
         // VI: Nhận quảng cáo thưởng thành công một lần; tạm gọi ngay tới khi nối SDK.
         public void OnWatchAdsSuccess()
         {
-            ClaimReward(WatchReward);
+            ClaimReward(Reward.watchAdsCoin);
         }
 
         // EN: Restore authored scales and cancel pending reveal callbacks on reopen or disable.
@@ -138,80 +154,114 @@ namespace FoodPop
             claimButtons.localScale = buttonsRestScale;
         }
 
-        // EN: Show or hide the wallet, glow, reward and claim buttons together after Win Start.
-        // VI: Hiện hoặc ẩn ví, ánh sáng, phần thưởng và các nút nhận thưởng cùng nhau sau Win Start.
+        // EN: Show or hide the wallet, reward and claim buttons together after Win Start; the glow follows the title Idle instead.
+        // VI: Hiện hoặc ẩn ví, phần thưởng và các nút nhận thưởng cùng nhau sau Win Start; ánh sáng đi theo Idle của title.
         private void SetClaimVisible(bool visible)
         {
             rewardCoin.gameObject.SetActive(visible);
-            glow.SetActive(visible);
             rewardRoot.SetActive(visible);
             nextButton.gameObject.SetActive(visible);
             watchButton.gameObject.SetActive(visible);
         }
 
-        // EN: Start the authored logo once in unscaled time and watch its actual track for the title overlap.
-        // VI: Phát logo đã dựng một lần theo thời gian unscaled và theo dõi track thật để chồng title.
-        private void PlayLogoAnimation()
+        // EN: Play curtain Close once in unscaled time while the chef victory (started by LevelController just before) runs, then fade in the black background as soon as the curtain Close animation completes.
+        // VI: Phát curtain Close một lần theo thời gian unscaled trong lúc đầu bếp thắng (LevelController vừa bắt đầu) đang chạy, rồi hiện mờ nền đen ngay khi animation đóng rèm chạy xong.
+        private void PlayCurtainClose()
         {
             StopTitleSequence();
-            winTitleStarted = false;
             titleAnimation.gameObject.SetActive(false);
-            logoAnimation.gameObject.SetActive(true);
-            logoAnimation.UnscaledTime = true;
-            logoAnimation.Initialize(false);
-            logoAnimation.AnimationState.ClearTracks();
-            logoAnimation.Skeleton.SetToSetupPose();
-            logoEntry = logoAnimation.AnimationState.SetAnimation(0, "Start_End", false);
-            logoEntry.MixDuration = 0f;
-            logoEntry.Complete += OnLogoComplete;
-            logoAnimation.UpdateComplete += OnLogoUpdate;
+            if (!capturedBlackAlpha)
+            {
+                blackAlpha = blackBackground.color.a;
+                capturedBlackAlpha = true;
+            }
+            blackBackground.gameObject.SetActive(false);
+            curtainAnimation.gameObject.SetActive(true);
+            curtainAnimation.UnscaledTime = true;
+            curtainAnimation.Initialize(false);
+            curtainAnimation.AnimationState.ClearTracks();
+            curtainAnimation.Skeleton.SetToSetupPose();
+            Spine.TrackEntry close = curtainAnimation.AnimationState.SetAnimation(0, "Close", false);
+            close.MixDuration = 0f;
+            curtainAnimation.Update(0f);
+            curtainAnimation.LateUpdate();
+            close.Complete += OnCurtainClosed;
         }
 
-        // EN: Remove logo callbacks and cancel the pending claim delay before reopening or disabling.
-        // VI: Gỡ callback logo và hủy khoảng chờ hiện thưởng khi mở lại hoặc tắt.
+        // EN: Fires when the curtain Close animation has fully finished, then holds the closed curtain for curtainHoldDelay (unscaled) before the black background step.
+        // VI: Chạy khi animation đóng rèm đã kết thúc hẳn, rồi giữ rèm đóng thêm curtainHoldDelay (unscaled) trước bước hiện nền đen.
+        private void OnCurtainClosed(Spine.TrackEntry entry)
+        {
+            entry.Complete -= OnCurtainClosed;
+            if (!isActiveAndEnabled || closing) return;
+            curtainHold = DOVirtual.DelayedCall(curtainHoldDelay, ShowBlackBackground).SetUpdate(true);
+        }
+
+        // EN: After the curtain hold, fade the black background in to its authored alpha in unscaled time, then start the win title; ignored if the popup closed meanwhile.
+        // VI: Sau khi giữ rèm đóng, hiện mờ nền đen tới độ trong suốt đã thiết kế theo thời gian unscaled, rồi chạy title thắng; bỏ qua nếu popup đã đóng trong lúc chờ.
+        private void ShowBlackBackground()
+        {
+            curtainHold = null;
+            if (!isActiveAndEnabled || closing) return;
+            blackBackground.gameObject.SetActive(true);
+            Color color = blackBackground.color;
+            color.a = 0f;
+            blackBackground.color = color;
+            blackFade = blackBackground.DOFade(blackAlpha, blackFadeDuration).SetUpdate(true).OnComplete(PlayTitleAnimation);
+        }
+
+        // EN: Cancel the pending curtain hold, black background fade, glow reveal or claim delay before reopening or disabling.
+        // VI: Hủy khoảng giữ rèm, hiệu ứng hiện nền đen, hiệu ứng hiện ánh sáng hoặc khoảng chờ hiện thưởng còn lại khi mở lại hoặc tắt.
         private void StopTitleSequence()
         {
-            logoAnimation.UpdateComplete -= OnLogoUpdate;
-            if (logoEntry != null) logoEntry.Complete -= OnLogoComplete;
+            glowReveal?.Kill();
+            glowReveal = null;
+            curtainHold?.Kill();
+            curtainHold = null;
             claimDelay?.Kill();
             claimDelay = null;
-            logoEntry = null;
-
+            blackFade?.Kill();
+            blackFade = null;
         }
 
-        // EN: Begin Win Start once when the logo reaches its final configured overlap interval.
-        // VI: Bắt đầu Win Start một lần khi logo tới khoảng chồng nhịp cuối đã cấu hình.
-        private void OnLogoUpdate(ISkeletonAnimation animated)
-        {
-            if (logoEntry.TrackTime < Mathf.Max(0f, logoEntry.Animation.Duration - titleOverlap)) return;
-            logoAnimation.UpdateComplete -= OnLogoUpdate;
-            if (isActiveAndEnabled && !closing) PlayTitleAnimation();
-        }
-
-        // EN: Play Win Start then Idle and schedule wallet/claim reveal from the actual start time.
-        // VI: Phát Win Start rồi Idle và đặt lịch hiện ví/thưởng từ đúng lúc Start bắt đầu.
+        // EN: Play Win Start then Idle (the glow appears when Idle begins) and schedule wallet/claim reveal from the actual start time; ignored if the popup closed meanwhile.
+        // VI: Phát Win Start rồi Idle (ánh sáng hiện khi Idle bắt đầu) và đặt lịch hiện ví/thưởng từ đúng lúc Start bắt đầu; bỏ qua nếu popup đã đóng trong lúc chờ.
         private void PlayTitleAnimation()
         {
-            winTitleStarted = true;
+            claimDelay = null;
+            blackFade = null;
+            if (!isActiveAndEnabled || closing) return;
             titleAnimation.gameObject.SetActive(true);
             titleAnimation.UnscaledTime = true;
             titleAnimation.Initialize(false);
             titleAnimation.AnimationState.ClearTracks();
             titleAnimation.Skeleton.SetToSetupPose();
             titleAnimation.AnimationState.SetAnimation(0, "Start", false).MixDuration = 0f;
-            titleAnimation.AnimationState.AddAnimation(0, "Idle", true, 0f);
+            titleAnimation.AnimationState.AddAnimation(0, "Idle", true, 0f).Start += OnTitleIdleStarted;
             claimDelay = DOVirtual.DelayedCall(titleClaimDelay, RevealClaims).SetUpdate(true);
         }
 
-        // EN: Hide the completed logo and ensure title startup if completion preceded the frame update callback.
-        // VI: Ẩn logo đã xong và bắt đầu title nếu sự kiện hoàn tất đến trước callback cập nhật frame.
-        private void OnLogoComplete(Spine.TrackEntry entry)
+        // EN: Once the title enters Idle, fades the glow in from 0 to its authored alpha while scaling it from 0.8 to its authored scale (OutBack, unscaled); ignored if the popup closed meanwhile.
+        // VI: Khi title chuyển sang Idle, hiện mờ dần ánh sáng từ 0 tới alpha thiết kế đồng thời phóng từ 0.8 lên scale thiết kế (OutBack, unscaled); bỏ qua nếu popup đã đóng trong lúc chờ.
+        private void OnTitleIdleStarted(Spine.TrackEntry entry)
         {
-            entry.Complete -= OnLogoComplete;
-            logoAnimation.UpdateComplete -= OnLogoUpdate;
-            logoEntry = null;
-            if (isActiveAndEnabled && !closing && !winTitleStarted) PlayTitleAnimation();
-            logoAnimation.gameObject.SetActive(false);
+            entry.Start -= OnTitleIdleStarted;
+            if (!isActiveAndEnabled || closing) return;
+            if (glowGraphic == null)
+            {
+                glowGraphic = glow.GetComponent<Graphic>();
+                glowAlpha = glowGraphic.color.a;
+                glowRestScale = glow.transform.localScale;
+            }
+            Color color = glowGraphic.color;
+            color.a = 0f;
+            glowGraphic.color = color;
+            glow.transform.localScale = glowRestScale * 0.8f;
+            glow.SetActive(true);
+            glowReveal = DOTween.Sequence().SetUpdate(true)
+                .Join(glowGraphic.DOFade(glowAlpha, glowRevealDuration))
+                .Join(glow.transform.DOScale(glowRestScale, glowRevealDuration).SetEase(Ease.OutBack))
+                .OnComplete(() => glowReveal = null);
         }
 
         // EN: Reveal the wallet/glow and spring in claims after the configured unscaled delay from Win Start.
@@ -245,7 +295,7 @@ namespace FoodPop
         {
             if (!rewardReady || claimed || closing) return;
             PlayClickFeedback();
-            ClaimReward(WinReward);
+            ClaimReward(Reward.coin);
         }
 
         // EN: Plays feedback and temporarily forwards Watch to the public ad-success callback.
@@ -257,29 +307,29 @@ namespace FoodPop
             OnWatchAdsSuccess();
         }
 
-        // EN: Lock claims, start attraction and delay wallet count-up by the configured unscaled interval.
-        // VI: Khóa nhận thưởng, chạy xu bay và tăng số ví sau khoảng trễ unscaled đã cấu hình.
+        // EN: Lock claims and credit/save the reward at once so quitting during the coin flight cannot lose it, then start attraction, count the wallet up from the old balance after the configured unscaled delay and schedule navigation at the end of the flight.
+        // VI: Khóa nhận thưởng và cộng/lưu thưởng ngay để thoát game lúc xu đang bay không bị mất, rồi chạy xu bay, tăng số ví từ số dư cũ sau khoảng trễ unscaled đã cấu hình và hẹn chuyển màn khi xu bay xong.
         private void ClaimReward(int amount)
         {
             if (!rewardReady || claimed || closing || !isActiveAndEnabled || !Application.isPlaying) return;
             claimed = true;
             nextButton.interactable = false;
             watchButton.interactable = false;
-            pendingReward = amount;
+            int previousCoin = playerData.GetResourceValue(ResourceType.Coin);
+            playerData.OnAddCoin(amount, "win_reward");
             rewardRoot.SetActive(false);
             PlayUISound(IngameSoundManager.Event.RewardCollect);
             coinAttraction.Play();
-            rewardCoin.AnimateReward(amount, Mathf.Max(0.01f, coinAttraction.duration + coinAttraction.lifetime.constantMax - coinCountDelay), coinCountDelay);
+            float flightDuration = coinAttraction.duration + coinAttraction.lifetime.constantMax;
+            rewardCoin.AnimateReward(previousCoin, Mathf.Max(0.01f, flightDuration - coinCountDelay), coinCountDelay);
+            rewardFlight = DOVirtual.DelayedCall(flightDuration, CompleteReward).SetUpdate(true);
         }
 
-        // EN: Credits the selected total only after the last coin finishes, updating UICoin before navigation.
-        // VI: Chỉ cộng tổng thưởng đã chọn khi xu cuối kết thúc, cập nhật UICoin trước khi chuyển màn.
+        // EN: Runs after the coin flight duration (unscaled timer, independent of particle events) and moves on to the next level when one exists; the reward was already credited at claim.
+        // VI: Chạy khi hết thời lượng xu bay (hẹn giờ unscaled, không phụ thuộc sự kiện particle) và chuyển sang màn kế tiếp nếu có; phần thưởng đã được cộng lúc nhận.
         private void CompleteReward()
         {
-            if (pendingReward == 0) return;
-            int amount = pendingReward;
-            pendingReward = 0;
-            playerData.OnAddCoin(amount, "win_reward");
+            rewardFlight = null;
             if (hasNextLevel) CloseWithAnimation(nextAction);
         }
     }

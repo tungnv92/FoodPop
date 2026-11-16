@@ -146,11 +146,11 @@ namespace FoodPop
                 instance = null;
         }
 
-        // EN: Only shakes a locked booster (no purchase, no message), requests purchases when empty and starts eligible boosters only after payment succeeds; Pickup commits at the validated pick boundary. Player-facing rejections (Clean on an empty belt, Pickup reasons) show their BoosterConfig short message.
-        // VI: Booster còn khóa chỉ lắc (không mua, không thông báo); yêu cầu mua khi hết lượt và chỉ chạy booster hợp lệ sau khi thanh toán thành công; Pickup chốt tại bước lấy đã kiểm tra. Các lý do từ chối hiện cho người chơi (Clean khi băng trống, lý do của Pickup) dùng thông báo ngắn trong BoosterConfig.
+        // EN: Ignores every press while paused or once the level is no longer Playing (e.g. the delayed win presentation); otherwise only shakes a locked booster (no purchase, no message), requests purchases when empty and starts eligible boosters only after payment succeeds; Pickup commits at the validated pick boundary. Player-facing rejections (Clean on an empty belt, Pickup reasons) show their BoosterConfig short message.
+        // VI: Bỏ qua mọi lần bấm khi đang tạm dừng hoặc màn không còn ở trạng thái Playing (ví dụ lúc chờ trình diễn thắng); ngoài ra booster còn khóa chỉ lắc (không mua, không thông báo); yêu cầu mua khi hết lượt và chỉ chạy booster hợp lệ sau khi thanh toán thành công; Pickup chốt tại bước lấy đã kiểm tra. Các lý do từ chối hiện cho người chơi (Clean khi băng trống, lý do của Pickup) dùng thông báo ngắn trong BoosterConfig.
         public bool TryActivate(Booster booster)
         {
-            if (Time.timeScale <= 0f) return false;
+            if (Time.timeScale <= 0f || levelController.State != LevelController.LevelState.Playing) return false;
             if (booster != null && booster.IsLocked)
             {
                 booster.PlayDenied();

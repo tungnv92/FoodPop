@@ -211,6 +211,19 @@ namespace FoodPop
         {
             [Tooltip("Hệ số tốc độ game khi vào pre-win (1.3 = nhanh hơn 30%).")]
             [Range(1f, 2f)] public float speedMultiplier = 1.3f;
+            [Tooltip("Thời gian chờ (giây, tốc độ thường) sau khi phục vụ xong khách cuối rồi mới thu nhỏ đĩa và hiện bảng thắng.")]
+            [Min(0f)] public float hidePlatesDelay = 1f;
+            [Tooltip("Thời gian (giây) để đĩa trên băng chuyền thu nhỏ dần tới khi biến mất lúc thắng.")]
+            [Min(0.01f)] public float plateShrinkDuration = 0.35f;
+        }
+
+        [Serializable]
+        public class WinRewardSettings
+        {
+            [Tooltip("Số xu nhận khi bấm nút nhận thưởng thường ở bảng thắng.")]
+            [Min(0)] public int coin = 100;
+            [Tooltip("Số xu nhận khi xem quảng cáo ở bảng thắng.")]
+            [Min(0)] public int watchAdsCoin = 200;
         }
 
         // EN: Exposes the single shared ingredient catalogue referenced by the gameplay configuration.
@@ -271,6 +284,9 @@ namespace FoodPop
 
         [Tooltip("Pre-win: tăng tốc game khi số phần món còn trên board vừa đủ số slot trống trên băng chuyền")]
         public PreWinSettings preWin = new PreWinSettings();
+
+        [Tooltip("Phần thưởng xu ở bảng thắng")]
+        public WinRewardSettings winReward = new WinRewardSettings();
 
         private static IngameConfig defaultConfig;
 
