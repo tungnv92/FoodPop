@@ -82,6 +82,11 @@ namespace FoodPop
         private bool collectionInputWasLocked;
         private readonly List<SpriteRenderer> collectionFlyers = new List<SpriteRenderer>();
         private readonly List<ParticleEffect> collectionTrails = new List<ParticleEffect>();
+        private readonly List<ConveyorSlot> clearTargets = new List<ConveyorSlot>();
+        private readonly List<ConveyorSlot> clearExcess = new List<ConveyorSlot>();
+        private readonly List<ConveyorSlot> clearNeeded = new List<ConveyorSlot>();
+        private readonly List<ConveyorSlot> holdingTargets = new List<ConveyorSlot>();
+        private readonly List<FoodType> collectionDemand = new List<FoodType>();
         private Booster trialBooster;
         private System.Action trialTapped;
         private readonly List<SpriteRenderer> fxPool = new List<SpriteRenderer>();
@@ -209,7 +214,7 @@ namespace FoodPop
                 case CleanBrushBooster cleanBrush:
                     if (!cleanBrush.Consume()) return false;
                     cleanPending = true;
-                    StartCoroutine(RunLocked(CleanBrush(cleanBrush)));
+                    StartCoroutine(RunLocked(ClearBelt(cleanBrush, cleanBrush.maxClearSlots, holdingStorage.FreeSpots)));
                     return true;
                 default:
                     Debug.LogWarning($"[BoosterController] Booster {booster.Type} chưa có logic.", booster);
@@ -233,18 +238,17 @@ namespace FoodPop
             trialTapped = null;
         }
 
-        // EN: Checks whether revive can reuse Clean's configured effects and storage without starting a booster.
-        // VI: Kiểm tra hồi sinh có thể dùng lại hiệu ứng và kho của Clean mà chưa bắt đầu booster.
+        // EN: Checks whether revive can clear the belt back onto the board with Clean's configured effects without starting a booster; the holding cabinet is not involved.
+        // VI: Kiểm tra hồi sinh có thể dọn băng chuyền về board bằng hiệu ứng của Clean mà chưa bắt đầu booster; không dùng tủ giữ món.
         public bool CanCleanForRevive()
         {
             return isActiveAndEnabled && !running && !cleanPending && board != null &&
-                holdingStorage != null && holdingStorage.IsReady && !holdingStorage.IsReturning &&
                 FindCleanSettings() != null && ChefManager.Instance != null &&
                 ChefManager.Instance.HasFoodOnBelt() && FindFirstObjectByType<ConveyorChefMovement>() != null;
         }
 
-        // EN: Starts the normal locked Clean collection for revive without consuming or tapping a booster button.
-        // VI: Bắt đầu lượt thu Clean khóa thao tác để hồi sinh mà không tiêu hao hoặc bấm nút booster.
+        // EN: Starts the locked revive cleaning (every belt portion flies straight back to the board) without consuming or tapping a booster button.
+        // VI: Bắt đầu lượt dọn hồi sinh khóa thao tác (mọi phần food trên băng bay thẳng về board) mà không tiêu hao hoặc bấm nút booster.
         public bool TryCleanForRevive(System.Action<bool> completed)
         {
             if (Time.timeScale <= 0f || !CanCleanForRevive()) return false;
@@ -415,11 +419,11 @@ namespace FoodPop
             return GetComponentInChildren<CleanBrushBooster>(true);
         }
 
-        // EN: Reports completion only after Clean has released its pause and input locks and freed conveyor space.
-        // VI: Báo hoàn tất sau khi Clean nhả tạm dừng, khóa thao tác và giải phóng chỗ trên băng chuyền.
+        // EN: Clears every belt slot straight back to the board (no cabinet spot is used) and reports completion only after the cleaning has released its pause and input locks and freed conveyor space.
+        // VI: Dọn mọi slot trên băng thẳng về board (không dùng ô tủ nào) và chỉ báo hoàn tất sau khi lượt dọn nhả tạm dừng, khóa thao tác và giải phóng chỗ trên băng chuyền.
         private IEnumerator RunReviveClean(CleanBrushBooster settings, System.Action<bool> completed)
         {
-            yield return RunLocked(CleanBrush(settings));
+            yield return RunLocked(ClearBelt(settings, int.MaxValue, 0));
             ChefManager chef = ChefManager.Instance;
             completed?.Invoke(chef != null && chef.CountEmptySlots() > 0);
         }
@@ -1144,33 +1148,31 @@ namespace FoodPop
 
         // ---------------------------------------------------------------- CleanBrush
 
-        // EN: Pauses belt activity, pops the holding bag in and collects food into it in staggered flights, waiting for the final landing; the bag hides again if nothing was collected.
-        // VI: Tạm dừng hoạt động băng, cho túi giữ món bật hiện và thu food vào bằng các chuyến bay nối tiếp, chờ tới lần đáp cuối; túi ẩn lại nếu không thu được gì.
-        private IEnumerator CleanBrush(CleanBrushBooster settings)
+        // EN: Clears at most clearLimit belt slots (Clean: maxClearSlots with the free cabinet spots; revive: every slot with no cabinet spot, so everything returns to the board): pauses belt activity, then in staggered flights in belt order sends up to holdingCapacity cleared portions into the free holding-cabinet spots and flies every other cleared portion back to the board; waits for the final landing.
+        // VI: Dọn tối đa clearLimit slot trên băng (Clean: maxClearSlots cùng số ô tủ còn trống; hồi sinh: mọi slot và không dùng ô tủ nào, nên tất cả về board): tạm dừng hoạt động băng, rồi bằng các chuyến bay nối tiếp theo thứ tự băng đưa tối đa holdingCapacity phần được dọn vào ô trống của tủ giữ món, mọi phần được dọn còn lại bay về board; chờ tới lần đáp cuối.
+        private IEnumerator ClearBelt(CleanBrushBooster settings, int clearLimit, int holdingCapacity)
         {
             ChefManager chef = ChefManager.Instance;
             CustomerManager customers = CustomerManager.Instance;
             ConveyorChefMovement belt = FindFirstObjectByType<ConveyorChefMovement>();
-            if (chef == null || belt == null || holdingStorage == null || !holdingStorage.IsReady)
+            if (chef == null || belt == null)
                 yield break;
+            if (holdingStorage != null) holdingStorage.CancelPendingReturn();
             PauseForCollection(belt, chef, customers);
-            holdingStorage.ShowBag();
             try
             {
+                SelectClearTargets(chef, customers, clearLimit, holdingCapacity);
                 int launched = 0, landed = 0;
                 foreach (ConveyorSlot slot in chef.Slots)
                 {
-                    if (slot == null || !slot.isActiveAndEnabled || slot.isEmpty || slot.food == null)
+                    if (!clearTargets.Contains(slot) || slot.isEmpty || slot.food == null)
                         continue;
-                    Vector3 start = slot.LandingPosition;
-                    Vector3 sourceScale = slot.LandingScale;
-                    FoodState state = slot.food.state;
-                    if (!chef.TryTakeSlot(slot, out FoodType type, out Sprite sprite))
+                    bool started = holdingTargets.Contains(slot)
+                        ? LaunchToHolding(settings, chef, slot, () => landed++)
+                        : LaunchToBoard(settings, chef, slot, () => landed++);
+                    if (!started)
                         continue;
-                    FoodHoldingStorage.Portion portion = holdingStorage.Store(type, state, sprite, sourceScale);
-                    int layer = slot.IngredientRenderer != null ? slot.IngredientRenderer.sortingLayerID : 0;
                     launched++;
-                    StartCoroutine(CollectIntoTray(settings, slot, portion, sprite, start, layer, () => landed++));
                     yield return new WaitForSeconds(settings.collectInterval);
                 }
                 while (landed < launched)
@@ -1178,7 +1180,6 @@ namespace FoodPop
                 foreach (ConveyorSlot slot in chef.Slots)
                     while (slot != null && slot.IsPlateReturning)
                         yield return null;
-                holdingStorage.HideIfEmpty();
             }
             finally
             {
@@ -1202,6 +1203,82 @@ namespace FoodPop
             if (customers != null) customers.BoosterPaused = true;
         }
 
+        // EN: Splits belt slots holding food into excess food (no current order needs it) and needed food (each need matched once, belt order), then picks at most clearLimit slots. Free cabinet spots are filled first (holdingTargets, these go into the cabinet), excess food first and then needed food. The rest of the limit takes excess food, then remaining needed food (both go to the board). clearTargets holds every picked slot.
+        // VI: Chia các slot băng có food thành món thừa (không order hiện tại nào cần) và món đang cần (mỗi nhu cầu khớp một lần, theo thứ tự băng), rồi chọn tối đa clearLimit slot. Ô tủ còn trống được lấp trước (holdingTargets, các slot này vào tủ), món thừa trước rồi món đang cần. Phần còn lại của giới hạn lấy món thừa, rồi món đang cần còn lại (hai nhóm này về board). clearTargets chứa mọi slot được chọn.
+        private void SelectClearTargets(ChefManager chef, CustomerManager customers, int clearLimit, int holdingCapacity)
+        {
+            clearTargets.Clear();
+            clearExcess.Clear();
+            clearNeeded.Clear();
+            holdingTargets.Clear();
+            collectionDemand.Clear();
+            if (customers != null)
+                customers.GetNeededIngredients(collectionDemand, false);
+            foreach (ConveyorSlot slot in chef.Slots)
+            {
+                if (slot == null || !slot.isActiveAndEnabled || slot.isEmpty || slot.food == null)
+                    continue;
+                if (collectionDemand.Remove(slot.food.foodType))
+                    clearNeeded.Add(slot);
+                else
+                    clearExcess.Add(slot);
+            }
+            int holdingLimit = Mathf.Min(holdingCapacity, clearLimit);
+            int excessHeld = Mathf.Min(clearExcess.Count, holdingLimit);
+            int neededHeld = Mathf.Min(clearNeeded.Count, holdingLimit - excessHeld);
+            for (int i = 0; i < excessHeld; i++)
+                holdingTargets.Add(clearExcess[i]);
+            for (int i = 0; i < neededHeld; i++)
+                holdingTargets.Add(clearNeeded[i]);
+            clearTargets.AddRange(holdingTargets);
+            for (int i = excessHeld; i < clearExcess.Count && clearTargets.Count < clearLimit; i++)
+                clearTargets.Add(clearExcess[i]);
+            for (int i = neededHeld; i < clearNeeded.Count && clearTargets.Count < clearLimit; i++)
+                clearTargets.Add(clearNeeded[i]);
+        }
+
+        // EN: Takes a slot's portion into the next free cabinet spot and starts its flight there; the portion drops in on arrival (or is revealed if stopped early). Returns false when nothing was taken.
+        // VI: Lấy phần food của slot vào ô tủ trống tiếp theo và cho bay tới đó; đáp xong thì food rơi vào ô (hoặc hiện ngay nếu bị dừng giữa chừng). Trả về false nếu không lấy được gì.
+        private bool LaunchToHolding(CleanBrushBooster settings, ChefManager chef, ConveyorSlot slot, System.Action landed)
+        {
+            Vector3 start = slot.LandingPosition;
+            Vector3 scale = slot.LandingScale;
+            FoodState state = slot.food.state;
+            int layer = slot.IngredientRenderer != null ? slot.IngredientRenderer.sortingLayerID : 0;
+            if (!chef.TryTakeSlot(slot, out FoodType type, out Sprite sprite))
+                return false;
+            FoodHoldingStorage.Portion portion = holdingStorage.Store(type, state, sprite, scale);
+            StartCoroutine(FlyFoodFromSlot(settings, slot, sprite, start, scale, layer,
+                () => holdingStorage.GetPosition(portion),
+                arrived =>
+                {
+                    if (arrived) holdingStorage.DropIn(portion);
+                    else holdingStorage.Reveal(portion);
+                    landed();
+                }));
+            return true;
+        }
+
+        // EN: Picks the next board column in turn (spreading returns evenly), takes the slot's portion and flies it to that column's first row; it always lands as a raw one-portion dish at the bottom of the column (also when stopped early). Returns false when nothing was taken.
+        // VI: Chọn cột board kế tiếp theo vòng (chia đều đĩa trả về), lấy phần food của slot và cho bay tới hàng đầu tiên của cột đó; food luôn đáp thành đĩa thô một phần ở cuối cột (kể cả khi bị dừng giữa chừng). Trả về false nếu không lấy được gì.
+        private bool LaunchToBoard(CleanBrushBooster settings, ChefManager chef, ConveyorSlot slot, System.Action landed)
+        {
+            Vector3 start = slot.LandingPosition;
+            Vector3 scale = slot.LandingScale;
+            int layer = slot.IngredientRenderer != null ? slot.IngredientRenderer.sortingLayerID : 0;
+            if (!board.TryPickReturnColumn(out int column, out Vector3 target) ||
+                !chef.TryTakeSlot(slot, out FoodType type, out Sprite sprite))
+                return false;
+            StartCoroutine(FlyFoodFromSlot(settings, slot, sprite, start, scale, layer,
+                () => target,
+                arrived =>
+                {
+                    board.AddReturnedDish(column, type);
+                    landed();
+                }));
+            return true;
+        }
+
         // EN: Restores only the pause flags owned by collection, safely tolerating destroyed scene objects.
         // VI: Khôi phục riêng cờ tạm dừng của lượt thu, xử lý an toàn khi object scene đã bị hủy.
         private void RestoreCollectionPause()
@@ -1214,9 +1291,9 @@ namespace FoodPop
             collectionPaused = false;
         }
 
-        // EN: Lifts plate and highlighted food together, then drops the plate while food flies at original size to the bag mouth and drops in behind the bag's front layer.
-        // VI: Nhấc đĩa và food sáng cùng nhau, rồi thả đĩa xuống khi food bay ở kích thước gốc tới miệng túi và rơi vào sau lớp trước của túi.
-        private IEnumerator CollectIntoTray(CleanBrushBooster settings, ConveyorSlot slot, FoodHoldingStorage.Portion portion, Sprite sprite, Vector3 start, int layer, System.Action landed)
+        // EN: Lifts plate and highlighted food together, then drops the plate while food flies at its belt size along an arc to a (possibly moving) target; finished(arrived) always runs, also when the flight is stopped early.
+        // VI: Nhấc đĩa và food sáng cùng nhau, rồi thả đĩa xuống khi food bay theo vòng cung ở kích thước trên băng tới đích (có thể đang di chuyển); finished(arrived) luôn được gọi, kể cả khi chuyến bay bị dừng giữa chừng.
+        private IEnumerator FlyFoodFromSlot(CleanBrushBooster settings, ConveyorSlot slot, Sprite sprite, Vector3 start, Vector3 scale, int layer, System.Func<Vector3> target, System.Action<bool> finished)
         {
             SpriteRenderer flyer = RentFx(sprite, layer, settings.sortingOrder);
             Material normalMaterial = flyer.sharedMaterial;
@@ -1233,7 +1310,7 @@ namespace FoodPop
                     if (slot != null) slot.SetCollectionLift(settings.liftHeight * t);
                     flyer.transform.position = start + Vector3.up * settings.liftHeight * t;
                     float pulse = Mathf.Sin(t * Mathf.PI);
-                    flyer.transform.localScale = portion.worldScale * (1f + settings.collectPulse * pulse);
+                    flyer.transform.localScale = scale * (1f + settings.collectPulse * pulse);
                     highlight.SetFloat("_FlashStrength", pulse);
                     flyer.SetPropertyBlock(highlight);
                     yield return null;
@@ -1249,15 +1326,13 @@ namespace FoodPop
                 trail = StartCollectionTrail(settings.collectionTrail, from, layer, settings.sortingOrder - 1);
                 for (float elapsed = 0f; elapsed < settings.flyDuration; elapsed += Time.deltaTime)
                 {
-                    if (holdingStorage == null)
-                        yield break;
                     float t = Mathf.SmoothStep(0f, 1f, elapsed / settings.flyDuration);
-                    Vector3 target = holdingStorage.MouthPosition;
-                    Vector3 control = (from + target) * 0.5f + Vector3.up * settings.flyArc;
-                    Vector3 position = (1f-t)*(1f-t)*from + 2f*(1f-t)*t*control + t*t*target;
+                    Vector3 end = target();
+                    Vector3 control = (from + end) * 0.5f + Vector3.up * settings.flyArc;
+                    Vector3 position = (1f-t)*(1f-t)*from + 2f*(1f-t)*t*control + t*t*end;
                     flyer.transform.position = position;
                     if (trail != null) trail.transform.position = position;
-                    flyer.transform.localScale = portion.worldScale;
+                    flyer.transform.localScale = scale;
                     flyer.transform.rotation = Quaternion.Euler(0f, 0f, -8f * Mathf.Sin(t * Mathf.PI));
                     yield return null;
                 }
@@ -1273,12 +1348,7 @@ namespace FoodPop
                     flyer.SetPropertyBlock(null);
                 }
                 if (flyer != null && flyer.gameObject.activeSelf) ReleaseFx(flyer);
-                if (holdingStorage != null)
-                {
-                    if (arrived) holdingStorage.DropIn(portion);
-                    else holdingStorage.Reveal(portion);
-                }
-                landed();
+                finished(arrived);
             }
         }
 

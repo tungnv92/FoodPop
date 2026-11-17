@@ -154,7 +154,7 @@ namespace FoodPop
         private int dishSortingLayer;
         private int quantitySortingOrder;
 
-        private readonly List<int> pendingReturns = new List<int>();
+        private int nextReturnColumn;
 
         // EN: Clears the static singleton when entering Play Mode, including when domain reload is disabled.
         // VI: Xóa singleton tĩnh khi vào Play Mode, kể cả khi tắt tải lại miền mã.
@@ -256,7 +256,7 @@ namespace FoodPop
             StopLidReveals();
             ClearDishLinks();
             ReturnBoardDishes();
-            pendingReturns.Clear();
+            nextReturnColumn = 0;
             ApplyColumnSpacing(columnCount);
             UpdateIngredientTableVisual(columnCount);
             while (columnDishes.Count < columns.Count)
@@ -415,43 +415,32 @@ namespace FoodPop
             return true;
         }
 
-        // EN: Books the bottom place of the active column that will hold the fewest dishes (counting returns still on their way) for a dish coming back from the conveyor; gives the column and the world position where that dish will sit.
-        // VI: Giữ chỗ cuối của cột đang dùng sẽ có ít đĩa nhất (tính cả các đĩa đang trên đường trả về) cho một đĩa trả về từ băng chuyền; trả về cột và vị trí world nơi đĩa đó sẽ nằm.
-        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
-        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
-        public bool TryReserveReturnSpot(out int column, out Vector3 position)
+        // EN: Picks the column for a dish coming back from the conveyor by cycling through the active columns in turn, so returns are spread evenly across the board; gives the column and the world position of its first row, which return flights aim at (the dish itself is added at the bottom).
+        // VI: Chọn cột cho một đĩa trả về từ băng chuyền bằng cách lần lượt xoay vòng qua các cột đang dùng, để đĩa trả về được chia đều khắp board; trả về cột và vị trí world của hàng đầu tiên trong cột, là đích của chuyến bay trả về (bản thân đĩa vẫn được thêm vào cuối cột).
+        public bool TryPickReturnColumn(out int column, out Vector3 position)
         {
             column = -1;
             position = default;
-            while (pendingReturns.Count < columnDishes.Count)
-                pendingReturns.Add(0);
-            int best = int.MaxValue;
-            for (int c = 0; c < columnDishes.Count && c < ingredientColumns.Count; c++)
+            int count = Mathf.Min(columnDishes.Count, ingredientColumns.Count);
+            for (int step = 0; step < count; step++)
             {
+                int c = (nextReturnColumn + step) % count;
                 if (!ingredientColumns[c].gameObject.activeSelf)
                     continue;
-                int count = columnDishes[c].Count + pendingReturns[c];
-                if (count < best)
-                {
-                    best = count;
-                    column = c;
-                }
+                column = c;
+                nextReturnColumn = (c + 1) % count;
+                position = ingredientColumns[c].TransformPoint(GetRowLocalPosition(0));
+                return true;
             }
-            if (column < 0)
-                return false;
-            pendingReturns[column]++;
-            position = ingredientColumns[column].TransformPoint(GetRowLocalPosition(best));
-            return true;
+            return false;
         }
 
-        // EN: Places a returned raw dish (one portion, open, not frozen) at the bottom of a column booked with TryReserveReturnSpot and pops it in.
-        // VI: Đặt một đĩa thô trả về (một phần, đang mở, không đóng băng) vào cuối cột đã giữ chỗ bằng TryReserveReturnSpot và cho đĩa nảy lên.
+        // EN: Places a returned raw dish (one portion, open, not frozen) at the bottom of a column picked with TryPickReturnColumn and pops it in.
+        // VI: Đặt một đĩa thô trả về (một phần, đang mở, không đóng băng) vào cuối cột đã chọn bằng TryPickReturnColumn và cho đĩa nảy lên.
         public void AddReturnedDish(int column, FoodType type)
         {
             if (column < 0 || column >= columnDishes.Count || !EnsureDishPool())
                 return;
-            if (column < pendingReturns.Count)
-                pendingReturns[column] = Mathf.Max(0, pendingReturns[column] - 1);
             Food dish = dishPool.Get(ingredientColumns[column]);
             if (dish == null)
                 return;
