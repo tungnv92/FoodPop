@@ -43,3 +43,13 @@ Luật phục vụ, xếp món trên khay và định nghĩa món (`FinalFoodVie
 - `RedCircle` (`Art/Sprites/UI/RedCircle.png`, 300×300) với `Scripts/UI/PulseScale.cs`: scale 1 → 1.2 theo cosin, chu kỳ 1 s, unscaled; trả scale gốc khi tắt.
 
 **Kiểm chứng:** Home đã kiểm tra Play Mode qua Unity MCP (13/11); chưa xem trên thiết bị.
+
+## Padding sprite
+
+159 ảnh từng được nới kích thước trong commit `a2b7ac3` đã được tạo lại từ ảnh trước commit, thêm viền RGBA=0 để chiều rộng/cao chia hết cho 4; không nhân bản pixel mép và không resize nội dung. Giữ nguyên GUID, PPU và chế độ Single/Multiple hiện có.
+
+- 148 sprite Single dùng pivot Custom đã bù phần thêm: `(offset + pivotGốc × kíchThướcGốc) / kíchThướcMới`, với offset Y tính từ đáy. Nội dung giữ vị trí so với Transform; bounds và kích thước native tăng 1–3 px. Các chỗ fit theo bounds, SetNativeSize hoặc preserveAspect vẫn cần kiểm tra trực quan. Border 9-slice có sẵn được cộng phần padding tương ứng; ảnh không dùng slice giữ border bằng 0.
+- 11 ảnh Multiple giữ nguyên kích thước rect và dịch rect theo padding trái/đáy, giữ ID của từng sprite. Rect `Ingame/dot_red` bị bỏ sót ở commit cũ đã được dịch đúng.
+- Khi thêm ảnh mới, không chạy lại script padding nhân bản mép cũ trong `output/sprite-pad-backup/`.
+
+Kiểm chứng 17/11/2026: so sánh lại ảnh đã lưu của cả 159 file, pixel gốc giữ nguyên từng byte và mọi pixel thêm đều RGBA=0; xác nhận GUID không đổi, pivot Single bảo toàn gốc tọa độ nội dung và 11 rect Multiple khớp ảnh gốc. Unity đã import mẫu `edamame_3` thành công ở chế độ Single, kích thước 172×112 và pivot pixel (85.5, 56.5). `git diff --check` không có lỗi whitespace. Chưa kiểm tra hình ảnh toàn bộ scene/popup và chưa build Android.
