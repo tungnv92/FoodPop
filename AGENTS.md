@@ -78,20 +78,24 @@ public void ExampleFunction()
 ## Mandatory file and asset organization
 
 - Every newly created, generated, imported, or copied project file must be placed in the correct folder for its type and gameplay feature. This is mandatory alongside bilingual function comments.
-- Main game content belongs under `Assets/HotPot`. Follow `Documentation/Features/HotPot/AssetFolders.md` and the existing feature subfolders:
+- Main game content belongs under `Assets/HotPot`, in these folders (follow the existing feature subfolders):
   - Sprites/textures: `Art/Sprites/<feature>`.
   - Source fonts and TMP font assets: `Art/Fonts`; font material presets: `Art/Fonts/Materials`.
-  - Shaders: `Art/Shaders/<feature>`.
+  - Shaders: `Art/Shaders/<feature>` (never a separate `Shaders/` folder).
   - Materials: `Art/Materials/<feature>`; particle materials: `Art/Materials/Particles`.
   - Meshes: `Art/Meshes/<feature>`.
+  - Audio clips and mixers: `Audio/<feature>`.
   - Animation clips and Animator controllers: `Animations/<feature>`.
-  - Prefabs: `Prefabs`; scenes: `Scenes`; configuration assets: `Config`.
-  - Runtime scripts: `Scripts/<feature>`; editor-only tools: `Editor`; documentation: `Documentation`.
+  - Prefabs: `Prefabs/<feature>` (gameplay objects: `Prefabs/Ingame`); scenes: `Scenes`.
+  - Configuration assets: `Config`; shared config `Config/Resources/IngameConfig.asset`; levels `Config/Resources/Levels/LevelConfig_NN.asset`.
+  - Runtime scripts: `Scripts/<feature>`; editor-only tools: `Editor`.
+  - Documentation never goes under `Assets`; it lives in the root `Documentation/` folder (see "Documentation layout").
+- Sprite and texture images must have width and height that are multiples of 4 so Android can compress them to ETC2; otherwise Unity keeps them uncompressed (RGBA32). Also keep `Max Size` at or above the image size so Unity does not downscale it to an odd size.
 - Create a clearly named feature subfolder when needed. Do not mix sprites, shaders, materials, fonts, animations, or code in one folder, or leave generated assets loose in the project root.
-- Keep temporary outputs and source-art backups outside `Assets`, following the existing workspace conventions.
+- Keep temporary outputs and source-art backups outside `Assets`, in the workspace `tmp` and `output` folders.
 - Preserve `.meta` files and GUIDs when moving existing Unity assets. Update path-based loaders and documentation, and verify consuming references after moves.
 - Do not reorganize external libraries or folders outside `Assets/HotPot` unless explicitly requested.
-- Quy tắc bắt buộc: mọi file được tạo, sinh, import hoặc sao chép phải nằm đúng thư mục theo loại và chức năng, theo cấu trúc trên. Không để lẫn sprite, font, shader, material, animation và code. Khi di chuyển asset Unity phải giữ `.meta`/GUID, cập nhật đường dẫn và kiểm tra tham chiếu. File tạm và bản sao lưu ảnh nguồn phải ở ngoài `Assets`; không sắp xếp thư viện ngoài hoặc thư mục ngoài `Assets/HotPot` khi chưa được yêu cầu.
+- Quy tắc bắt buộc: mọi file được tạo, sinh, import hoặc sao chép phải nằm đúng thư mục theo loại và chức năng, theo cấu trúc trên. Ảnh sprite/texture phải có chiều rộng và cao chia hết cho 4 để nén ETC2 trên Android (không thì Unity để RGBA32 không nén), và `Max Size` không nhỏ hơn kích thước ảnh để Unity không thu nhỏ thành kích thước lẻ. Không để lẫn sprite, font, shader, material, âm thanh, animation và code; font và shader luôn nằm trong `Art/` (`Art/Fonts`, `Art/Shaders/<tính năng>`), âm thanh trong `Audio/<tính năng>`. Khi di chuyển asset Unity phải giữ `.meta`/GUID, cập nhật đường dẫn và kiểm tra tham chiếu. File tạm và bản sao lưu ảnh nguồn phải ở ngoài `Assets`; không sắp xếp thư viện ngoài hoặc thư mục ngoài `Assets/HotPot` khi chưa được yêu cầu.
 
 ## Mandatory automatic Markdown documentation updates
 
@@ -108,14 +112,15 @@ public void ExampleFunction()
 
 - Every Markdown document or rule file (new or existing) lives under `Documentation/` at the project root. Never create `.md` files anywhere else (not in `Assets/`, `claude/`, `output/`, `design/`, …). Exceptions: `AGENTS.md`, `CLAUDE.md` and `README.md` at the root, and a `README.md` next to a standalone tool such as `Web/LevelStudio/`.
 - `Documentation/Rules/` — project rules; every file here is binding for all agents (Codex, Claude, Multi Agents workers).
-- `Documentation/Features/<Area>/` — feature and system documentation (current gameplay docs: `Documentation/Features/HotPot/`).
-- `Documentation/Handoff/` — handoff notes between agents and sessions (formerly `claude/`).
+- `Documentation/Features/` — feature and system documentation, one flat folder (no per-area subfolders): gameplay systems, UI, boosters, config, data, editor and web tools.
+- `Documentation/Handoff/` — only handoff notes between agents and sessions (status, open work, what was verified), e.g. `foodpop-handoff.md` as the entry point. Describe how a system works in `Features/`, not here.
 - `Documentation/Design/<feature>/` — UI/art specs and mockups from the artist; image-generation prompts in `Documentation/Design/Prompts/`.
 - `Documentation/Chats/` — chat records written by Multi Agents (`/document`). `Documentation/INDEX.md` is an auto-generated index (statistics + tree); do not edit it by hand.
-- Docs were moved here on 2026-11-13 (`claude/*` → `Documentation/Handoff/`, `Assets/HotPot/Documentation/*` → `Documentation/Features/HotPot/`, `output/**/prompts*.md` → `Documentation/Design/Prompts/`). Use the new paths in all references.
+- Docs were moved here on 2026-11-13 (`claude/*` → `Documentation/Handoff/`, `Assets/HotPot/Documentation/*` → `Documentation/Features/`, `output/**/prompts*.md` → `Documentation/Design/Prompts/`). Use the new paths in all references.
+- On 2026-11-17 `Features/HotPot/*` was flattened into `Features/`, and the system docs `Booster`, `UI`, `Conveyor`, `CustomerManager`, `LevelEditor` and `foodpop-FoodBoardManager` (renamed `FoodBoardManager.md`) moved from `Handoff/` to `Features/`.
 - VI: Mọi tài liệu Markdown và file quy tắc (mới hay cũ) nằm trong `Documentation/` ở gốc dự án; không tạo `.md` ở nơi khác (không đặt trong `Assets/`, `claude/`, `output/`, `design/`…). Ngoại lệ: `AGENTS.md`, `CLAUDE.md`, `README.md` ở gốc và `README.md` đi kèm công cụ độc lập như `Web/LevelStudio/`.
-- VI: `Rules/` = quy tắc (bắt buộc với mọi agent), `Features/<Khu vực>/` = tài liệu tính năng/hệ thống, `Handoff/` = ghi chú bàn giao (trước đây là `claude/`), `Design/<tính năng>/` = spec + mockup của Artist, `Design/Prompts/` = prompt tạo ảnh, `Chats/` = tài liệu chat của Multi Agents. `INDEX.md` do app tự sinh, không sửa tay.
-- VI: Tài liệu đã được chuyển vào đây ngày 13/11/2026; mọi tham chiếu phải dùng đường dẫn mới.
+- VI: `Rules/` = quy tắc (bắt buộc với mọi agent), `Features/` = tài liệu tính năng/hệ thống (một thư mục phẳng, không chia thư mục con theo khu vực), `Handoff/` = chỉ ghi chú bàn giao (trạng thái, việc còn treo, đã kiểm chứng gì), không mô tả cách hệ thống hoạt động, `Design/<tính năng>/` = spec + mockup của Artist, `Design/Prompts/` = prompt tạo ảnh, `Chats/` = tài liệu chat của Multi Agents. `INDEX.md` do app tự sinh, không sửa tay.
+- VI: Tài liệu đã được chuyển vào đây ngày 13/11/2026; ngày 17/11/2026 gộp `Features/HotPot/*` lên `Features/` và chuyển tài liệu hệ thống (`Booster`, `UI`, `Conveyor`, `CustomerManager`, `LevelEditor`, `FoodBoardManager`) từ `Handoff/` sang `Features/`. Mọi tham chiếu phải dùng đường dẫn mới.
 
 
 
