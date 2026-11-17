@@ -99,12 +99,12 @@ namespace FoodPop
             ApplyOffset(0f);
         }
 
-        // EN: Slides from the counter to an off-screen offset (positive x = right) over the duration.
-        // VI: Trượt từ quầy ra vị trí lệch ngoài màn hình (x dương = sang phải) trong khoảng thời gian đã cho.
-        public IEnumerator SlideOut(float offsetX, float duration)
+        // EN: Walks from the counter to an off-screen offset (positive x = right) at a constant speed in world units per second.
+        // VI: Đi từ quầy ra vị trí lệch ngoài màn hình (x dương = sang phải) với tốc độ đều, tính bằng đơn vị world/giây.
+        public IEnumerator SlideOut(float offsetX, float speed)
         {
             CaptureHome();
-            yield return Slide(0f, offsetX, duration, EaseIn);
+            yield return Slide(0f, offsetX, Mathf.Abs(offsetX) / speed);
         }
 
         // EN: Stores the current positions of the customer and order card once.
@@ -118,15 +118,15 @@ namespace FoodPop
             homeCaptured = true;
         }
 
-        // EN: Moves customer and card together from one horizontal offset to another using an easing curve.
-        // VI: Di chuyển khách và thẻ cùng lúc từ độ lệch ngang này sang độ lệch khác theo đường cong easing.
-        private IEnumerator Slide(float fromX, float toX, float duration, System.Func<float, float> ease)
+        // EN: Moves customer and card together from one horizontal offset to another at a constant rate over the duration.
+        // VI: Di chuyển khách và thẻ cùng lúc từ độ lệch ngang này sang độ lệch khác với tốc độ đều trong khoảng thời gian đã cho.
+        private IEnumerator Slide(float fromX, float toX, float duration)
         {
             float time = 0f;
             while (time < duration)
             {
                 time += Time.deltaTime;
-                ApplyOffset(Mathf.LerpUnclamped(fromX, toX, ease(Mathf.Clamp01(time / duration))));
+                ApplyOffset(Mathf.Lerp(fromX, toX, time / duration));
                 yield return null;
             }
             ApplyOffset(toX);
@@ -141,9 +141,5 @@ namespace FoodPop
             if (orderCard != null)
                 orderCard.position = cardHome + shift + new Vector3(cardSeatOffsetX, 0f, 0f);
         }
-
-        // EN: Quadratic ease-in (starts slow, leaves fast).
-        // VI: Easing bậc hai tăng dần (bắt đầu chậm, rời đi nhanh).
-        private static float EaseIn(float t) => t * t;
     }
 }

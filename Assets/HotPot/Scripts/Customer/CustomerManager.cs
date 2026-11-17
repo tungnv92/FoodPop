@@ -19,6 +19,10 @@ namespace FoodPop
             public readonly List<FoodType> ingredients = new List<FoodType>();
         }
 
+        // EN: How the waiting row is placed when laid out: Snap = jump to spots, Advance = the head just left so everyone walks one spot forward, Walk = keep positions and walk to spots.
+        // VI: Cách đặt hàng chờ khi bố trí: Snap = nhảy ngay vào chỗ, Advance = người đầu vừa rời nên cả hàng đi lên một chỗ, Walk = giữ vị trí và đi tới chỗ.
+        private enum QueueMove { Snap, Advance, Walk }
+
         private const string ShipperPortraitName = "char_13";
 
         // EN: Returns the scene singleton, resolving it once when Awake has not run yet.
@@ -73,6 +77,8 @@ namespace FoodPop
         [SerializeField] private Lane[] lanes = new Lane[2];
         [Tooltip("Bật: khách Shipper được phục vụ một mình, đứng giữa màn hình với một khay phục vụ. Tắt: Shipper phục vụ bình thường theo lượt như khách khác.")]
         [SerializeField] private bool OnlyServeOneShipper = true;
+        [Tooltip("Mẫu khách chờ đặt sẵn trong scene (ẩn), gồm sprite và spine con; nhân bản cho khách trong hàng chờ và khách đang bước lên quầy.")]
+        [SerializeField] private SpriteRenderer waitingFigureTemplate;
 
         [Header("Phục vụ")]
         [Tooltip("Thời gian (giây) món phải nằm trên đĩa sau khi đáp xuống rồi mới được bay vào order.")]
@@ -88,6 +94,7 @@ namespace FoodPop
         private int nextCustomer;
         private int completedCustomers;
         private Lane waitingLane;
+        private Coroutine queueWalk;
         // EN: Portrait picked for each customer in the shared queue (index = queue position), so the same customer keeps one look.
         // VI: Ảnh đã chọn cho từng khách trong hàng chung (chỉ số = vị trí hàng), để một khách luôn giữ một ảnh.
         private readonly Dictionary<int, Sprite> portraitByCustomer = new Dictionary<int, Sprite>();
@@ -97,6 +104,9 @@ namespace FoodPop
         private float shipperCardGap;
         private readonly List<Sprite> portraitBag = new List<Sprite>();
         private Sprite lastRandomPortrait;
+        // EN: Spine body created for each portrait renderer (counter customer, walker, waiting figures), reused across customers.
+        // VI: Thân spine đã tạo cho từng renderer ảnh khách (khách ở quầy, khách đang bước lên, khách chờ), dùng lại cho nhiều khách.
+        private readonly Dictionary<SpriteRenderer, CustomerSpine> spines = new Dictionary<SpriteRenderer, CustomerSpine>();
 
         // EN: Registers the singleton and removes a duplicate component.
         // VI: Đăng ký singleton và bỏ component trùng.
@@ -129,11 +139,12 @@ namespace FoodPop
         }
 #endif
 
-        // EN: Sends prepared food from any belt slot straight to a matching order (no exit segment), unless collection has temporarily paused new serving flights.
-        // VI: Gửi food đã sơ chế ở bất kỳ slot nào trên băng thẳng tới order phù hợp (không còn đoạn ra món), trừ khi lượt thu đang tạm dừng chuyến phục vụ mới.
+        // EN: Ticks serve timers and Normal customers' patience, then sends prepared food from any belt slot straight to a matching order (no exit segment), unless collection has temporarily paused new serving flights.
+        // VI: Đếm thời gian phục vụ và độ kiên nhẫn của khách Normal, rồi gửi food đã sơ chế ở bất kỳ slot nào trên băng thẳng tới order phù hợp (không còn đoạn ra món), trừ khi lượt thu đang tạm dừng chuyến phục vụ mới.
         private void Update()
         {
             TickServeTimers();
+            TickPatience();
             if (BoosterPaused || conveyor == null)
                 return;
             foreach (ConveyorSlot slot in conveyor.Slots)
@@ -151,8 +162,8 @@ namespace FoodPop
             instance = null;
         }
 
-        // EN: Resets customer progress and the completed-order flag, reserves the first customers and publishes the remaining count.
-        // VI: Đặt lại tiến độ/cờ hoàn thành order, lấy khách đầu hàng chung và báo số khách còn lại.
+        // EN: Resets customer progress and the completed-order flag, prewarms the bounded waiting-figure pool, reserves the first customers and publishes the remaining count.
+        // VI: Đặt lại tiến độ/cờ hoàn thành order, tạo sẵn pool hình khách chờ có giới hạn, lấy khách đầu hàng chung và báo số khách còn lại.
         public void LoadCustomers(LevelConfig config)
         {
             if (config == null) return;
@@ -185,7 +196,11 @@ namespace FoodPop
             }
             foreach (Lane lane in lanes)
                 if (lane != null && AssignNextCustomer(lane)) StartCoroutine(BringNextCustomer(lane));
-            if (waitingLane != null) LayoutWaitingQueue(waitingLane, 0f);
+            if (waitingLane != null)
+            {
+                EnsureFigures(waitingLane, QueuePoolSize);
+                LayoutWaitingQueue(waitingLane, QueueMove.Snap);
+            }
             CheckAllServed();
             RemainingCustomersChanged?.Invoke(RemainingCustomers);
         }
@@ -294,6 +309,10 @@ namespace FoodPop
         // VI: Thông số màn chơi dùng chung lấy từ singleton IngameConfig (asset trong Resources); không cần tham chiếu riêng trên component.
         private IngameConfig Config => IngameConfig.Instance;
 
+        // EN: Waiting figures kept in the pool: the visible queue spots plus one off-screen spot used when the row walks forward.
+        // VI: Số hình khách chờ trong pool: các chỗ chờ nhìn thấy cộng một chỗ ngoài màn hình dùng khi cả hàng đi lên.
+        private int QueuePoolSize => Config.customers.maxVisibleWaiting + 1;
+
         // EN: True when the lane's timed customer is still waiting with no time left.
         // VI: Đúng khi khách tính giờ của làn vẫn đang chờ món mà đã hết giờ.
         private static bool IsServeTimeExpired(Lane lane)
@@ -313,6 +332,20 @@ namespace FoodPop
                 CustomerTimerBar bar = GetTimerBar(lane);
                 if (bar != null)
                     bar.SetProgress(lane.serveTimeLeft, lane.serveTimeTotal);
+            }
+        }
+
+        // EN: Counts time since arrival or the last ingredient and plays angry after the lane's sampled patience threshold.
+        // VI: Đếm thời gian từ lúc tới quầy hoặc nhận nguyên liệu gần nhất và phát giận sau ngưỡng kiên nhẫn đã chọn của làn.
+        private void TickPatience()
+        {
+            foreach (Lane lane in lanes)
+            {
+                if (lane == null || !lane.ordering || lane.customer == null || !spines.TryGetValue(lane.customer.Portrait, out CustomerSpine spine) || !spine.gameObject.activeSelf)
+                    continue;
+                lane.waitTime += Time.deltaTime;
+                if (lane.waitTime >= lane.angryAfter)
+                    spine.Play(Config.customers.angryAnimation, true);
             }
         }
 
@@ -395,12 +428,14 @@ namespace FoodPop
             return true;
         }
 
-        // EN: Shows the reserved customer, announces its valid order after arrival and skips invalid orders.
-        // VI: Hiện khách đã lấy, thông báo order hợp lệ khi đến và bỏ qua order không hợp lệ.
+        // EN: Shows the reserved customer with randomized idle phase and patience, announces a valid order and skips invalid orders.
+        // VI: Hiện khách đã lấy với pha đứng yên và ngưỡng kiên nhẫn ngẫu nhiên, thông báo order hợp lệ và bỏ qua order không hợp lệ.
         private IEnumerator BringNextCustomer(Lane lane)
         {
             CustomerOrder customerOrder = lane.queue[lane.queueIndex];
             SetupOrder(lane, customerOrder);
+            lane.waitTime = 0f;
+            lane.angryAfter = UnityEngine.Random.Range(Config.customers.angryDelay, Config.customers.angryDelayMax);
             if (lane.customer != null) lane.customer.SetCustomerType(customerOrder?.customerType ?? CustomerType.Normal);
             if (lane.customer != null)
             {
@@ -408,11 +443,12 @@ namespace FoodPop
                 ApplySeat(lane);
                 lane.customer.SnapHome();
                 lane.customer.SetVisible(true);
+                ShowSpine(lane.customer.Portrait, lane.customerNumber)?.Play(Config.customers.idleAnimation, true, randomStart: true);
             }
             StartServeTimer(lane, customerOrder);
             if (lane.orderView != null)
                 lane.orderView.PlayShow();
-            LayoutWaitingQueue(waitingLane, 0f);
+            LayoutWaitingQueue(waitingLane, QueueMove.Walk);
             yield return null;
             lane.arrivalStamp = ++arrivalCounter;
             if (lane.dishes.Count > 0)
@@ -425,17 +461,18 @@ namespace FoodPop
             yield return FinishCustomer(lane);
         }
 
-        // EN: Displays unassigned customers in the single shared waiting row.
-        // VI: Hiển thị khách chưa phân chỗ trong một hàng chờ chung.
-        private void LayoutWaitingQueue(Lane lane, float stepT)
+        // EN: Displays waiting customers as tinted figures/spines. Snap places everyone on their spot; Advance (the head left the queue) restarts each figure one spot back so the row walks forward; Walk keeps current positions. Only the first QueuePoolSize customers get a figure (the rest stay in the logical queue). Figures off their spot then walk there at walkSpeed. Waiting figures sort two below counter customers so the arriving walker (one below) passes between them.
+        // VI: Hiện khách chờ bằng hình/spine phủ màu. Snap đặt mọi người đúng chỗ; Advance (người đầu hàng vừa rời đi) đặt mỗi hình lùi một chỗ để cả hàng đi lên; Walk giữ nguyên vị trí hiện tại. Chỉ QueuePoolSize khách đầu có hình (số còn lại vẫn nằm trong hàng logic). Hình chưa đúng chỗ sau đó đi tới chỗ của mình với tốc độ walkSpeed. Khách chờ vẽ thấp hơn khách ở quầy hai bậc để khách đang bước lên (thấp hơn một bậc) đi giữa hai lớp đó.
+        private void LayoutWaitingQueue(Lane lane, QueueMove move)
         {
-            int waiting = customerQueue.Count - nextCustomer;
-            EnsureFigures(lane, waiting);
+            int shown = Mathf.Min(customerQueue.Count - nextCustomer, QueuePoolSize);
+            EnsureFigures(lane, shown);
             SpriteRenderer active = lane.customer != null ? lane.customer.Portrait : null;
             for (int k = 0; k < lane.figures.Count; k++)
             {
                 SpriteRenderer figure = lane.figures[k];
-                bool used = k < waiting;
+                bool used = k < shown;
+                bool appeared = used && !figure.gameObject.activeSelf;
                 figure.gameObject.SetActive(used);
                 if (!used)
                     continue;
@@ -444,14 +481,56 @@ namespace FoodPop
                     figure.sprite = portrait;
                 figure.color = Config.customers.waitingTint;
                 Vector3 target = GetQueueSpot(lane, k);
-                figure.transform.position = stepT > 0f ? Vector3.LerpUnclamped(GetQueueSpot(lane, k + 1), target, stepT) : target;
+                if (move == QueueMove.Advance)
+                    figure.transform.position = GetQueueSpot(lane, k + 1);
+                else if (move == QueueMove.Snap || appeared)
+                    figure.transform.position = target;
                 if (active != null)
                 {
                     SetWorldScale(figure.transform, active.transform.lossyScale * Config.customers.waitingScale);
                     figure.sortingLayerID = active.sortingLayerID;
-                    figure.sortingOrder = active.sortingOrder - 1 - k;
+                    figure.sortingOrder = active.sortingOrder - 2 - k;
                 }
+                CustomerSpine spine = ShowSpine(figure, nextCustomer + k);
+                if (spine == null)
+                    continue;
+                spine.SetTint(Config.customers.waitingTint);
+                if (figure.transform.position == target)
+                    spine.Play(Config.customers.idleAnimation, true, randomStart: true);
+                else
+                    spine.Play(Config.customers.walkAnimation, true);
             }
+            if (queueWalk != null)
+                StopCoroutine(queueWalk);
+            queueWalk = move == QueueMove.Snap ? null : StartCoroutine(WalkQueue(lane));
+        }
+
+        // EN: Moves every waiting figure toward its spot at walkSpeed; each one switches back to idle (random phase) when it arrives.
+        // VI: Di chuyển mọi khách chờ về chỗ của mình với tốc độ walkSpeed; ai tới nơi thì chuyển lại idle (pha ngẫu nhiên).
+        private IEnumerator WalkQueue(Lane lane)
+        {
+            bool moving = true;
+            while (moving)
+            {
+                moving = false;
+                float step = Config.customers.walkSpeed * Time.deltaTime;
+                for (int k = 0; k < lane.figures.Count; k++)
+                {
+                    SpriteRenderer figure = lane.figures[k];
+                    if (!figure.gameObject.activeSelf)
+                        continue;
+                    Vector3 target = GetQueueSpot(lane, k);
+                    if (figure.transform.position == target)
+                        continue;
+                    figure.transform.position = Vector3.MoveTowards(figure.transform.position, target, step);
+                    if (figure.transform.position != target)
+                        moving = true;
+                    else if (FindSpine(figure) is CustomerSpine spine && spine.gameObject.activeSelf)
+                        spine.Play(Config.customers.idleAnimation, true, randomStart: true);
+                }
+                yield return null;
+            }
+            queueWalk = null;
         }
 
         // EN: Completes only after shared waiting and assigned or departing customers are exhausted.
@@ -653,12 +732,15 @@ namespace FoodPop
                 bar.Hide();
         }
 
-        // EN: Completes departure, publishes the remaining count and reserves the next customer.
-        // VI: Hoàn tất khách rời đi, thông báo số khách còn lại rồi lấy khách kế tiếp.
+        // EN: Waits for the happy animation and configured departure delays before walking out, then advances the customer queue.
+        // VI: Chờ animation vui hoàn tất và các thời gian trễ rời quầy trước khi đi ra, sau đó chuyển hàng khách.
         private IEnumerator FinishCustomer(Lane lane)
         {
             lane.ordering = false;
             StopServeTimer(lane);
+            CustomerSpine spine = lane.customer != null ? ShowSpine(lane.customer.Portrait, lane.customerNumber) : null;
+            Spine.TrackEntry happy = spine?.Play(Config.customers.happyAnimation, false);
+            var happyComplete = happy != null ? new Spine.Unity.WaitForSpineAnimationComplete(happy) : null;
             PlayPraise(lane.customer);
             IngameSoundManager.Instance?.PlayCustomerHappy();
             if (Config.customers.leaveDelay > 0f)
@@ -669,8 +751,11 @@ namespace FoodPop
                 if (hide > 0f)
                     yield return new WaitForSeconds(hide);
             }
+            if (happyComplete != null)
+                yield return happyComplete;
+            spine?.Play(Config.customers.walkAnimation, true);
             if (lane.customer != null)
-                yield return lane.customer.SlideOut(lane.slideDirection * Config.customers.slideDistance, Config.customers.slideDuration);
+                yield return lane.customer.SlideOut(lane.slideDirection * Config.customers.slideDistance, Config.customers.walkSpeed);
             ResetServing(lane);
             if (IsShipper(lane.queue[lane.queueIndex])) RestoreServing(null);
             lane.queueIndex++;
@@ -691,16 +776,25 @@ namespace FoodPop
             }
         }
 
-        // EN: Makes sure the lane has a figure per waiting customer, creating a plain sprite only when the pool (scene figures first) is too small.
-        // VI: Bảo đảm làn có đủ hình cho mỗi khách đang chờ, chỉ tạo sprite mới khi pool (ưu tiên hình đặt sẵn trong scene) không đủ.
+        // EN: Makes sure the lane has at least count figures, copying the authored template (spine initialized now, physics off) when the pool (scene figures first) is too small.
+        // VI: Bảo đảm làn có ít nhất count hình, nhân bản mẫu đặt sẵn (khởi tạo spine ngay, tắt physics) khi pool (ưu tiên hình đặt sẵn trong scene) không đủ.
         private void EnsureFigures(Lane lane, int count)
         {
             while (lane.figures.Count < count)
             {
-                SpriteRenderer figure = new GameObject($"Waiting customer {lane.figures.Count + 1}").AddComponent<SpriteRenderer>();
-                figure.transform.SetParent(transform, true);
+                SpriteRenderer figure = CloneFigure($"Waiting customer {lane.figures.Count + 1}");
+                FindSpine(figure)?.PrepareForQueue();
                 lane.figures.Add(figure);
             }
+        }
+
+        // EN: Copies the authored waiting-figure template (sprite plus its spine child) under this manager.
+        // VI: Nhân bản mẫu khách chờ đặt sẵn (sprite cùng spine con) làm con của manager này.
+        private SpriteRenderer CloneFigure(string figureName)
+        {
+            SpriteRenderer figure = Instantiate(waitingFigureTemplate, transform);
+            figure.name = figureName;
+            return figure;
         }
 
         // EN: World position of the k-th waiting spot (0 = right behind the counter), extending the scene spots by the last step.
@@ -831,25 +925,22 @@ namespace FoodPop
                     StartCoroutine(StepAndBring(other));
         }
 
-        // EN: Animates a dedicated portrait from the shared queue to this seat without sharing walkers.
-        // VI: Đưa hình khách riêng từ hàng chung tới chỗ này, không dùng chung hình đang di chuyển.
+        // EN: Animates a dedicated portrait (a walking spine for Normal customers) from the shared queue to this seat without sharing walkers; it sorts just behind the counter customers so it walks behind anyone already standing at a counter.
+        // VI: Đưa hình khách riêng (spine đi bộ với khách Normal) từ hàng chung tới chỗ này, không dùng chung hình đang di chuyển; hình này vẽ ngay sau khách ở quầy nên đi phía sau người đang đứng ở quầy.
         private IEnumerator StepQueueForward(Lane lane)
         {
             SpriteRenderer active = lane.customer != null ? lane.customer.Portrait : null;
             if (waitingLane == null || active == null)
                 yield break;
             if (lane.walker == null)
-            {
-                lane.walker = new GameObject("Arriving customer").AddComponent<SpriteRenderer>();
-                lane.walker.transform.SetParent(transform, true);
-            }
+                lane.walker = CloneFigure("Arriving customer");
             SpriteRenderer walker = lane.walker;
             walker.sprite = GetPortrait(waitingLane, lane.customerNumber);
             walker.sortingLayerID = active.sortingLayerID;
             walker.transform.position = GetQueueSpot(waitingLane, 0);
             SetWorldScale(walker.transform, active.transform.lossyScale * Config.customers.waitingScale);
             walker.gameObject.SetActive(true);
-            LayoutWaitingQueue(waitingLane, 0f);
+            LayoutWaitingQueue(waitingLane, QueueMove.Advance);
             ApplySeat(lane);
             lane.customer.SnapHome();
             lane.customer.SetVisible(false);
@@ -857,28 +948,69 @@ namespace FoodPop
             Vector3 fromScale = walker.transform.lossyScale;
             Vector3 to = active.transform.position;
             Vector3 toScale = active.transform.lossyScale;
-            walker.sortingOrder = active.sortingOrder;
+            walker.sortingOrder = active.sortingOrder - 1;
+            CustomerSpine spine = ShowSpine(walker, lane.customerNumber);
+            spine?.Play(Config.customers.walkAnimation, true);
+            float duration = Vector3.Distance(from, to) / Config.customers.walkSpeed;
             float time = 0f;
-            while (time < Config.customers.stepForwardDuration)
+            while (time < duration)
             {
                 time += Time.deltaTime;
-                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(time / Config.customers.stepForwardDuration));
+                float t = Mathf.Clamp01(time / duration);
                 walker.transform.position = Vector3.LerpUnclamped(from, to, t) + Vector3.up * (0.15f * Mathf.Sin(t * Mathf.PI));
                 SetWorldScale(walker.transform, Vector3.LerpUnclamped(fromScale, toScale, t));
-                walker.color = Color.Lerp(Config.customers.waitingTint, Color.white, t);
+                Color tint = Color.Lerp(Config.customers.waitingTint, Color.white, t);
+                walker.color = tint;
+                spine?.SetTint(tint);
                 yield return null;
             }
             walker.gameObject.SetActive(false);
         }
 
-        // EN: Records one ingredient arrival and requests assembly only when the recipe has fully landed.
-        // VI: Ghi nhận một nguyên liệu đáp xuống và chỉ yêu cầu ghép khi toàn bộ công thức đã tới nơi.
+        // EN: Shows the spine body authored under this portrait renderer when the customer at the queue index is Normal and returns it; otherwise (or with no authored spine) shows the plain sprite and returns null.
+        // VI: Hiện thân spine đặt sẵn dưới renderer ảnh này khi khách tại vị trí hàng là Normal và trả về nó; ngược lại (hoặc không có spine đặt sẵn) hiện ảnh tĩnh và trả về null.
+        private CustomerSpine ShowSpine(SpriteRenderer host, int index)
+        {
+            CustomerSpine spine = FindSpine(host);
+            if (spine == null)
+                return null;
+            bool normal = index >= 0 && index < customerQueue.Count &&
+                          customerQueue[index] != null && customerQueue[index].customerType == CustomerType.Normal;
+            if (!normal)
+            {
+                spine.Show(false);
+                return null;
+            }
+            spine.Show(true);
+            spine.SetTint(Color.white);
+            return spine;
+        }
+
+        // EN: Returns the spine authored under this portrait renderer (or null), looking it up only once per renderer.
+        // VI: Trả spine đặt sẵn dưới renderer ảnh này (hoặc null), mỗi renderer chỉ tìm một lần.
+        private CustomerSpine FindSpine(SpriteRenderer host)
+        {
+            if (!spines.TryGetValue(host, out CustomerSpine spine))
+            {
+                spine = host.GetComponentInChildren<CustomerSpine>(true);
+                spines[host] = spine;
+            }
+            return spine;
+        }
+
+        // EN: Records a valid ingredient landing, samples a fresh patience threshold and returns to idle before checking recipe completion.
+        // VI: Ghi nhận nguyên liệu hợp lệ đáp xuống, chọn ngưỡng kiên nhẫn mới và về đứng yên trước khi kiểm tra đủ công thức.
         private void OnIngredientDelivered(Lane lane, int dish)
         {
             if (!lane.ordering || dish < 0 || dish >= lane.dishes.Count)
                 return;
             DishProgress progress = lane.dishes[dish];
             progress.Arrive();
+            lane.waitTime = 0f;
+            lane.angryAfter = UnityEngine.Random.Range(Config.customers.angryDelay, Config.customers.angryDelayMax);
+            if (lane.customer != null && spines.TryGetValue(lane.customer.Portrait, out CustomerSpine spine) &&
+                spine != null && spine.gameObject.activeSelf)
+                spine.Play(Config.customers.idleAnimation, true);
             if (progress.Done)
                 lane.servingFood.CompleteDish(dish);
         }

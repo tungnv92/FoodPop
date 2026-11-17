@@ -84,18 +84,32 @@ namespace FoodPop
         {
             [Tooltip("Thời gian (giây) chờ sau khi bắn tim rồi khách mới rời đi.")]
             [Min(0f)] public float leaveDelay = 0.6f;
-            [Tooltip("Thời gian (giây) khách trượt ra hoặc trượt vào.")]
-            [Min(0.05f)] public float slideDuration = 0.45f;
+            [Tooltip("Tốc độ đi bộ (đơn vị world/giây) dùng chung khi khách bước lên quầy, rời quầy và dồn lên trong hàng chờ; quãng đường dài thì đi lâu hơn.")]
+            [Min(0.1f)] public float walkSpeed = 5f;
             [Tooltip("Quãng đường (đơn vị world) trượt sang ngang để khách ra khỏi màn hình.")]
             [Min(0f)] public float slideDistance = 9f;
             [Tooltip("Màu phủ cho khách chưa tới lượt order (tối hơn khách đang order).")]
             public Color waitingTint = new Color(0.55f, 0.55f, 0.6f, 1f);
             [Tooltip("Kích thước khách chưa tới lượt so với khách đang order (0.8 = nhỏ hơn 20%).")]
             [Range(0.3f, 1f)] public float waitingScale = 0.8f;
-            [Tooltip("Thời gian (giây) khách đầu hàng bước lên quầy và cả hàng dồn lên.")]
-            [Min(0.05f)] public float stepForwardDuration = 0.4f;
             [Tooltip("Khoảng cách (world) giữa hai người trong hàng khi scene không đặt sẵn khách chờ: x dịch ra phía ngoài làn, y dịch lên phía sau.")]
             public Vector2 queueSpacing = new Vector2(0.8f, 0.45f);
+            [Tooltip("Số chỗ trong hàng chờ nhìn thấy trên màn hình; chỉ tạo bấy nhiêu hình khách chờ cộng một hình ngoài màn hình để dồn hàng, khách còn lại vẫn được tính nhưng không hiện. Tăng nếu màn hình rộng thấy được nhiều chỗ hơn.")]
+            [Min(1)] public int maxVisibleWaiting = 4;
+
+            [Header("Spine khách thường")]
+            [Tooltip("Thời gian chờ tối thiểu trước khi khách thường giận; chọn lại ngẫu nhiên khi tới quầy hoặc nhận nguyên liệu đúng.")]
+            [Min(0f)] public float angryDelay = 10f;
+            [Tooltip("Thời gian chờ tối đa trước khi khách giận; mỗi lần bắt đầu chờ chọn ngẫu nhiên giữa mốc tối thiểu và mốc này.")]
+            [Min(0f)] public float angryDelayMax = 15f;
+            [Tooltip("Tên animation đứng yên (quầy và hàng chờ).")]
+            public string idleAnimation = "idle";
+            [Tooltip("Tên animation đi bộ (bước lên quầy và rời quầy).")]
+            public string walkAnimation = "walk";
+            [Tooltip("Tên animation vui khi nhận đủ món.")]
+            public string happyAnimation = "happy";
+            [Tooltip("Tên animation giận khi chờ quá lâu.")]
+            public string angryAnimation = "angry";
         }
 
         [Serializable]

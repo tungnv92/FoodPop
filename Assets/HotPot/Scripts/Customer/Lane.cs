@@ -30,6 +30,8 @@ namespace FoodPop
         [NonSerialized] public long arrivalStamp;
         [NonSerialized] public float serveTimeTotal;
         [NonSerialized] public float serveTimeLeft;
+        [NonSerialized] public float waitTime;
+        [NonSerialized] public float angryAfter;
         [NonSerialized] public readonly List<DishProgress> dishes = new List<DishProgress>();
         [NonSerialized] public readonly List<SpriteRenderer> figures = new List<SpriteRenderer>();
         [NonSerialized] public readonly List<Vector3> spots = new List<Vector3>();

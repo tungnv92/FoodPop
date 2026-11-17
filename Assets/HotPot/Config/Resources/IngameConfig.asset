@@ -66,13 +66,19 @@ MonoBehaviour:
     dishFlyArcHeight: 1.2
     dishFlyPeakScale: 1.2
   customers:
-    leaveDelay: 0.6
-    slideDuration: 0.45
+    leaveDelay: 1.8
+    slideDuration: 1
     slideDistance: 9
     waitingTint: {r: 0.55, g: 0.55, b: 0.6, a: 1}
     waitingScale: 0.8
-    stepForwardDuration: 0.4
+    stepForwardDuration: 0.6
     queueSpacing: {x: 0.8, y: 0.16}
+    angryDelay: 10
+    angryDelayMax: 15
+    idleAnimation: idle
+    walkAnimation: walk
+    happyAnimation: happy
+    angryAnimation: angry
   preparation:
     chopPunch: 0.08
     cuttingScale: 1.3
@@ -120,3 +126,8 @@ MonoBehaviour:
     minLayers: 2
   preWin:
     speedMultiplier: 1.4
+    hidePlatesDelay: 1
+    plateShrinkDuration: 0.35
+  winReward:
+    coin: 100
+    watchAdsCoin: 200

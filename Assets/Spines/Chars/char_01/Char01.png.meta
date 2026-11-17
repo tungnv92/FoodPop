@@ -1,10 +1,67 @@
 fileFormatVersion: 2
-guid: b0218079f346132468a426f9c1450d1f
+guid: 81e7d2f09549c844a92b2efe0c40030d
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -7524171895705966819
-    second: OrderCheckmark_0
+      213: -5784255320503261632
+    second: Char01_0
+  - first:
+      213: 195484668214038589
+    second: Char01_1
+  - first:
+      213: 7116978594833969007
+    second: Char01_2
+  - first:
+      213: -7462725834259030854
+    second: Char01_3
+  - first:
+      213: 1908671518968404002
+    second: Char01_4
+  - first:
+      213: -3932080129971260342
+    second: Char01_5
+  - first:
+      213: -4347112311604478010
+    second: Char01_6
+  - first:
+      213: 3746765640502835980
+    second: Char01_7
+  - first:
+      213: 9019653762600690656
+    second: Char01_8
+  - first:
+      213: 1543029773062443900
+    second: Char01_9
+  - first:
+      213: -5438058991532329337
+    second: Char01_10
+  - first:
+      213: 5042310821823954360
+    second: Char01_11
+  - first:
+      213: -7062450207644752721
+    second: Char01_12
+  - first:
+      213: -4509686202504177536
+    second: Char01_13
+  - first:
+      213: 1333626060096037271
+    second: Char01_14
+  - first:
+      213: 958333481312402068
+    second: Char01_15
+  - first:
+      213: 6441938675555813250
+    second: Char01_16
+  - first:
+      213: 8129532443321696578
+    second: Char01_17
+  - first:
+      213: 5176198560278290505
+    second: Char01_18
+  - first:
+      213: 8327157965612483268
+    second: Char01_19
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -40,13 +97,13 @@ TextureImporter:
     filterMode: 1
     aniso: 1
     mipBias: 0
-    wrapU: 1
-    wrapV: 1
-    wrapW: 1
-  nPOTScale: 0
+    wrapU: 0
+    wrapV: 0
+    wrapW: 0
+  nPOTScale: 1
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 0
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -57,7 +114,7 @@ TextureImporter:
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
-  textureType: 8
+  textureType: 0
   textureShape: 1
   singleChannelComponent: 0
   flipbookRows: 1
@@ -82,76 +139,54 @@ TextureImporter:
     overridden: 0
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 1
   - serializedVersion: 4
     buildTarget: Standalone
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 1
   - serializedVersion: 4
     buildTarget: Android
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 1
   - serializedVersion: 4
     buildTarget: iOS
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 1
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: OrderCheckmark_0
-      rect:
-        serializedVersion: 2
-        x: 1
-        y: 0
-        width: 126
-        height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: d17e77f8685c49790800000000000000
-      internalID: -7524171895705966819
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
+    sprites: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -160,8 +195,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      OrderCheckmark_0: -7524171895705966819
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
