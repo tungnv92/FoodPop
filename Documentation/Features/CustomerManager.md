@@ -27,7 +27,7 @@ Hoạt cảnh bay/ghép món thuộc `ServingFood` — xem [ServingFood.md](Serv
 
 ## Hoàn thành khách
 - `OnIngredientDelivered` cập nhật tiến độ; món đủ và hết chuyến bay → `ServingFood.CompleteDish`. `OnDishDelivered` đánh dấu món đã giao.
-- Đủ order → `HasCompletedOrder = true` (dùng cho cảnh báo thoát, [UI.md](UI.md#cảnh-báo-thoát)) → `FinishCustomer`: dừng đồng hồ, chữ khen tại `HeartPosition`, âm khách vui, chờ `leaveDelay`, ẩn thẻ, khách trượt ra → reset khay, `completedCustomers++`, phát `RemainingCustomersChanged`, lấy khách kế tiếp.
+- Đủ order → `HasCompletedOrder = true` (dùng cho cảnh báo thoát, [UI.md](UI.md#cảnh-báo-thoát)) → `FinishCustomer`: dừng đồng hồ, chữ khen tại `HeartPosition`, âm khách vui, chờ `leaveDelay`, ẩn thẻ, chờ `happy` xong → khách cũ chuyển sang hình rời quầy riêng (`lane.leaver`, nhân bản từ mẫu khách chờ, cùng sorting với khách ở quầy) và đi ra → sau `nextCustomerDelay` (mặc định 0.5s) reset khay, `completedCustomers++`, phát `RemainingCustomersChanged`, lấy khách kế tiếp bước lên trong lúc khách cũ vẫn đang đi ra. Khách cuối cùng phải đi ra hẳn rồi mới `CheckAllServed`.
 - `CheckAllServed` đặt `AllServed` một lần khi hết hàng chung và mọi làn đã xong (LevelController xử lý thắng).
 
 ## Hàng chờ
@@ -43,6 +43,7 @@ Mọi khách Normal (ở quầy, khi bước lên và trong hàng chờ) hiển 
 | Field | Ý nghĩa |
 | --- | --- |
 | `maxVisibleWaiting` | Số chỗ hàng chờ nhìn thấy (mặc định 4, đúng cho HotPotDemo tỉ lệ ~9:19.5: chỗ thứ 5 ở x = -7.25 nằm hẳn ngoài màn hình). Pool hình khách chờ = giá trị này + 1, tạo sẵn và khởi tạo spine lúc `LoadCustomers`; khách sau đó vẫn tính trong hàng logic nhưng không có hình. Màn hình rộng hơn (tablet) cần tăng |
+| `nextCustomerDelay` | Thời gian (giây, mặc định 0.5) từ lúc khách cũ bắt đầu đi ra tới lúc khách kế tiếp bắt đầu bước lên quầy; hai người đi song song (walker vẽ dưới leaver một bậc) |
 | `walkSpeed` | Tốc độ đi bộ (world/giây, mặc định 5) dùng chung khi khách bước lên quầy, rời quầy (`slideDistance`) và dồn lên trong hàng chờ; quãng đường dài thì đi lâu hơn, chuyển động đều |
 | `angryDelay` / `angryDelayMax` | Khoảng chờ ngẫu nhiên trước khi giận, mặc định 10–15 giây. Mỗi khách chọn ngưỡng riêng khi tới quầy và chọn lại khi nguyên liệu đúng đáp xuống khay; reset thời gian chờ về 0 và trở lại `idle`. Ngưỡng giữ nguyên giữa các frame; đủ ngưỡng thì phát `angry`. |
 | `idle/walk/happy/angryAnimation` | Tên animation: `idle` bắt đầu ngẫu nhiên trong clip khi vào hàng chờ hoặc tới quầy, gồm khách phục vụ đầu tiên; hàng chờ phủ `waitingTint`, bố trí lại giữ pha và tốc độ; trở lại idle sau nhận nguyên liệu giữ cách phát cũ, `walk` khi bước lên quầy và khi trượt ra, `happy` khi nhận đủ món; chờ clip happy hoàn tất trước khi chuyển walk và đi ra |
@@ -65,7 +66,7 @@ Kiểm chứng happy 16/11/2026: Unity biên dịch thành công; kiểm tra ani
 OnIngredientDelivered chỉ xử lý khi làn đang order và chỉ số món hợp lệ. Sau Arrive, reset thời gian chờ và đưa spine đang hiện về idle; không reset khi mới giữ chỗ hoặc nguyên liệu đang bay. Mọi đường phục vụ dùng callback này áp dụng cùng hành vi. Happy/rời quầy sau khi đủ món giữ nguyên.
 
 #### Chờ happy trước khi đi ra (16/11/2026)
-CustomerSpine.Play trả Spine.TrackEntry. FinishCustomer đăng ký WaitForSpineAnimationComplete ngay khi bắt đầu happy, giữ leaveDelay và hiệu ứng ẩn thẻ, sau đó chờ Complete trước khi phát walk/SlideOut. Nếu happy đã hoàn tất trong lúc chờ/ẩn thẻ thì không chờ lại nguyên clip. Khách ảnh tĩnh giữ luồng cũ; reload vẫn dừng coroutine qua LoadCustomers.
+CustomerSpine.Play trả Spine.TrackEntry. FinishCustomer đăng ký WaitForSpineAnimationComplete ngay khi bắt đầu happy, giữ leaveDelay và hiệu ứng ẩn thẻ, sau đó chờ Complete trước khi giao khách cho hình rời quầy `WalkOut` (phát walk, đi `slideDistance` với `walkSpeed`). `CustomerView.SlideOut` đã bỏ; view quầy được ẩn ngay để dùng cho khách mới. Nếu happy đã hoàn tất trong lúc chờ/ẩn thẻ thì không chờ lại nguyên clip. Khách ảnh tĩnh giữ luồng cũ; reload vẫn dừng coroutine qua LoadCustomers.
 
 Tốc độ di chuyển (17/11/2026, speed-based): `IngameConfig.customers.walkSpeed` (đơn vị world/giây, mặc định 5) dùng chung cho bước lên quầy, rời quầy và dồn lên trong hàng chờ; thời gian = quãng đường / tốc độ, chuyển động đều (bỏ easing). Đã bỏ `stepForwardDuration` và `slideDuration`. `slideDistance` (hiện 9) vẫn là quãng đường ra. Hàng chờ giờ có hoạt cảnh: khi người đầu hàng rời đi, mọi khách chờ bắt đầu lùi một chỗ rồi đi lên (spine `walk`, tới nơi chuyển `idle` pha ngẫu nhiên) qua coroutine `WalkQueue`. leaveDelay (hiện 0.6s) chỉ là độ trễ. Kiểm chứng: Unity biên dịch thành công; chưa xem hoạt cảnh trong Play Mode.
 

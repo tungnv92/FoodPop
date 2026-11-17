@@ -1,11 +1,10 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 namespace FoodPop
 {
-    // EN: The customer standing at a counter lane, together with their order card: swaps the portrait and slides both in and out horizontally.
-    // VI: Khách đang đứng ở một làn quầy cùng thẻ order: đổi ảnh khách và trượt cả hai vào/ra theo chiều ngang.
+    // EN: The customer standing at a counter lane, together with their order card: swaps the portrait and places both at the counter seat (walking in/out is done by CustomerManager's walker/leaver figures).
+    // VI: Khách đang đứng ở một làn quầy cùng thẻ order: đổi ảnh khách và đặt cả hai tại chỗ đứng ở quầy (việc đi vào/ra do hình walker/leaver của CustomerManager đảm nhận).
     [DisallowMultipleComponent]
     public class CustomerView : MonoBehaviour
     {
@@ -99,14 +98,6 @@ namespace FoodPop
             ApplyOffset(0f);
         }
 
-        // EN: Walks from the counter to an off-screen offset (positive x = right) at a constant speed in world units per second.
-        // VI: Đi từ quầy ra vị trí lệch ngoài màn hình (x dương = sang phải) với tốc độ đều, tính bằng đơn vị world/giây.
-        public IEnumerator SlideOut(float offsetX, float speed)
-        {
-            CaptureHome();
-            yield return Slide(0f, offsetX, Mathf.Abs(offsetX) / speed);
-        }
-
         // EN: Stores the current positions of the customer and order card once.
         // VI: Lưu vị trí hiện tại của khách và thẻ order một lần.
         private void CaptureHome()
@@ -116,20 +107,6 @@ namespace FoodPop
             customerHome = transform.position;
             cardHome = orderCard != null ? orderCard.position : Vector3.zero;
             homeCaptured = true;
-        }
-
-        // EN: Moves customer and card together from one horizontal offset to another at a constant rate over the duration.
-        // VI: Di chuyển khách và thẻ cùng lúc từ độ lệch ngang này sang độ lệch khác với tốc độ đều trong khoảng thời gian đã cho.
-        private IEnumerator Slide(float fromX, float toX, float duration)
-        {
-            float time = 0f;
-            while (time < duration)
-            {
-                time += Time.deltaTime;
-                ApplyOffset(Mathf.Lerp(fromX, toX, time / duration));
-                yield return null;
-            }
-            ApplyOffset(toX);
         }
 
         // EN: Places the customer and card at their home positions shifted by offsetX.

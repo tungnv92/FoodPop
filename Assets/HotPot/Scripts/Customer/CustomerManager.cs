@@ -192,6 +192,7 @@ namespace FoodPop
                 if (waitingLane == null) waitingLane = lane;
                 foreach (SpriteRenderer figure in lane.figures) figure.gameObject.SetActive(false);
                 if (lane.walker != null) lane.walker.gameObject.SetActive(false);
+                if (lane.leaver != null) lane.leaver.gameObject.SetActive(false);
                 if (lane.customer != null) lane.customer.SetVisible(false);
             }
             foreach (Lane lane in lanes)
@@ -732,8 +733,8 @@ namespace FoodPop
                 bar.Hide();
         }
 
-        // EN: Waits for the happy animation and configured departure delays before walking out, then advances the customer queue.
-        // VI: Chờ animation vui hoàn tất và các thời gian trễ rời quầy trước khi đi ra, sau đó chuyển hàng khách.
+        // EN: Waits for the happy animation and configured departure delays, starts the walk-out, then after nextCustomerDelay advances the queue so the next customer walks up while the previous one is still leaving; the last customer must finish leaving before the level checks completion.
+        // VI: Chờ animation vui hoàn tất và các thời gian trễ rời quầy, bắt đầu đi ra, sau nextCustomerDelay thì chuyển hàng để khách mới bước lên trong lúc khách cũ vẫn đang đi; khách cuối phải đi ra hẳn rồi mới kiểm tra hoàn thành màn.
         private IEnumerator FinishCustomer(Lane lane)
         {
             lane.ordering = false;
@@ -753,9 +754,9 @@ namespace FoodPop
             }
             if (happyComplete != null)
                 yield return happyComplete;
-            spine?.Play(Config.customers.walkAnimation, true);
-            if (lane.customer != null)
-                yield return lane.customer.SlideOut(lane.slideDirection * Config.customers.slideDistance, Config.customers.walkSpeed);
+            Coroutine leaving = lane.customer != null ? StartCoroutine(WalkOut(lane)) : null;
+            if (Config.customers.nextCustomerDelay > 0f)
+                yield return new WaitForSeconds(Config.customers.nextCustomerDelay);
             ResetServing(lane);
             if (IsShipper(lane.queue[lane.queueIndex])) RestoreServing(null);
             lane.queueIndex++;
@@ -769,11 +770,37 @@ namespace FoodPop
             }
             else
             {
-                if (lane.customer != null)
-                    lane.customer.SetVisible(false);
                 FillIdleLanes();
+                if (leaving != null)
+                    yield return leaving;
                 CheckAllServed();
             }
+        }
+
+        // EN: Hands the served customer to a dedicated leaving figure (walking spine for Normal customers, same sorting as the counter) so the counter view is free for the next customer, then walks it slideDistance off-screen at walkSpeed.
+        // VI: Chuyển khách vừa phục vụ sang một hình rời quầy riêng (spine đi bộ với khách Normal, cùng thứ tự vẽ với khách ở quầy) để view quầy rảnh cho khách mới, rồi cho hình đó đi ra ngoài màn hình một đoạn slideDistance với tốc độ walkSpeed.
+        private IEnumerator WalkOut(Lane lane)
+        {
+            SpriteRenderer portrait = lane.customer.Portrait;
+            if (lane.leaver == null)
+                lane.leaver = CloneFigure("Leaving customer");
+            SpriteRenderer leaver = lane.leaver;
+            leaver.sprite = portrait.sprite;
+            leaver.color = Color.white;
+            leaver.sortingLayerID = portrait.sortingLayerID;
+            leaver.sortingOrder = portrait.sortingOrder;
+            leaver.transform.position = portrait.transform.position;
+            SetWorldScale(leaver.transform, portrait.transform.lossyScale);
+            leaver.gameObject.SetActive(true);
+            ShowSpine(leaver, lane.customerNumber)?.Play(Config.customers.walkAnimation, true);
+            lane.customer.SetVisible(false);
+            Vector3 target = leaver.transform.position + Vector3.right * (lane.slideDirection * Config.customers.slideDistance);
+            while (leaver.transform.position != target)
+            {
+                leaver.transform.position = Vector3.MoveTowards(leaver.transform.position, target, Config.customers.walkSpeed * Time.deltaTime);
+                yield return null;
+            }
+            leaver.gameObject.SetActive(false);
         }
 
         // EN: Makes sure the lane has at least count figures, copying the authored template (spine initialized now, physics off) when the pool (scene figures first) is too small.

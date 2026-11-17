@@ -26,6 +26,7 @@ namespace FoodPop
         [NonSerialized] public int queueIndex;
         [NonSerialized] public int customerNumber;
         [NonSerialized] public SpriteRenderer walker;
+        [NonSerialized] public SpriteRenderer leaver;
         [NonSerialized] public bool ordering;
         [NonSerialized] public long arrivalStamp;
         [NonSerialized] public float serveTimeTotal;
