@@ -9,6 +9,51 @@ namespace FoodPop
     // VI: Một nguyên liệu trong game: loại nguyên liệu và trạng thái chế biến (thô -> đã sơ chế).
     public class Food : MonoBehaviour
     {
+        // EN: Raised whenever the state changes (e.g. to swap the sprite or play an effect).
+        // VI: Phát ra mỗi khi trạng thái thay đổi (ví dụ để đổi sprite hoặc chạy hiệu ứng).
+        public event Action<Food, FoodState> StateChanged;
+
+        // EN: Runtime footprint shape; a depleted half keeps its occupied cell until the whole dish is empty.
+        // VI: Kiểu vùng chiếm khi chạy; nửa hết nguyên liệu vẫn giữ ô đến khi cả đĩa trống.
+        public DishShape Shape { get; private set; }
+        // EN: Ingredient type of the second half, or None for a single dish.
+        // VI: Loại nguyên liệu nửa thứ hai, hoặc None với đĩa đơn.
+        public FoodType SecondFoodType { get; private set; }
+        // EN: Remaining portions in the second half.
+        // VI: Số phần còn lại ở nửa thứ hai.
+        public int SecondAmount { get; private set; }
+        // EN: Counts the portions that require conveyor slots across both halves.
+        // VI: Đếm số phần cần slot băng chuyền của cả hai nửa.
+        public int TotalAmount => amount + SecondAmount;
+        // EN: Indicates whether the dish occupies two board cells.
+        // VI: Cho biết đĩa có chiếm hai ô board hay không.
+        public bool IsDouble => Shape != DishShape.Single;
+        // EN: Exposes the second ingredient as the source of its pickup flight.
+        // VI: Cung cấp hình nguyên liệu thứ hai làm nguồn bay khi lấy đĩa.
+        public SpriteRenderer SecondIconRenderer => secondIcon;
+
+        public bool IsRaw => state == FoodState.Raw;
+
+        // EN: Indicates whether this portion has completed preparation.
+        // VI: Cho biết phần nguyên liệu này đã sơ chế xong hay chưa.
+        public bool IsPrepared => state == FoodState.Prepared;
+
+        // EN: Direct references used by managers instead of searching children at runtime.
+        // VI: Các tham chiếu trực tiếp để manager dùng thay cho việc tìm child lúc chạy.
+        public SpriteRenderer IconRenderer => iconRenderer;
+        public SpriteRenderer PlateRenderer => plateRenderer;
+        public DishSelectionOutline Selection => selection;
+        public SpriteRenderer[] VisualRenderers => visualRenderers;
+        public Canvas CountCanvas => countCanvas;
+        public bool IsFrozen => isFrozen && blockValue > 0;
+        public SpriteRenderer IceRenderer => iceRenderer;
+        // EN: Fixed points on the tray rim where a Dish Link cord may attach; they are children of the plate, so they follow double-dish stretching.
+        // VI: Các điểm cố định trên viền khay nơi dây Dish Link có thể gắn; là con của đĩa nên giãn theo đĩa đôi.
+        public Transform[] LinkAnchors => linkAnchors;
+
+        // EN: Direct reference to the lid renderer (used by boosters).
+        // VI: Tham chiếu trực tiếp tới renderer nắp (booster dùng).
+        public SpriteRenderer LidRenderer => lidRenderer;
 
         // EN: Reads cached shared gameplay tuning without storing a per-food config reference.
         // VI: Đọc cấu hình màn chơi dùng chung đã cache, không lưu tham chiếu riêng trên mỗi food.
@@ -41,29 +86,13 @@ namespace FoodPop
         [SerializeField] SpriteRenderer iceRenderer;
         [Tooltip("Text hiển thị giá trị khối băng còn lại.")]
         [SerializeField] TextMeshPro blockText;
+        [Tooltip("Các điểm gắn dây Dish Link trên viền khay (con của Plate). Kéo trong Scene để căn lại khi đổi hình hoặc kích thước khay; mỗi đầu dây chọn điểm gần hướng tới đĩa kia nhất.")]
+        [SerializeField] Transform[] linkAnchors = new Transform[0];
 
         private Sprite[] iceBlockSprites;
         private Vector3 iceBaseScale = Vector3.one;
         private bool iceScaleCaptured;
         private Coroutine iceHitRoutine;
-        // EN: Runtime footprint shape; a depleted half keeps its occupied cell until the whole dish is empty.
-        // VI: Kiểu vùng chiếm khi chạy; nửa hết nguyên liệu vẫn giữ ô đến khi cả đĩa trống.
-        public DishShape Shape { get; private set; }
-        // EN: Ingredient type of the second half, or None for a single dish.
-        // VI: Loại nguyên liệu nửa thứ hai, hoặc None với đĩa đơn.
-        public FoodType SecondFoodType { get; private set; }
-        // EN: Remaining portions in the second half.
-        // VI: Số phần còn lại ở nửa thứ hai.
-        public int SecondAmount { get; private set; }
-        // EN: Counts the portions that require conveyor slots across both halves.
-        // VI: Đếm số phần cần slot băng chuyền của cả hai nửa.
-        public int TotalAmount => amount + SecondAmount;
-        // EN: Indicates whether the dish occupies two board cells.
-        // VI: Cho biết đĩa có chiếm hai ô board hay không.
-        public bool IsDouble => Shape != DishShape.Single;
-        // EN: Exposes the second ingredient as the source of its pickup flight.
-        // VI: Cung cấp hình nguyên liệu thứ hai làm nguồn bay khi lấy đĩa.
-        public SpriteRenderer SecondIconRenderer => secondIcon;
 
         private SpriteRenderer secondIcon;
         private GameObject secondCount;
@@ -80,6 +109,40 @@ namespace FoodPop
         private Vector3 blockRestPosition;
         private bool countBadgeSuppressed;
 
+        private bool lidRestCaptured;
+        private Vector3 lidRestPosition;
+        private Vector3 lidRestScale;
+        private Quaternion lidRestRotation;
+        private Material lidDefaultMaterial;
+
+        // EN: Restores the hidden appearance when a scene or pooled dish becomes active.
+        // VI: Khôi phục hình ảnh ẩn khi đĩa scene hoặc đĩa từ pool được bật.
+        private void OnEnable()
+        {
+            RefreshHiddenVisual();
+            RefreshFrozenVisual();
+        }
+
+        // EN: Mirrors concealment, fading, brightness and sorting after board or booster visuals change.
+        // VI: Đồng bộ che đậy, độ mờ, độ sáng và thứ tự vẽ sau khi hình ảnh board hoặc booster thay đổi.
+        private void LateUpdate()
+        {
+            RefreshSecondVisual();
+        }
+
+        // EN: Configures a single food and concealment, resetting pooled double visuals and preparation state.
+        // VI: Thiết lập nguyên liệu đơn và trạng thái che, đặt lại hình đĩa đôi từ pool và trạng thái sơ chế.
+        public void Setup(FoodType type, int newAmount, Sprite icon, bool hidden = false)
+        {
+            ConfigureShape(DishShape.Single, FoodType.None, 0, Vector3.zero);
+            foodType = type;
+            state = FoodState.Raw;
+            SetIcon(icon);
+            SetAmount(newAmount);
+            SetHidden(hidden);
+            SetFrozen(false, 0);
+        }
+
         // EN: Configures the double footprint, plate, selection ring and matching lid while leaving ingredient icons unstretched.
         // VI: Thiết lập vùng chiếm đĩa đôi, hình đĩa, vòng viền và nắp tương ứng, không kéo giãn icon nguyên liệu.
         public void ConfigureShape(DishShape shape, FoodType secondType, int secondAmount, Vector3 localOffset, Sprite doublePlate = null, Material outlineMaterial = null, Sprite selectionSprite = null, Sprite doubleLid = null)
@@ -95,135 +158,38 @@ namespace FoodPop
             RefreshSecondVisual();
         }
 
-        // EN: Captures the original single plate, lid and transforms so pooling restores their appearance.
-        // VI: Ghi lại đĩa đơn, nắp và transform gốc để khôi phục hình ảnh khi tái sử dụng từ pool.
-        private void CaptureShapeRest()
-        {
-            if (!shapeRestCaptured)
-            {
-                plateRestPosition = plateRenderer != null ? plateRenderer.transform.localPosition : Vector3.zero;
-                plateRestScale = plateRenderer != null ? plateRenderer.transform.localScale : Vector3.one;
-                singlePlateSprite = plateRenderer != null ? plateRenderer.sprite : null;
-                singleLidSprite = lidRenderer != null ? lidRenderer.sprite : null;
-                CaptureLidRest();
-                singleLidScale = lidRestScale;
-                iceRestPosition = iceRenderer != null ? iceRenderer.transform.localPosition : Vector3.zero;
-                iceRestScale = iceRenderer != null ? iceRenderer.transform.localScale : Vector3.one;
-                blockRestPosition = blockText != null ? blockText.transform.localPosition : Vector3.zero;
-                shapeRestCaptured = true;
-            }
-        }
-
-        // EN: Fits an orientation-specific lid to the plate and restores the round lid for single dishes without changing reveal animations.
-        // VI: Căn nắp theo hướng vào đĩa và khôi phục nắp tròn cho đĩa đơn, giữ nguyên hoạt cảnh mở nắp.
-        private void ConfigureShapeLid(Sprite doubleLid)
-        {
-            if (lidRenderer == null)
-                return;
-            bool rectangular = IsDouble && doubleLid != null && plateRenderer != null && plateRenderer.sprite != null;
-            lidRenderer.sprite = rectangular ? doubleLid : singleLidSprite;
-            if (rectangular)
-            {
-                Vector3 plateSize = plateRenderer.sprite.bounds.size;
-                Vector3 lidSize = doubleLid.bounds.size;
-                lidRestScale = new Vector3(plateSize.x / lidSize.x, plateSize.y / lidSize.y, singleLidScale.z);
-            }
-            RestoreLidRest();
-        }
-
-        // EN: Fits the plate and its dedicated selection ring to two-cell dimensions while preserving the lid size.
-        // VI: Căn đĩa và vòng viền chọn riêng vào kích thước hai ô, giữ nguyên kích thước nắp.
-        private void ApplyShapeFootprint(Vector3 localOffset, Sprite doublePlate, Material outlineMaterial, Sprite selectionSprite)
-        {
-            Vector3 stretch = Vector3.one;
-            if (plateRenderer != null && singlePlateSprite != null)
-            {
-                Vector3 size = Vector3.Scale(singlePlateSprite.bounds.size, plateRestScale);
-                stretch.x += Mathf.Abs(localOffset.x) / Mathf.Max(0.001f, Mathf.Abs(size.x));
-                stretch.y += Mathf.Abs(localOffset.y) / Mathf.Max(0.001f, Mathf.Abs(size.y));
-                plateRenderer.transform.localPosition = plateRestPosition + localOffset * 0.5f;
-                bool rectangular = IsDouble && doublePlate != null;
-                plateRenderer.sprite = rectangular ? doublePlate : singlePlateSprite;
-                Vector3 targetSize = Vector3.Scale(size, stretch);
-                Vector3 spriteSize = plateRenderer.sprite.bounds.size;
-                Vector3 plateScale = new Vector3(targetSize.x / spriteSize.x, targetSize.y / spriteSize.y, plateRestScale.z);
-                plateRenderer.transform.localScale = plateScale;
-                Vector3 previousScale = Vector3.Scale(plateRestScale, stretch);
-                lidRestScale = Vector3.Scale(singleLidScale, new Vector3(previousScale.x / plateScale.x, previousScale.y / plateScale.y, 1f));
-                RestoreLidRest();
-                selection?.ConfigurePlateOutline(rectangular ? doublePlate : null, outlineMaterial, selectionSprite);
-            }
-            if (iceRenderer != null)
-            {
-                iceRenderer.transform.localPosition = iceRestPosition + localOffset * 0.5f;
-                iceRenderer.transform.localScale = Vector3.Scale(iceRestScale, stretch);
-                iceBaseScale = iceRenderer.transform.localScale;
-                iceScaleCaptured = true;
-            }
-            if (blockText != null)
-                blockText.transform.localPosition = blockRestPosition + localOffset * 0.5f;
-        }
-
-        // EN: Creates reusable second-half visuals and positions them without stretching their contents.
-        // VI: Tạo hình nửa thứ hai để tái sử dụng và đặt đúng vị trí mà không kéo giãn nội dung.
+        // EN: Replaces one ingredient stack during shuffle without changing the plate shape, position, lid or ice.
+        // VI: Thay một nhóm nguyên liệu khi xáo mà không đổi hình đĩa, vị trí, nắp hoặc băng.
         // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
         // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
-        private void ConfigureSecondVisual(FoodType secondType, Vector3 localOffset)
+        public void SetShuffleContent(bool secondHalf, FoodType type, int quantity)
         {
-            if (IsDouble && iconRenderer != null)
+            if (secondHalf)
             {
-                if (secondIcon == null)
-                {
-                    secondIcon = Instantiate(iconRenderer.gameObject, iconRenderer.transform.parent).GetComponent<SpriteRenderer>();
-                    secondIcon.name = "Second ingredient";
-                }
-                secondIcon.transform.localPosition = iconRenderer.transform.localPosition + localOffset;
-                secondIcon.sprite = IngameConfig.Instance.FoodIcons != null ? IngameConfig.Instance.FoodIcons.GetIcon(secondType) : null;
-                if (secondCount == null && canvasCount != null)
-                {
-                    secondCount = Instantiate(canvasCount, canvasCount.transform.parent);
-                    secondCount.name = "Second quantity";
-                    secondCountText = secondCount.GetComponentInChildren<TMP_Text>(true);
-                    secondCountCanvas = secondCount.GetComponentInChildren<Canvas>(true);
-                }
-                if (secondCount != null)
-                    secondCount.transform.localPosition = canvasCount.transform.localPosition + localOffset;
-            }
-        }
-
-        // EN: Mirrors concealment, fading, brightness and sorting after board or booster visuals change.
-        // VI: Đồng bộ che đậy, độ mờ, độ sáng và thứ tự vẽ sau khi hình ảnh board hoặc booster thay đổi.
-        private void LateUpdate()
-        {
-            RefreshSecondVisual();
-        }
-
-        // EN: Refreshes the second ingredient and its own quantity badge; like the first badge, the second one only shows when its quantity exceeds one.
-        // VI: Cập nhật nguyên liệu thứ hai và nhãn số lượng riêng; giống nhãn đầu, nhãn thứ hai chỉ hiện khi số lượng lớn hơn một.
-        private void RefreshSecondVisual()
-        {
-            if (secondIcon != null)
-            {
-                secondIcon.gameObject.SetActive(IsDouble && SecondAmount > 0 && iconRenderer != null && iconRenderer.gameObject.activeSelf);
-                secondIcon.enabled = SecondAmount > 0;
-                if (iconRenderer != null)
-                {
-                    secondIcon.color = iconRenderer.color;
-                    secondIcon.sortingLayerID = iconRenderer.sortingLayerID;
-                    secondIcon.sortingOrder = iconRenderer.sortingOrder;
-                    secondIcon.gameObject.layer = iconRenderer.gameObject.layer;
-                }
-            }
-            if (secondCount == null)
+                SecondFoodType = type;
+                SecondAmount = Mathf.Max(0, quantity);
+                if (secondIcon != null && IngameConfig.Instance.FoodIcons != null)
+                    secondIcon.sprite = IngameConfig.Instance.FoodIcons.GetIcon(type, state);
+                RefreshSecondVisual();
                 return;
-            secondCount.SetActive(IsDouble && SecondAmount > 1 && !countBadgeSuppressed && !isHidden && !IsFrozen && iconRenderer != null && iconRenderer.gameObject.activeSelf);
-            if (secondCountText != null)
-                secondCountText.text = SecondAmount.ToString();
-            if (secondCountCanvas != null && countCanvas != null)
-            {
-                secondCountCanvas.sortingLayerID = countCanvas.sortingLayerID;
-                secondCountCanvas.sortingOrder = countCanvas.sortingOrder;
             }
+            foodType = type;
+            if (IngameConfig.Instance.FoodIcons != null)
+                SetIcon(IngameConfig.Instance.FoodIcons.GetIcon(type, state));
+            SetAmount(quantity);
+        }
+
+        // EN: Updates the first-half quantity, hides its icon when depleted and refreshes the count badge.
+        // VI: Cập nhật số lượng nửa đầu, ẩn icon khi hết nguyên liệu và cập nhật nhãn số lượng.
+        public void SetAmount(int newAmount)
+        {
+            amount = Mathf.Max(0, newAmount);
+            if (iconRenderer != null)
+                foreach (SpriteRenderer renderer in iconRenderer.GetComponentsInChildren<SpriteRenderer>(true))
+                    renderer.enabled = amount > 0;
+            if (txtAmount != null)
+                txtAmount.text = amount.ToString();
+            RefreshCountVisual();
         }
 
         // EN: Removes one requested portion from either half without discarding the other half.
@@ -239,33 +205,6 @@ namespace FoodPop
             RefreshSecondVisual();
             return true;
         }
-        // EN: Raised whenever the state changes (e.g. to swap the sprite or play an effect).
-        // VI: Phát ra mỗi khi trạng thái thay đổi (ví dụ để đổi sprite hoặc chạy hiệu ứng).
-        public event Action<Food, FoodState> StateChanged;
-
-        public bool IsRaw => state == FoodState.Raw;
-
-        // EN: Indicates whether this portion has completed preparation.
-        // VI: Cho biết phần nguyên liệu này đã sơ chế xong hay chưa.
-        public bool IsPrepared => state == FoodState.Prepared;
-
-        // EN: Direct references used by managers instead of searching children at runtime.
-        // VI: Các tham chiếu trực tiếp để manager dùng thay cho việc tìm child lúc chạy.
-        public SpriteRenderer IconRenderer => iconRenderer;
-        public SpriteRenderer PlateRenderer => plateRenderer;
-        public DishSelectionOutline Selection => selection;
-        public SpriteRenderer[] VisualRenderers => visualRenderers;
-        public Canvas CountCanvas => countCanvas;
-        public bool IsFrozen => isFrozen && blockValue > 0;
-        public SpriteRenderer IceRenderer => iceRenderer;
-
-        // EN: Restores the hidden appearance when a scene or pooled dish becomes active.
-        // VI: Khôi phục hình ảnh ẩn khi đĩa scene hoặc đĩa từ pool được bật.
-        private void OnEnable()
-        {
-            RefreshHiddenVisual();
-            RefreshFrozenVisual();
-        }
 
         // EN: Changes concealment without changing ingredient type, quantity or preparation state.
         // VI: Đổi trạng thái che mà không đổi loại nguyên liệu, số lượng hoặc trạng thái sơ chế.
@@ -276,6 +215,33 @@ namespace FoodPop
             RestoreLidRest();
             RefreshHiddenVisual();
             RefreshCountVisual();
+        }
+
+        // EN: Covers hidden food with the lid (drawn just above its own ingredient) and hides its ingredient/shadow objects.
+        // VI: Che đồ ăn ẩn bằng nắp (vẽ ngay trên nguyên liệu của chính đĩa) và tắt hình nguyên liệu/bóng.
+        public void RefreshHiddenVisual()
+        {
+            if (iconRenderer != null && iconRenderer.gameObject.activeSelf == isHidden)
+                iconRenderer.gameObject.SetActive(!isHidden);
+            if (lidRenderer == null)
+                return;
+            if (lidRenderer.gameObject.activeSelf != isHidden)
+                lidRenderer.gameObject.SetActive(isHidden);
+            if (plateRenderer == null)
+                return;
+            ApplyLidLayer();
+            lidRenderer.gameObject.layer = plateRenderer.gameObject.layer;
+        }
+
+        // EN: Draws the ingredient at plate + plateOffset and keeps the lid right above it, so Dish Link can lift a back-row dish (food or closed lid) above its cord.
+        // VI: Vẽ nguyên liệu ở thứ tự đĩa + plateOffset và giữ nắp ngay trên nó, để Dish Link nâng đĩa hàng sau (món hoặc nắp đang đóng) lên trên dây.
+        public void SetIngredientLayer(int plateOffset)
+        {
+            if (iconRenderer == null || plateRenderer == null)
+                return;
+            iconRenderer.sortingOrder = plateRenderer.sortingOrder + plateOffset;
+            if (lidRenderer != null)
+                ApplyLidLayer();
         }
 
         // EN: Lifts the lid up by liftHeight (world units) and scales it to scaleUp while it fades out and the ingredient fades in over the given duration; then restores the lid transform and clears the hidden state.
@@ -316,18 +282,8 @@ namespace FoodPop
             SetHidden(false);
         }
 
-        private bool lidRestCaptured;
-        private Vector3 lidRestPosition;
-        private Vector3 lidRestScale;
-        private Quaternion lidRestRotation;
-        private Material lidDefaultMaterial;
-
-        // EN: Direct reference to the lid renderer (used by boosters).
-        // VI: Tham chiếu trực tiếp tới renderer nắp (booster dùng).
-        public SpriteRenderer LidRenderer => lidRenderer;
-
-        // EN: Closes the shared lid with a fade and drop, hiding both quantity badges and then both ingredient icons.
-        // VI: Đóng nắp chung bằng hiệu ứng mờ và rơi, ẩn cả hai nhãn số lượng rồi ẩn cả hai hình nguyên liệu.
+        // EN: Closes the shared lid (drawn just above its own ingredient) with a fade and drop, hiding both quantity badges and then both ingredient icons.
+        // VI: Đóng nắp chung (vẽ ngay trên nguyên liệu của chính đĩa) bằng hiệu ứng mờ và rơi, ẩn cả hai nhãn số lượng rồi ẩn cả hai hình nguyên liệu.
         public IEnumerator CloseLid(float duration, float dropHeight)
         {
             if (lidRenderer == null)
@@ -339,10 +295,7 @@ namespace FoodPop
             HideCountBadge();
             lid.gameObject.SetActive(true);
             if (plateRenderer != null)
-            {
-                lidRenderer.sortingLayerID = plateRenderer.sortingLayerID;
-                lidRenderer.sortingOrder = plateRenderer.sortingOrder + 3;
-            }
+                ApplyLidLayer();
             for (float time = 0f; time < duration; )
             {
                 time += Time.deltaTime;
@@ -391,59 +344,6 @@ namespace FoodPop
             lidRenderer.sharedMaterial = material != null ? material : lidDefaultMaterial;
         }
 
-        // EN: Remembers the lid's resting position, scale and rotation once, so animations can always be undone.
-        // VI: Ghi nhớ một lần vị trí, scale và góc nghỉ của nắp, để luôn hoàn tác được các hiệu ứng.
-        private void CaptureLidRest()
-        {
-            if (lidRestCaptured || lidRenderer == null)
-                return;
-            Transform lid = lidRenderer.transform;
-            lidRestPosition = lid.localPosition;
-            lidRestScale = lid.localScale;
-            lidRestRotation = lid.localRotation;
-            lidRestCaptured = true;
-        }
-
-        // EN: Puts the lid back at its resting position, scale and rotation.
-        // VI: Đặt nắp về lại vị trí, scale và góc nghỉ.
-        private void RestoreLidRest()
-        {
-            if (!lidRestCaptured || lidRenderer == null)
-                return;
-            Transform lid = lidRenderer.transform;
-            lid.localPosition = lidRestPosition;
-            lid.localScale = lidRestScale;
-            lid.localRotation = lidRestRotation;
-        }
-
-        // EN: Sets the lid's opacity, keeping its colour.
-        // VI: Đặt độ trong suốt của nắp, giữ nguyên màu.
-        private void SetLidAlpha(float alpha)
-        {
-            if (lidRenderer == null)
-                return;
-            Color color = lidRenderer.color;
-            color.a = alpha;
-            lidRenderer.color = color;
-        }
-
-        // EN: Covers hidden food with the lid and hides its ingredient/shadow objects.
-        // VI: Che đồ ăn ẩn bằng nắp và tắt hình nguyên liệu/bóng.
-        public void RefreshHiddenVisual()
-        {
-            if (iconRenderer != null && iconRenderer.gameObject.activeSelf == isHidden)
-                iconRenderer.gameObject.SetActive(!isHidden);
-            if (lidRenderer == null)
-                return;
-            if (lidRenderer.gameObject.activeSelf != isHidden)
-                lidRenderer.gameObject.SetActive(isHidden);
-            if (plateRenderer == null)
-                return;
-            lidRenderer.sortingLayerID = plateRenderer.sortingLayerID;
-            lidRenderer.sortingOrder = plateRenderer.sortingOrder + 3;
-            lidRenderer.gameObject.layer = plateRenderer.gameObject.layer;
-        }
-
         // EN: Freezes the dish with the given block value, or unfreezes it when frozen is false or the value is not positive.
         // VI: Đóng băng đĩa với giá trị khối băng đã cho, hoặc bỏ đóng băng khi frozen là false hoặc giá trị không dương.
         public void SetFrozen(bool frozen, int value)
@@ -471,8 +371,8 @@ namespace FoodPop
             return !isFrozen;
         }
 
-        // EN: Shows the ice layer and the remaining block value while frozen, drawn above the plate, food and lid.
-        // VI: Hiện lớp băng và giá trị khối băng còn lại khi đóng băng, vẽ trên đĩa, món và nắp.
+        // EN: Shows the ice layer (plate + 8) and the remaining block value (plate + 9) while frozen, above the plate, food, lid, Dish Link cord (plate + 4), raised linked food (plate + 6) and count badge (plate + 7).
+        // VI: Hiện lớp băng (đĩa + 8) và giá trị khối băng còn lại (đĩa + 9) khi đóng băng, trên đĩa, món, nắp, dây Dish Link (đĩa + 4), món nối được nâng (đĩa + 6) và nhãn số lượng (đĩa + 7).
         public void RefreshFrozenVisual()
         {
             bool frozen = IsFrozen;
@@ -482,7 +382,7 @@ namespace FoodPop
                 if (plateRenderer != null)
                 {
                     iceRenderer.sortingLayerID = plateRenderer.sortingLayerID;
-                    iceRenderer.sortingOrder = plateRenderer.sortingOrder + 5;
+                    iceRenderer.sortingOrder = plateRenderer.sortingOrder + 8;
                 }
                 ApplyIceStage();
             }
@@ -493,7 +393,7 @@ namespace FoodPop
             if (plateRenderer != null)
             {
                 blockText.sortingLayerID = plateRenderer.sortingLayerID;
-                blockText.sortingOrder = plateRenderer.sortingOrder + 6;
+                blockText.sortingOrder = plateRenderer.sortingOrder + 9;
             }
         }
 
@@ -505,6 +405,38 @@ namespace FoodPop
             RefreshFrozenVisual();
         }
 
+        // EN: Turns a raw food into a prepared one; returns false if it was already prepared.
+        // VI: Chuyển nguyên liệu thô thành đã sơ chế; trả về false nếu đã sơ chế rồi.
+        public bool Prepare()
+        {
+            if (state != FoodState.Raw)
+                return false;
+            SetState(FoodState.Prepared);
+            return true;
+        }
+
+        // EN: Changes processing state, refreshes its sushi icon and notifies listeners.
+        // VI: Đổi trạng thái chế biến, cập nhật icon sushi và thông báo cho bên lắng nghe.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
+        public void SetState(FoodState newState)
+        {
+            if (state == newState)
+                return;
+            state = newState;
+            if (IngameConfig.Instance.FoodIcons != null)
+                SetIcon(IngameConfig.Instance.FoodIcons.GetIcon(foodType, state));
+            StateChanged?.Invoke(this, state);
+        }
+
+        // EN: Puts the lid on the plate's sorting layer, one order above the ingredient (plate + 3 normally, higher when Dish Link lifts the ingredient).
+        // VI: Đặt nắp cùng sorting layer với đĩa, cao hơn nguyên liệu một bậc (bình thường là đĩa + 3, cao hơn khi Dish Link nâng nguyên liệu).
+        private void ApplyLidLayer()
+        {
+            lidRenderer.sortingLayerID = plateRenderer.sortingLayerID;
+            lidRenderer.sortingOrder = (iconRenderer != null ? iconRenderer.sortingOrder : plateRenderer.sortingOrder + 2) + 1;
+        }
+
         // EN: Shows the ice sprite for the remaining block value: value 1 uses the first sprite, higher values use thicker ones (capped at the last).
         // VI: Hiện sprite băng theo giá trị băng còn lại: giá trị 1 dùng sprite đầu, giá trị lớn hơn dùng sprite dày hơn (tối đa sprite cuối).
         private void ApplyIceStage()
@@ -514,6 +446,195 @@ namespace FoodPop
             int index = Mathf.Clamp(blockValue - 1, 0, iceBlockSprites.Length - 1);
             if (iceBlockSprites[index] != null)
                 iceRenderer.sprite = iceBlockSprites[index];
+        }
+
+        // EN: Refreshes the second ingredient and its own quantity badge; like the first badge, the second one only shows when its quantity exceeds one.
+        // VI: Cập nhật nguyên liệu thứ hai và nhãn số lượng riêng; giống nhãn đầu, nhãn thứ hai chỉ hiện khi số lượng lớn hơn một.
+        private void RefreshSecondVisual()
+        {
+            if (secondIcon != null)
+            {
+                secondIcon.gameObject.SetActive(IsDouble && SecondAmount > 0 && iconRenderer != null && iconRenderer.gameObject.activeSelf);
+                secondIcon.enabled = SecondAmount > 0;
+                if (iconRenderer != null)
+                {
+                    secondIcon.color = iconRenderer.color;
+                    secondIcon.sortingLayerID = iconRenderer.sortingLayerID;
+                    secondIcon.sortingOrder = iconRenderer.sortingOrder;
+                    secondIcon.gameObject.layer = iconRenderer.gameObject.layer;
+                }
+            }
+            if (secondCount == null)
+                return;
+            secondCount.SetActive(IsDouble && SecondAmount > 1 && !countBadgeSuppressed && !isHidden && !IsFrozen && iconRenderer != null && iconRenderer.gameObject.activeSelf);
+            if (secondCountText != null)
+                secondCountText.text = SecondAmount.ToString();
+            if (secondCountCanvas != null && countCanvas != null)
+            {
+                secondCountCanvas.sortingLayerID = countCanvas.sortingLayerID;
+                secondCountCanvas.sortingOrder = countCanvas.sortingOrder;
+            }
+        }
+
+        // EN: Captures the original single plate, lid and transforms so pooling restores their appearance.
+        // VI: Ghi lại đĩa đơn, nắp và transform gốc để khôi phục hình ảnh khi tái sử dụng từ pool.
+        private void CaptureShapeRest()
+        {
+            if (!shapeRestCaptured)
+            {
+                plateRestPosition = plateRenderer != null ? plateRenderer.transform.localPosition : Vector3.zero;
+                plateRestScale = plateRenderer != null ? plateRenderer.transform.localScale : Vector3.one;
+                singlePlateSprite = plateRenderer != null ? plateRenderer.sprite : null;
+                singleLidSprite = lidRenderer != null ? lidRenderer.sprite : null;
+                CaptureLidRest();
+                singleLidScale = lidRestScale;
+                iceRestPosition = iceRenderer != null ? iceRenderer.transform.localPosition : Vector3.zero;
+                iceRestScale = iceRenderer != null ? iceRenderer.transform.localScale : Vector3.one;
+                blockRestPosition = blockText != null ? blockText.transform.localPosition : Vector3.zero;
+                shapeRestCaptured = true;
+            }
+        }
+
+        // EN: Remembers the lid's resting position, scale and rotation once, so animations can always be undone.
+        // VI: Ghi nhớ một lần vị trí, scale và góc nghỉ của nắp, để luôn hoàn tác được các hiệu ứng.
+        private void CaptureLidRest()
+        {
+            if (lidRestCaptured || lidRenderer == null)
+                return;
+            Transform lid = lidRenderer.transform;
+            lidRestPosition = lid.localPosition;
+            lidRestScale = lid.localScale;
+            lidRestRotation = lid.localRotation;
+            lidRestCaptured = true;
+        }
+
+        // EN: Stops a running ice wobble and restores the ice's resting scale.
+        // VI: Dừng dao động băng đang chạy và trả băng về scale gốc.
+        private void StopIceHit()
+        {
+            if (iceHitRoutine != null)
+                StopCoroutine(iceHitRoutine);
+            iceHitRoutine = null;
+            if (iceScaleCaptured && iceRenderer != null)
+                iceRenderer.transform.localScale = iceBaseScale;
+        }
+
+        // EN: Fits the plate and its dedicated selection ring to two-cell dimensions while preserving the lid size.
+        // VI: Căn đĩa và vòng viền chọn riêng vào kích thước hai ô, giữ nguyên kích thước nắp.
+        private void ApplyShapeFootprint(Vector3 localOffset, Sprite doublePlate, Material outlineMaterial, Sprite selectionSprite)
+        {
+            Vector3 stretch = Vector3.one;
+            if (plateRenderer != null && singlePlateSprite != null)
+            {
+                Vector3 size = Vector3.Scale(singlePlateSprite.bounds.size, plateRestScale);
+                stretch.x += Mathf.Abs(localOffset.x) / Mathf.Max(0.001f, Mathf.Abs(size.x));
+                stretch.y += Mathf.Abs(localOffset.y) / Mathf.Max(0.001f, Mathf.Abs(size.y));
+                plateRenderer.transform.localPosition = plateRestPosition + localOffset * 0.5f;
+                bool rectangular = IsDouble && doublePlate != null;
+                plateRenderer.sprite = rectangular ? doublePlate : singlePlateSprite;
+                Vector3 targetSize = Vector3.Scale(size, stretch);
+                Vector3 spriteSize = plateRenderer.sprite.bounds.size;
+                Vector3 plateScale = new Vector3(targetSize.x / spriteSize.x, targetSize.y / spriteSize.y, plateRestScale.z);
+                plateRenderer.transform.localScale = plateScale;
+                Vector3 previousScale = Vector3.Scale(plateRestScale, stretch);
+                lidRestScale = Vector3.Scale(singleLidScale, new Vector3(previousScale.x / plateScale.x, previousScale.y / plateScale.y, 1f));
+                RestoreLidRest();
+                selection?.ConfigurePlateOutline(rectangular ? doublePlate : null, outlineMaterial, selectionSprite);
+            }
+            if (iceRenderer != null)
+            {
+                iceRenderer.transform.localPosition = iceRestPosition + localOffset * 0.5f;
+                iceRenderer.transform.localScale = Vector3.Scale(iceRestScale, stretch);
+                iceBaseScale = iceRenderer.transform.localScale;
+                iceScaleCaptured = true;
+            }
+            if (blockText != null)
+                blockText.transform.localPosition = blockRestPosition + localOffset * 0.5f;
+        }
+
+        // EN: Puts the lid back at its resting position, scale and rotation.
+        // VI: Đặt nắp về lại vị trí, scale và góc nghỉ.
+        private void RestoreLidRest()
+        {
+            if (!lidRestCaptured || lidRenderer == null)
+                return;
+            Transform lid = lidRenderer.transform;
+            lid.localPosition = lidRestPosition;
+            lid.localScale = lidRestScale;
+            lid.localRotation = lidRestRotation;
+        }
+
+        // EN: Fits an orientation-specific lid to the plate and restores the round lid for single dishes without changing reveal animations.
+        // VI: Căn nắp theo hướng vào đĩa và khôi phục nắp tròn cho đĩa đơn, giữ nguyên hoạt cảnh mở nắp.
+        private void ConfigureShapeLid(Sprite doubleLid)
+        {
+            if (lidRenderer == null)
+                return;
+            bool rectangular = IsDouble && doubleLid != null && plateRenderer != null && plateRenderer.sprite != null;
+            lidRenderer.sprite = rectangular ? doubleLid : singleLidSprite;
+            if (rectangular)
+            {
+                Vector3 plateSize = plateRenderer.sprite.bounds.size;
+                Vector3 lidSize = doubleLid.bounds.size;
+                lidRestScale = new Vector3(plateSize.x / lidSize.x, plateSize.y / lidSize.y, singleLidScale.z);
+            }
+            RestoreLidRest();
+        }
+
+        // EN: Creates reusable second-half visuals and positions them without stretching their contents.
+        // VI: Tạo hình nửa thứ hai để tái sử dụng và đặt đúng vị trí mà không kéo giãn nội dung.
+        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
+        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
+        private void ConfigureSecondVisual(FoodType secondType, Vector3 localOffset)
+        {
+            if (IsDouble && iconRenderer != null)
+            {
+                if (secondIcon == null)
+                {
+                    secondIcon = Instantiate(iconRenderer.gameObject, iconRenderer.transform.parent).GetComponent<SpriteRenderer>();
+                    secondIcon.name = "Second ingredient";
+                }
+                secondIcon.transform.localPosition = iconRenderer.transform.localPosition + localOffset;
+                secondIcon.sprite = IngameConfig.Instance.FoodIcons != null ? IngameConfig.Instance.FoodIcons.GetIcon(secondType) : null;
+                if (secondCount == null && canvasCount != null)
+                {
+                    secondCount = Instantiate(canvasCount, canvasCount.transform.parent);
+                    secondCount.name = "Second quantity";
+                    secondCountText = secondCount.GetComponentInChildren<TMP_Text>(true);
+                    secondCountCanvas = secondCount.GetComponentInChildren<Canvas>(true);
+                }
+                if (secondCount != null)
+                    secondCount.transform.localPosition = canvasCount.transform.localPosition + localOffset;
+            }
+        }
+
+        // EN: Shows the food sprite on the assigned ingredient renderer.
+        // VI: Hiện sprite nguyên liệu trên renderer nguyên liệu đã gán.
+        private void SetIcon(Sprite icon)
+        {
+            if (iconRenderer != null)
+                iconRenderer.sprite = icon;
+        }
+
+        // EN: Restores count visibility after data changes and shows the first badge only when its quantity exceeds one.
+        // VI: Khôi phục hiển thị số lượng sau khi đổi dữ liệu, chỉ hiện nhãn đầu khi số lượng lớn hơn một.
+        private void RefreshCountVisual()
+        {
+            countBadgeSuppressed = false;
+            if (canvasCount != null)
+                canvasCount.SetActive(amount > 1 && !isHidden && !IsFrozen);
+            RefreshSecondVisual();
+        }
+
+        // EN: Sets the lid's opacity, keeping its colour.
+        // VI: Đặt độ trong suốt của nắp, giữ nguyên màu.
+        private void SetLidAlpha(float alpha)
+        {
+            if (lidRenderer == null)
+                return;
+            Color color = lidRenderer.color;
+            color.a = alpha;
+            lidRenderer.color = color;
         }
 
         // EN: Gives the ice block a quick squash-and-pop when it loses a point.
@@ -547,106 +668,6 @@ namespace FoodPop
             }
             ice.localScale = iceBaseScale;
             iceHitRoutine = null;
-        }
-
-        // EN: Stops a running ice wobble and restores the ice's resting scale.
-        // VI: Dừng dao động băng đang chạy và trả băng về scale gốc.
-        private void StopIceHit()
-        {
-            if (iceHitRoutine != null)
-                StopCoroutine(iceHitRoutine);
-            iceHitRoutine = null;
-            if (iceScaleCaptured && iceRenderer != null)
-                iceRenderer.transform.localScale = iceBaseScale;
-        }
-
-        // EN: Turns a raw food into a prepared one; returns false if it was already prepared.
-        // VI: Chuyển nguyên liệu thô thành đã sơ chế; trả về false nếu đã sơ chế rồi.
-        public bool Prepare()
-        {
-            if (state != FoodState.Raw)
-                return false;
-            SetState(FoodState.Prepared);
-            return true;
-        }
-
-        // EN: Changes processing state, refreshes its sushi icon and notifies listeners.
-        // VI: Đổi trạng thái chế biến, cập nhật icon sushi và thông báo cho bên lắng nghe.
-        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
-        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
-        public void SetState(FoodState newState)
-        {
-            if (state == newState)
-                return;
-            state = newState;
-            if (IngameConfig.Instance.FoodIcons != null)
-                SetIcon(IngameConfig.Instance.FoodIcons.GetIcon(foodType, state));
-            StateChanged?.Invoke(this, state);
-        }
-
-        // EN: Configures a single food and concealment, resetting pooled double visuals and preparation state.
-        // VI: Thiết lập nguyên liệu đơn và trạng thái che, đặt lại hình đĩa đôi từ pool và trạng thái sơ chế.
-        public void Setup(FoodType type, int newAmount, Sprite icon, bool hidden = false)
-        {
-            ConfigureShape(DishShape.Single, FoodType.None, 0, Vector3.zero);
-            foodType = type;
-            state = FoodState.Raw;
-            SetIcon(icon);
-            SetAmount(newAmount);
-            SetHidden(hidden);
-            SetFrozen(false, 0);
-        }
-
-        // EN: Replaces one ingredient stack during shuffle without changing the plate shape, position, lid or ice.
-        // VI: Thay một nhóm nguyên liệu khi xáo mà không đổi hình đĩa, vị trí, nắp hoặc băng.
-        // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
-        // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
-        public void SetShuffleContent(bool secondHalf, FoodType type, int quantity)
-        {
-            if (secondHalf)
-            {
-                SecondFoodType = type;
-                SecondAmount = Mathf.Max(0, quantity);
-                if (secondIcon != null && IngameConfig.Instance.FoodIcons != null)
-                    secondIcon.sprite = IngameConfig.Instance.FoodIcons.GetIcon(type, state);
-                RefreshSecondVisual();
-                return;
-            }
-            foodType = type;
-            if (IngameConfig.Instance.FoodIcons != null)
-                SetIcon(IngameConfig.Instance.FoodIcons.GetIcon(type, state));
-            SetAmount(quantity);
-        }
-
-        // EN: Updates the first-half quantity, hides its icon when depleted and refreshes the count badge.
-        // VI: Cập nhật số lượng nửa đầu, ẩn icon khi hết nguyên liệu và cập nhật nhãn số lượng.
-        public void SetAmount(int newAmount)
-        {
-            amount = Mathf.Max(0, newAmount);
-            if (iconRenderer != null)
-                foreach (SpriteRenderer renderer in iconRenderer.GetComponentsInChildren<SpriteRenderer>(true))
-                    renderer.enabled = amount > 0;
-            if (txtAmount != null)
-                txtAmount.text = amount.ToString();
-            RefreshCountVisual();
-        }
-
-        // EN: Restores count visibility after data changes and shows the first badge only when its quantity exceeds one.
-        // VI: Khôi phục hiển thị số lượng sau khi đổi dữ liệu, chỉ hiện nhãn đầu khi số lượng lớn hơn một.
-        private void RefreshCountVisual()
-        {
-            countBadgeSuppressed = false;
-            if (canvasCount != null)
-                canvasCount.SetActive(amount > 1 && !isHidden && !IsFrozen);
-            RefreshSecondVisual();
-        }
-
-        // EN: Shows the food sprite on the assigned ingredient renderer.
-        // VI: Hiện sprite nguyên liệu trên renderer nguyên liệu đã gán.
-        private void SetIcon(Sprite icon)
-        {
-            if (iconRenderer != null)
-                iconRenderer.sprite = icon;
         }
     }
 }

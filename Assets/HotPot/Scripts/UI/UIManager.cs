@@ -175,16 +175,13 @@ namespace FoodPop
             }
         }
 
-        // EN: Opens the matching revive case with accept/decline actions and the existing revive-offer cue.
-        // VI: Mở đúng trường hợp hồi sinh với hành động đồng ý/từ chối và âm mời hồi sinh hiện có.
+        // EN: Opens the matching revive case with accept/decline actions; the popup itself plays the Revive cue as its opening sound.
+        // VI: Mở đúng trường hợp hồi sinh với hành động đồng ý/từ chối; popup tự phát âm Revive làm âm mở.
         public void ShowRevive(UnityAction revive, UnityAction decline, bool available = true, bool animate = true, CanvasRevive.ReviveCase reason = CanvasRevive.ReviveCase.OutOfSlots)
         {
             CanvasRevive canvas = GetUICanvas<CanvasRevive>();
             if (PreparePopup(canvas))
-            {
                 canvas.Show(revive, decline, available, animate, reason);
-                soundManager?.PlayEvent(IngameSoundManager.Event.OutOfSpace);
-            }
         }
 
         // EN: Returns the direct-base booster shop at its configured price and pauses gameplay until it closes.

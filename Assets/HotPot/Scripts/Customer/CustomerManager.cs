@@ -208,14 +208,15 @@ namespace FoodPop
 
         // EN: True when some ordering customer has a dish that can take this ingredient right now (ingredients already flying are counted).
         // VI: True khi có khách đang order có món nhận được nguyên liệu này ngay lúc này (đã tính nguyên liệu đang bay tới).
-        public bool TryFindCustomer(FoodType type) => TryFindCustomer(type, out _, out _);
+        public bool TryFindCustomer(FoodType type) => TryFindCustomer(type, out _, out _, out _);
 
-        // EN: Reserve one currently acceptable portion before a capacity-limited pick leaves the board.
-        // VI: Giữ một phần hiện có thể nhận trước khi lượt lấy thiếu sức chứa rời board.
+        // EN: Reserve one currently acceptable portion before a capacity-limited pick leaves the board, first moving a waiting dish onto a slot that already holds its base when needed.
+        // VI: Giữ một phần hiện có thể nhận trước khi lượt lấy thiếu sức chứa rời board, trước đó chuyển món đang chờ sang ô đã có đế của nó khi cần.
         public bool TryReserveDirectServe(FoodType type, out DirectServeReservation reservation)
         {
             reservation = null;
-            if (!TryFindCustomer(type, out Lane lane, out int dish)) return false;
+            if (!TryFindCustomer(type, out Lane lane, out int dish, out int retarget)) return false;
+            if (retarget >= 0) RetargetSlot(lane, dish, retarget);
             reservation = new DirectServeReservation(lane, dish, type);
             return true;
         }
@@ -224,8 +225,8 @@ namespace FoodPop
         // VI: True khi có khách đang order có món mà booster AutoComplete hoàn thành được ngay lúc này.
         public bool HasAutoCompleteTarget() => FindAutoCompleteDish(out _, out _);
 
-        // EN: Picks the dish missing the most ingredients among every ordering customer (ties: earlier customer, then earlier dish on the card), skipping dishes with an ingredient still flying in or already assembling. Reserves all of its missing ingredients so the belt no longer serves them, and returns them in recipe order.
-        // VI: Chọn món còn thiếu nhiều nguyên liệu nhất trong mọi khách đang order (bằng nhau thì khách đến sớm hơn, rồi món đứng trước trên thẻ), bỏ qua món đang có nguyên liệu bay tới hoặc đang ghép. Giữ chỗ mọi nguyên liệu còn thiếu để băng chuyền không gửi tới nữa, và trả về chúng theo thứ tự công thức.
+        // EN: Picks the dish missing the most ingredients among every ordering customer (ties: earlier customer, then earlier dish on the card), skipping dishes with an ingredient still flying in or already assembling. Reserves all of its missing ingredients (exact quantities, so duplicate recipe ingredients already delivered are not sent again) so the belt no longer serves them, and returns them in recipe order.
+        // VI: Chọn món còn thiếu nhiều nguyên liệu nhất trong mọi khách đang order (bằng nhau thì khách đến sớm hơn, rồi món đứng trước trên thẻ), bỏ qua món đang có nguyên liệu bay tới hoặc đang ghép. Giữ chỗ mọi nguyên liệu còn thiếu (đúng số lượng, nên nguyên liệu trùng đã giao không bị gửi lại) để băng chuyền không gửi tới nữa, và trả về chúng theo thứ tự công thức.
         public bool TryReserveAutoComplete(out AutoCompleteJob job)
         {
             job = null;
@@ -233,9 +234,7 @@ namespace FoodPop
                 return false;
             DishProgress progress = lane.dishes[dish];
             job = new AutoCompleteJob { serving = lane.servingFood, dish = dish };
-            foreach (FoodType ingredient in progress.recipe)
-                if (progress.missing.Contains(ingredient))
-                    job.ingredients.Add(ingredient);
+            progress.CollectMissing(job.ingredients);
             foreach (FoodType ingredient in job.ingredients)
                 progress.Reserve(ingredient);
             return job.ingredients.Count > 0;
@@ -273,8 +272,8 @@ namespace FoodPop
             return false;
         }
 
-        // EN: Fills result with the ingredients still needed, in serving priority: customers by arrival (earliest first), their dishes in card order, each dish's base first and then its other missing ingredients in recipe order. When excludeConveyor is true (default), ingredients already on the conveyor (or landing on it) are taken out, earliest need first; the chef passes false to rank the food already on the belt.
-        // VI: Điền vào result các nguyên liệu còn cần, theo thứ tự ưu tiên phục vụ: khách theo thứ tự đến (sớm nhất trước), món theo thứ tự trên thẻ, mỗi món đế trước rồi tới các nguyên liệu còn thiếu theo công thức. Khi excludeConveyor là true (mặc định), nguyên liệu đã có (hoặc đang đáp xuống) trên băng chuyền được trừ đi, trừ vào nhu cầu sớm nhất trước; đầu bếp truyền false để xếp hạng chính các món đang nằm trên băng.
+        // EN: Fills result with the ingredients still needed (exact quantities), in serving priority: customers by arrival (earliest first), their dishes in card order (mapped to the tray slot serving each), each dish's base first and then its other missing ingredients in recipe order. When excludeConveyor is true (default), ingredients already on the conveyor (or landing on it) are taken out, earliest need first; the chef passes false to rank the food already on the belt.
+        // VI: Điền vào result các nguyên liệu còn cần, theo thứ tự ưu tiên phục vụ (đúng số lượng): khách theo thứ tự đến (sớm nhất trước), món theo thứ tự trên thẻ (quy về ô khay đang phục vụ món đó), mỗi món đế trước rồi tới các nguyên liệu còn thiếu theo công thức. Khi excludeConveyor là true (mặc định), nguyên liệu đã có (hoặc đang đáp xuống) trên băng chuyền được trừ đi, trừ vào nhu cầu sớm nhất trước; đầu bếp truyền false để xếp hạng chính các món đang nằm trên băng.
         public void GetNeededIngredients(List<FoodType> result, bool excludeConveyor = true)
         {
             result.Clear();
@@ -285,13 +284,11 @@ namespace FoodPop
             ordered.Sort((a, b) => a.arrivalStamp.CompareTo(b.arrivalStamp));
             foreach (Lane lane in ordered)
             {
-                foreach (DishProgress dish in lane.dishes)
+                for (int card = 0; card < lane.dishes.Count; card++)
                 {
-                    if (dish.assembled)
-                        continue;
-                    foreach (FoodType ingredient in dish.recipe)
-                        if (dish.missing.Contains(ingredient))
-                            result.Add(ingredient);
+                    DishProgress dish = lane.dishes[lane.servingFood != null ? lane.servingFood.SlotOfCardDish(card) : card];
+                    if (!dish.assembled)
+                        dish.CollectMissing(result);
                 }
             }
             if (!excludeConveyor || conveyor == null)
@@ -350,16 +347,18 @@ namespace FoodPop
             }
         }
 
-        // EN: Selects the earliest eligible customer, reserves its recipe ingredient and delegates the flight to that lane's serving component; food that landed less than serveDelayAfterLanding seconds ago waits.
-        // VI: Chọn khách phù hợp đến sớm nhất, giữ chỗ nguyên liệu trong công thức và giao chuyến bay cho component phục vụ của làn; món đáp chưa đủ serveDelayAfterLanding giây thì chờ.
+        // EN: Selects the earliest eligible customer (moving a waiting dish onto a slot that already holds its base when needed), reserves its recipe ingredient and delegates the flight to that lane's serving component; food that landed less than serveDelayAfterLanding seconds ago waits.
+        // VI: Chọn khách phù hợp đến sớm nhất (chuyển món đang chờ sang ô đã có đế của nó khi cần), giữ chỗ nguyên liệu trong công thức và giao chuyến bay cho component phục vụ của làn; món đáp chưa đủ serveDelayAfterLanding giây thì chờ.
         private void TryServeFromSlot(ConveyorSlot slot)
         {
             if (slot == null || slot.isEmpty || slot.IsFoodArriving || slot.food == null || !slot.food.IsPrepared)
                 return;
             if (Time.time - slot.LandedTime < serveDelayAfterLanding)
                 return;
-            if (!TryFindCustomer(slot.food.foodType, out Lane lane, out int dish))
+            if (!TryFindCustomer(slot.food.foodType, out Lane lane, out int dish, out int retarget))
                 return;
+            if (retarget >= 0)
+                RetargetSlot(lane, dish, retarget);
             FoodType type = slot.food.foodType;
             DishProgress progress = lane.dishes[dish];
             progress.Reserve(type);
@@ -549,30 +548,77 @@ namespace FoodPop
             Debug.Log("[CustomerManager] Đã phục vụ hết khách của level.", this);
         }
 
-        // EN: Finds the ordering lane whose customer arrived first and has a dish that can take the ingredient; within a customer, the earliest dish on the card wins.
-        // VI: Tìm làn đang order có khách đến sớm nhất và có món nhận được nguyên liệu; trong cùng một khách, món đứng trước trên thẻ được ưu tiên.
-        private bool TryFindCustomer(FoodType type, out Lane best, out int bestDish)
+        // EN: Finds the ordering lane whose customer arrived first and has a tray slot that can take the ingredient (see TryFindDish); retarget is the slot whose dish must first move onto that slot, or -1. Nothing is changed here.
+        // VI: Tìm làn đang order có khách đến sớm nhất và có ô khay nhận được nguyên liệu (xem TryFindDish); retarget là ô có món phải chuyển sang ô đó trước, hoặc -1. Hàm này không thay đổi gì.
+        private bool TryFindCustomer(FoodType type, out Lane best, out int bestDish, out int retarget)
         {
             best = null;
             bestDish = -1;
+            retarget = -1;
             foreach (Lane lane in lanes)
             {
                 if (lane == null || !lane.ordering || (best != null && lane.arrivalStamp >= best.arrivalStamp))
                     continue;
-                for (int d = 0; d < lane.dishes.Count; d++)
-                {
-                    if (!lane.dishes[d].CanAccept(type) || lane.servingFood == null || !lane.servingFood.CanServe(d))
-                        continue;
-                    best = lane;
-                    bestDish = d;
-                    break;
-                }
+                if (!TryFindDish(lane, type, out int dish, out int target))
+                    continue;
+                best = lane;
+                bestDish = dish;
+                retarget = target;
             }
             return best != null;
         }
 
-        // EN: Finds the AutoComplete target dish (see TryReserveAutoComplete) without reserving anything.
-        // VI: Tìm món đích của AutoComplete (xem TryReserveAutoComplete) mà không giữ chỗ gì.
+        // EN: Picks the tray slot of one customer for an ingredient, checking dishes in card order: the slot of the earliest card dish that accepts it; otherwise, when a card dish needing it still waits for its base while another slot holds only that same base, the holding slot (retarget = the waiting dish's slot) so the base on the plate serves the dish the player is building.
+        // VI: Chọn ô khay của một khách cho nguyên liệu, xét món theo thứ tự trên thẻ: ô của món đứng trước nhất trên thẻ nhận được; nếu không có, khi một món trên thẻ cần nguyên liệu này còn chờ đế trong khi ô khác chỉ đang có đúng loại đế đó, chọn ô đang có đế (retarget = ô của món đang chờ) để đế trên đĩa phục vụ món người chơi đang làm.
+        private static bool TryFindDish(Lane lane, FoodType type, out int dish, out int retarget)
+        {
+            dish = -1;
+            retarget = -1;
+            ServingFood serving = lane.servingFood;
+            if (serving == null)
+                return false;
+            for (int card = 0; card < lane.dishes.Count; card++)
+            {
+                int slot = serving.SlotOfCardDish(card);
+                if (lane.dishes[slot].CanAccept(type) && serving.CanServe(slot))
+                {
+                    dish = slot;
+                    return true;
+                }
+            }
+            for (int card = 0; card < lane.dishes.Count; card++)
+            {
+                int target = serving.SlotOfCardDish(card);
+                DishProgress wanted = lane.dishes[target];
+                if (!wanted.WaitsForBase(type) || !serving.CanServe(target))
+                    continue;
+                for (int holderCard = 0; holderCard < lane.dishes.Count; holderCard++)
+                {
+                    int slot = serving.SlotOfCardDish(holderCard);
+                    if (slot == target || !lane.dishes[slot].HoldsOnlyBase(wanted.BaseIngredient) || !serving.CanServe(slot))
+                        continue;
+                    dish = slot;
+                    retarget = target;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // EN: Makes the tray slot holding a lone base serve the dish from the target slot instead: the progress records swap places (the base counts for the moved dish) and the serving tray swaps its pictures and card mapping. Plates and their ingredients stay where they are.
+        // VI: Cho ô khay đang chỉ có đế phục vụ món của ô đích: hai bản ghi tiến độ đổi chỗ (đế được tính cho món được chuyển) và khay phục vụ đổi hình món cùng ánh xạ sang thẻ. Đĩa và nguyên liệu trên đĩa giữ nguyên chỗ.
+        private static void RetargetSlot(Lane lane, int slot, int target)
+        {
+            DishProgress holder = lane.dishes[slot];
+            DishProgress wanted = lane.dishes[target];
+            holder.MoveBaseTo(wanted);
+            lane.dishes[slot] = wanted;
+            lane.dishes[target] = holder;
+            lane.servingFood.SwapDishes(slot, target, wanted.BaseIngredient);
+        }
+
+        // EN: Finds the AutoComplete target dish (see TryReserveAutoComplete) without reserving anything; dishes are checked in card order (mapped to their tray slots) so ties keep the earlier card dish.
+        // VI: Tìm món đích của AutoComplete (xem TryReserveAutoComplete) mà không giữ chỗ gì; xét món theo thứ tự trên thẻ (quy về ô khay tương ứng) để khi bằng nhau vẫn chọn món đứng trước trên thẻ.
         private bool FindAutoCompleteDish(out Lane best, out int bestDish)
         {
             best = null;
@@ -582,8 +628,9 @@ namespace FoodPop
             {
                 if (lane == null || !lane.ordering || lane.servingFood == null)
                     continue;
-                for (int d = 0; d < lane.dishes.Count; d++)
+                for (int card = 0; card < lane.dishes.Count; card++)
                 {
+                    int d = lane.servingFood.SlotOfCardDish(card);
                     DishProgress progress = lane.dishes[d];
                     int missing = progress.missing.Count;
                     if (progress.assembled || progress.incoming > 0 || missing == 0 || !lane.servingFood.CanServe(d))
@@ -952,8 +999,8 @@ namespace FoodPop
                     StartCoroutine(StepAndBring(other));
         }
 
-        // EN: Animates a dedicated portrait (a walking spine for Normal customers) from the shared queue to this seat without sharing walkers; it sorts just behind the counter customers so it walks behind anyone already standing at a counter.
-        // VI: Đưa hình khách riêng (spine đi bộ với khách Normal) từ hàng chung tới chỗ này, không dùng chung hình đang di chuyển; hình này vẽ ngay sau khách ở quầy nên đi phía sau người đang đứng ở quầy.
+        // EN: Animates a dedicated portrait (a walking spine for Normal customers) from the shared queue to this seat at walkSpeed without sharing walkers; it sorts just behind the counter customers so it walks behind anyone already standing at a counter.
+        // VI: Đưa hình khách riêng (spine đi bộ với khách Normal) từ hàng chung tới chỗ này với tốc độ walkSpeed, không dùng chung hình đang di chuyển; hình này vẽ ngay sau khách ở quầy nên đi phía sau người đang đứng ở quầy.
         private IEnumerator StepQueueForward(Lane lane)
         {
             SpriteRenderer active = lane.customer != null ? lane.customer.Portrait : null;

@@ -26,12 +26,14 @@ Món không phải mục dữ liệu riêng (không có enum/ScriptableObject m�
 4. Ô khay dựng ảnh từng lớp (`DishSlotView.BeginDish` / `RevealIngredient` / `ClearDish`): mọi lớp và đĩa ẩn lúc đầu; nguyên liệu bay tới `GetLandingPosition(type)`; khi đáp, lớp tương ứng nảy hiện và nguyên liệu đầu tiên làm đĩa nảy ra (`ShowPlate`, `plateShowDuration` 0,2 s, `layerRevealDuration` 0,18 s).
    - Đĩa chọn theo món: `FinalFoodView.plate` riêng (ví dụ `dish_double` của FinalFood_8), nếu không thì `Plate_Tea` khi prefab có lớp `TeaLeaves`, còn lại `Plate`.
    - Nhóm không có prefab dùng cách chồng cũ (`TrayDishStack.AddPiece`) và hoàn tất không có ảnh.
-5. Đủ công thức → `CompleteDish` → ghép (`MergeStack`, poof `dishCompleteEffect`) → món hoàn chỉnh (pool) bay lên thẻ (`FlyDishToOrder`), thẻ đánh dấu tích; callback phát khi món tới.
+5. Đủ công thức → `CompleteDish` → ghép (`MergeStack`, poof `dishCompleteEffect`) → món hoàn chỉnh (pool) bay lên thẻ (`FlyDishToOrder`; ô khay vừa trống ẩn đĩa và viền nét đứt `DishSlotView.SetOutlineVisible(false)`, viền hiện lại khi ô được dọn cho order mới qua `ClearDish`), thẻ đánh dấu tích; callback phát khi món tới.
 6. `ResetOrder` dừng coroutine, bỏ callback, dọn ô và trả mọi sprite về pool (kể cả đang bay). Đổi khách, replay, hủy manager đều reset.
 
 Thẻ order (`OrderItemView`) chỉ hiện instance prefab món và dấu tích; icon nguyên liệu đã tới mờ về `doneAlpha` 0.35 (8 prefab `Prefabs/OrderView/OrderPreview_*`).
 
 Phần đi thẳng từ đầu bếp (`DirectServeReservation.TryDeliver` → `LaunchBoosterServe`, dùng chung với AutoComplete): xem [ConveyorChef.md](ConveyorChef.md).
+
+Mỗi ô đếm số nguyên liệu đang bay tới (`incomingFlights`): phóng thì cộng, đáp thì trừ. `IsReceiving(dish)` và chặn `CanServe` giữ tới khi số đếm về 0, nên AutoComplete phóng nhiều nguyên liệu liên tiếp vào một ô chỉ được coi là xong khi nguyên liệu cuối đã đáp.
 
 ## Hoạt cảnh riêng cho món
 - `FinalFoodView.isAnimate` + `foodAnimation` (base abstract `Scripts/Food/FinalFoodAnimation.cs`: `Play()` coroutine, `ResetAnimation()`, `SetSorting()`; `OnDisable` reset đạo cụ).

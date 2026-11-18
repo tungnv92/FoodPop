@@ -111,6 +111,8 @@ namespace FoodPop
         [SerializeField] private Sprite verticalDoubleLid;
         [Tooltip("Vật liệu viền chọn bám theo hình chữ nhật của đĩa đôi.")]
         [SerializeField] private Material doublePlateOutlineMaterial;
+        [Tooltip("Prefab dây nối Dish Link; sửa hình dây và móc trong prefab này.")]
+        [SerializeField] private DishLinkView dishLinkPrefab;
         [Tooltip("Đối tượng chứa các đĩa đang nằm trong pool; tự tạo nếu chưa gán.")]
         [SerializeField] private Transform dishPoolRoot;
         [Tooltip("Camera dùng để đổi vị trí chạm/chuột sang toạ độ world; để trống sẽ dùng Camera.main.")]
@@ -179,8 +181,8 @@ namespace FoodPop
         }
 
 #if UNITY_EDITOR
-        // EN: Assigns default board assets including double plates, lids, dedicated rings and fallback outline material.
-        // VI: Gán asset board mặc định gồm đĩa đôi, nắp, vòng viền riêng và vật liệu viền dự phòng.
+        // EN: Assigns default board assets including double plates, lids, dedicated rings, fallback outline material and the Dish Link prefab.
+        // VI: Gán asset board mặc định gồm đĩa đôi, nắp, vòng viền riêng, vật liệu viền dự phòng và prefab Dish Link.
         // EN: Uses the shared ingredient configuration instead of per-food catalogue references.
         // VI: Dùng cấu hình nguyên liệu chung thay cho tham chiếu bảng riêng trên từng food.
         private void OnValidate()
@@ -205,6 +207,8 @@ namespace FoodPop
             }
             if (ingredientDishPrefab == null)
                 ingredientDishPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<Food>("Assets/HotPot/Prefabs/Ingame/IngredientDish.prefab");
+            if (dishLinkPrefab == null)
+                dishLinkPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<DishLinkView>("Assets/HotPot/Prefabs/Ingame/DishLink.prefab");
         }
 #endif
 

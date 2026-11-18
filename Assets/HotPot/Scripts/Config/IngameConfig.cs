@@ -87,8 +87,7 @@ namespace FoodPop
             [Tooltip("Thời gian (giây) từ lúc khách cũ bắt đầu đi ra tới lúc khách tiếp theo trong hàng bắt đầu bước lên quầy.")]
             [Min(0f)] public float nextCustomerDelay = 0.5f;
             [Tooltip("Tốc độ đi bộ (đơn vị world/giây) dùng chung khi khách bước lên quầy, rời quầy và dồn lên trong hàng chờ; quãng đường dài thì đi lâu hơn.")]
-            [Min(0.1f)] public float walkSpeed = 5f;
-            [Tooltip("Quãng đường (đơn vị world) trượt sang ngang để khách ra khỏi màn hình.")]
+            [Min(0.1f)] public float walkSpeed = 5f;            [Tooltip("Quãng đường (đơn vị world) trượt sang ngang để khách ra khỏi màn hình.")]
             [Min(0f)] public float slideDistance = 9f;
             [Tooltip("Màu phủ cho khách chưa tới lượt order (tối hơn khách đang order).")]
             public Color waitingTint = new Color(0.55f, 0.55f, 0.6f, 1f);

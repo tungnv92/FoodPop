@@ -15,6 +15,10 @@ namespace FoodPop
         private const int FirstCoinPrice = 900;
         private const int CoinPriceStep = 1000;
 
+        // EN: Plays only the Revive cue when the popup opens, replacing the generic popup sound.
+        // VI: Chỉ phát âm Revive khi popup mở, thay cho âm mở popup chung.
+        protected override IngameSoundManager.Event OpenSound => IngameSoundManager.Event.Revive;
+
         [Tooltip("Tiêu đề lời mời hồi sinh.")]
         [SerializeField] private TMP_Text titleLabel;
         [Tooltip("Nhóm nội dung đã thiết kế cho trường hợp băng chuyền hết chỗ.")]
@@ -182,12 +186,11 @@ namespace FoodPop
             AnimateClose(CompleteDecline);
         }
 
-        // EN: Counts the first successful ad revive and plays its cue without changing wallet or booster inventory.
-        // VI: Ghi nhận hồi sinh Ads đầu và phát âm tương ứng, không đổi ví hoặc kho booster.
+        // EN: Counts the first successful ad revive without changing wallet or booster inventory.
+        // VI: Ghi nhận hồi sinh Ads đầu, không đổi ví hoặc kho booster.
         private void CompleteFreeRevive()
         {
             completedRevives++;
-            PlayUISound(IngameSoundManager.Event.Revive);
             CompleteChoice(reviveAction);
         }
 
@@ -205,8 +208,8 @@ namespace FoodPop
             Owner.ShowShortMessage($"Not enough gold. You need {revivePrice:N0} gold to revive.");
         }
 
-        // EN: Spends once, advances total progression, plays the revive cue and invokes revival.
-        // VI: Trừ đủ giá một lần, tăng tiến độ, phát âm hồi sinh và gọi hồi sinh.
+        // EN: Spends once, advances total progression and invokes revival.
+        // VI: Trừ đủ giá một lần, tăng tiến độ và gọi hồi sinh.
         private void CompleteCoinRevive()
         {
             if (!playerData.OnRemoveCoin(revivePrice, "revive"))
@@ -217,7 +220,6 @@ namespace FoodPop
                 return;
             }
             completedRevives++;
-            PlayUISound(IngameSoundManager.Event.Revive);
             CompleteChoice(reviveAction);
         }
 

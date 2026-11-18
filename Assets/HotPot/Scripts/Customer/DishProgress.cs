@@ -7,6 +7,14 @@ namespace FoodPop
     // VI: Tiến độ của một món hoàn chỉnh được order: công thức (nguyên liệu đầu tiên là đế, phải tới trước, trừ khi hình món cho phép thứ tự bất kỳ), nguyên liệu còn phải gửi, nguyên liệu đang bay tới và trạng thái đã ghép xong trên khay.
     internal sealed class DishProgress
     {
+        // EN: The base ingredient (first of the recipe) that must reach the dish before any other.
+        // VI: Nguyên liệu đế (đầu tiên trong công thức) phải tới món trước mọi nguyên liệu khác.
+        public FoodType BaseIngredient => recipe.Count > 0 ? recipe[0] : FoodType.None;
+
+        // EN: True once every ingredient has arrived (nothing missing, nothing still flying).
+        // VI: True khi mọi nguyên liệu đã tới (không còn thiếu, không còn đang bay).
+        public bool Done => missing.Count == 0 && incoming == 0;
+
         public readonly FinalFoodView dish;
         public readonly List<FoodType> recipe;
         public readonly List<FoodType> missing;
@@ -30,10 +38,6 @@ namespace FoodPop
             missing = new List<FoodType>(recipe);
         }
 
-        // EN: The base ingredient (first of the recipe) that must reach the dish before any other.
-        // VI: Nguyên liệu đế (đầu tiên trong công thức) phải tới món trước mọi nguyên liệu khác.
-        public FoodType BaseIngredient => recipe.Count > 0 ? recipe[0] : FoodType.None;
-
         // EN: Accepts a missing ingredient only when this dish has no incoming flight; the base must land before other recipe ingredients can depart, unless the dish accepts its ingredients in any order.
         // VI: Chỉ nhận nguyên liệu còn thiếu khi món không có nguyên liệu đang bay tới; đế phải đáp xuống trước khi nguyên liệu khác trong công thức được rời băng chuyền, trừ khi món nhận nguyên liệu theo thứ tự bất kỳ.
         public bool CanAccept(FoodType ingredient)
@@ -41,6 +45,16 @@ namespace FoodPop
             if (incoming > 0 || !missing.Contains(ingredient))
                 return false;
             return anyOrder || ingredient == BaseIngredient || baseReserved;
+        }
+
+        // EN: Appends the still-missing ingredients to result in recipe order with exact quantities: a recipe ingredient that appears several times is added only as many times as it is still missing.
+        // VI: Thêm các nguyên liệu còn thiếu vào result theo thứ tự công thức và đúng số lượng: nguyên liệu xuất hiện nhiều lần trong công thức chỉ được thêm đúng số lần còn thiếu.
+        public void CollectMissing(List<FoodType> result)
+        {
+            List<FoodType> left = new List<FoodType>(missing);
+            foreach (FoodType ingredient in recipe)
+                if (left.Remove(ingredient))
+                    result.Add(ingredient);
         }
 
         // EN: Books one ingredient for this dish as it leaves the belt.
@@ -70,8 +84,30 @@ namespace FoodPop
             incoming = Mathf.Max(0, incoming - 1);
         }
 
-        // EN: True once every ingredient has arrived (nothing missing, nothing still flying).
-        // VI: True khi mọi nguyên liệu đã tới (không còn thiếu, không còn đang bay).
-        public bool Done => missing.Count == 0 && incoming == 0;
+        // EN: True when this base-first dish has received nothing yet and is blocked only by its missing base for a non-base ingredient it still needs.
+        // VI: True khi món phải nhận đế trước này chưa nhận gì và chỉ bị chặn vì thiếu đế đối với một nguyên liệu không phải đế mà nó còn cần.
+        public bool WaitsForBase(FoodType ingredient)
+        {
+            return !anyOrder && incoming == 0 && !baseReserved && missing.Count == recipe.Count &&
+                   ingredient != BaseIngredient && missing.Contains(ingredient);
+        }
+
+        // EN: True when this base-first dish holds only its landed base (same base as requested) and nothing is flying to it, so the base can serve another dish instead.
+        // VI: True khi món phải nhận đế trước này chỉ đang có đế đã đáp (cùng loại đế được hỏi) và không có gì đang bay tới, nên đế đó có thể dùng cho món khác.
+        public bool HoldsOnlyBase(FoodType baseIngredient)
+        {
+            return !anyOrder && !assembled && incoming == 0 && baseReserved &&
+                   BaseIngredient == baseIngredient && missing.Count == recipe.Count - 1;
+        }
+
+        // EN: Hands this dish's landed base to another dish with the same base: this dish needs its base again and the other counts the base as delivered.
+        // VI: Chuyển đế đã đáp của món này cho món khác cùng đế: món này cần lại đế, món kia coi như đã nhận đế.
+        public void MoveBaseTo(DishProgress other)
+        {
+            missing.Add(BaseIngredient);
+            baseReserved = false;
+            other.missing.Remove(other.BaseIngredient);
+            other.baseReserved = true;
+        }
     }
 }

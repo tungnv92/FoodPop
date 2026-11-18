@@ -22,6 +22,7 @@ Hoạt cảnh bay/ghép món thuộc `ServingFood` — xem [ServingFood.md](Serv
 ## Phục vụ từ băng
 - `Update` duyệt mọi slot: lấy món đã sơ chế, không đang đáp, đã nằm trên đĩa ≥ `Serve Delay After Landing` (`ConveyorSlot.LandedTime`).
 - `TryFindCustomer(type)`: khách đang order đến sớm nhất có món nhận được nguyên liệu (ưu tiên món đứng trước trên thẻ). Món nhận khi còn thiếu nguyên liệu đó, không có `incoming` và `ServingFood.CanServe`. **Luật đế:** đế phải gửi trước (trừ món `anyIngredientOrder`).
+- **Đổi ô khi đế đã nằm trên đĩa khác (18/11/2026):** chỉ số món trong `lane.dishes` là **ô khay**; `ServingFood` giữ ánh xạ ô khay → món trên thẻ (`slotItems`, ban đầu ô i = món i). Nếu không ô nào nhận nguyên liệu X, nhưng có món B cần X còn chờ đế (`DishProgress.WaitsForBase`: chưa nhận gì, không `anyIngredientOrder`) và một ô A chỉ đang có đúng loại đế đó đã đáp (`HoldsOnlyBase`, không có gì đang bay), thì `RetargetSlot` cho ô A phục vụ món B: hai `DishProgress` đổi chỗ, đế tính sang B (`MoveBaseTo`), `ServingFood.SwapDishes` đổi prefab + ánh xạ thẻ, `TrayDishStack.SwapDishes` đổi hình món trong ô (`DishSlotView.ChangeDish` giữ lớp đế và đĩa đang hiện, không chạy lại hiệu ứng), `OrderView.MoveIngredientMark` chuyển dấu đế trên thẻ. Đĩa và nguyên liệu không di chuyển; món hoàn chỉnh của ô A bay về ô của món B trên thẻ. Ví dụ Món 1 = Cơm+Cá hồi, Món 2 = Cơm+Cá ngừ: Cơm vào ô 1, sau đó Cá ngừ → ô 1 chuyển sang phục vụ món 2. Thứ tự ưu tiên luôn theo **thứ tự món trên thẻ** (`ServingFood.SlotOfCardDish`), kể cả AutoComplete khi bằng nhau, dù các ô đã đổi chỗ. Chỉ đổi khi thật sự giữ chỗ (`TryServeFromSlot`, `TryReserveDirectServe`); `TryFindCustomer(type)` dạng hỏi không đổi gì.
 - Trước `LaunchServe`: xóa khỏi `missing`, tăng `incoming`, đánh dấu đế. Phóng lỗi → `CancelReservation`.
 - `TryReserveDirectServe` giữ một phần cho luồng đi thẳng từ đầu bếp (cùng `TryFindCustomer`/`CanAccept`); `IsValid` kiểm tra khách vẫn order và progress còn thuộc làn. Xem [ConveyorChef.md](ConveyorChef.md#sức-chứa-khi-lấy-đĩa-dishpickplan).
 
@@ -102,8 +103,8 @@ Play Mode HotPotDemo level 2: spine đúng vị trí ở quầy/hàng chờ, `an
 | `TryFindCustomer(FoodType)` | Có khách nhận ngay nguyên liệu này không |
 | `AllServed`, `RemainingCustomers`, `HasCompletedOrder` | Trạng thái |
 | `RemainingCustomersChanged`, `CustomerArrived` | Sự kiện |
-| `GetNeededIngredients(List<FoodType>)` | Nhu cầu theo thứ tự khách → món → công thức, trừ phần đã có/đang đáp trên băng |
-| `HasAutoCompleteTarget()`, `TryReserveAutoComplete(out AutoCompleteJob)` | AutoComplete: chọn món thiếu nhiều nguyên liệu nhất (bằng nhau: khách sớm hơn, món trước), giữ chỗ toàn bộ nguyên liệu thiếu |
+| `GetNeededIngredients(List<FoodType>)` | Nhu cầu theo thứ tự khách → món (theo thứ tự trên thẻ, quy về ô khay đang phục vụ) → công thức, đúng số lượng còn thiếu (`DishProgress.CollectMissing`: nguyên liệu trùng chỉ tính số lần còn thiếu), trừ phần đã có/đang đáp trên băng |
+| `HasAutoCompleteTarget()`, `TryReserveAutoComplete(out AutoCompleteJob)` | AutoComplete: chọn món thiếu nhiều nguyên liệu nhất (bằng nhau: khách sớm hơn, món trước), giữ chỗ toàn bộ nguyên liệu thiếu, đúng số lượng (`CollectMissing`) |
 | `ServeTimeExpired`, `ResetExpiredServeTimers()` | Đồng hồ |
 
 ## Vòng đời và lưu ý

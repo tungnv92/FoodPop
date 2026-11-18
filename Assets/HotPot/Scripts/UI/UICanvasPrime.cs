@@ -12,6 +12,10 @@ namespace FoodPop
         // VI: Cung cấp canvas đã thiết kế mà không tìm kiếm cấu trúc con.
         public Canvas Canvas => popupCanvas;
 
+        // EN: Sound played when the canvas opens; popups with their own cue override it instead of stacking two sounds.
+        // VI: Âm phát khi canvas mở; popup có âm riêng ghi đè thay vì phát chồng hai âm.
+        protected virtual IngameSoundManager.Event OpenSound => IngameSoundManager.Event.PopupShow;
+
         [Tooltip("Canvas của prefab giao diện.")]
         [SerializeField] private Canvas popupCanvas;
         [Tooltip("Nhóm hiển thị và tương tác của giao diện.")]
@@ -43,14 +47,14 @@ namespace FoodPop
             return gameObject.activeSelf;
         }
 
-        // EN: Captures the authored scale, activates the canvas and plays its opening sound.
-        // VI: Ghi tỉ lệ thiết kế, bật canvas và phát âm thanh mở.
+        // EN: Captures the authored scale, activates the canvas and plays its opening sound (OpenSound).
+        // VI: Ghi tỉ lệ thiết kế, bật canvas và phát âm thanh mở (OpenSound).
         public virtual void Open()
         {
             CapturePopupScale();
             gameObject.SetActive(true);
             OnOpenCanvas();
-            PlayUISound(IngameSoundManager.Event.PopupShow);
+            PlayUISound(OpenSound);
         }
 
         // EN: Plays an immediate-close sound when needed, cancels transitions and notifies the manager before optional destruction.
