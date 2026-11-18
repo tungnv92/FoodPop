@@ -47,9 +47,10 @@ namespace FoodPop
         public Canvas CountCanvas => countCanvas;
         public bool IsFrozen => isFrozen && blockValue > 0;
         public SpriteRenderer IceRenderer => iceRenderer;
-        // EN: Fixed points on the tray rim where a Dish Link cord may attach; they are children of the plate, so they follow double-dish stretching.
-        // VI: Các điểm cố định trên viền khay nơi dây Dish Link có thể gắn; là con của đĩa nên giãn theo đĩa đôi.
-        public Transform[] LinkAnchors => linkAnchors;
+        // EN: Fixed points on the tray rim where a Dish Link cord may attach, picked for the current shape (single, horizontal or vertical double tray).
+        // VI: Các điểm cố định trên viền khay nơi dây Dish Link có thể gắn, chọn theo hình dạng hiện tại (khay đơn, khay đôi ngang hoặc dọc).
+        public Transform[] LinkAnchors => Shape == DishShape.Horizontal ? horizontalLinkAnchors :
+            Shape == DishShape.Vertical ? verticalLinkAnchors : linkAnchors;
 
         // EN: Direct reference to the lid renderer (used by boosters).
         // VI: Tham chiếu trực tiếp tới renderer nắp (booster dùng).
@@ -86,8 +87,12 @@ namespace FoodPop
         [SerializeField] SpriteRenderer iceRenderer;
         [Tooltip("Text hiển thị giá trị khối băng còn lại.")]
         [SerializeField] TextMeshPro blockText;
-        [Tooltip("Các điểm gắn dây Dish Link trên viền khay (con của Plate). Kéo trong Scene để căn lại khi đổi hình hoặc kích thước khay; mỗi đầu dây chọn điểm gần hướng tới đĩa kia nhất.")]
+        [Tooltip("Các điểm gắn dây Dish Link trên viền khay đơn (con của Plate). Kéo trong Scene để căn lại khi đổi hình hoặc kích thước khay; mỗi đầu dây chọn điểm gần hướng tới đĩa kia nhất.")]
         [SerializeField] Transform[] linkAnchors = new Transform[0];
+        [Tooltip("Các điểm gắn dây Dish Link trên viền khay đôi ngang (con của Plate, đặt theo sprite khay đôi ngang). Muốn căn lại thì tạm đổi sprite Plate sang khay đôi ngang trong prefab rồi kéo các điểm.")]
+        [SerializeField] Transform[] horizontalLinkAnchors = new Transform[0];
+        [Tooltip("Các điểm gắn dây Dish Link trên viền khay đôi dọc (con của Plate, đặt theo sprite khay đôi dọc). Muốn căn lại thì tạm đổi sprite Plate sang khay đôi dọc trong prefab rồi kéo các điểm.")]
+        [SerializeField] Transform[] verticalLinkAnchors = new Transform[0];
 
         private Sprite[] iceBlockSprites;
         private Vector3 iceBaseScale = Vector3.one;
