@@ -47,7 +47,7 @@ Sau khi `DishPickBatch.TryFill` giữ đủ slot và chốt chi phí, `ChefManag
 **Đi thẳng tới order:** `DirectServeReservation` giữ đúng một nhu cầu bằng `DishProgress.Reserve` (theo luật đế và incoming); batch giữ N−1 slot cho phần còn lại. Lỗi điền/thanh toán → nhả slot và hủy giữ chỗ. Chốt xong `ChefManager.BeginDirectPreparation` bay sprite nguồn tới thớt, sơ chế, rồi `ServingFood.LaunchBoosterServe` giao tới đúng order — không tạo slot ảo, không trả về băng. `IsBusy` và `HasPendingService` tính cả lượt giữ này; cancel/replay/disable nhả nhu cầu chưa gửi.
 
 ## Thắng màn
-- `ChefManager.PlayWin()` hủy sơ chế, chặn tự nhận việc và `ShrinkAllDishes` (mọi slot thu nhỏ về 0 trong `preWin.plateShrinkDuration`, unscaled, rồi tắt object; không xóa food).
+- `ChefManager.HideDishes()` gọi ngay khi khách cuối nhận đủ món (`AllServed` → `FinishLevel(Won)`): hủy sơ chế, chặn tự nhận việc và `ShrinkAllDishes` (mọi slot thu nhỏ về 0 trong `preWin.plateShrinkDuration`, unscaled, rồi tắt object; không xóa food). Khi mọi khách đã ra khỏi màn hình (cộng `preWin.winPanelDelay`, mặc định 0), `ChefManager.PlayWin()` chỉ phát animation Win.
 - `ChefAnims.winAnimation` = `Win.asset` (1 s): phát một lần, giữ frame cuối, `UnscaledTime` nên chạy khi `Time.timeScale = 0`; `SetPreparing` không ghi đè trạng thái thắng.
 - `LoadLevel` → `ResetForLevel()` dừng thu nhỏ, trả scale, hiện lại slot, đầu bếp về Idle1.
 - Chuỗi thắng đầy đủ (chờ, pause, WinPopup): [UI.md](UI.md#thắng).

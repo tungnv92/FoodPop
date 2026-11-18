@@ -35,6 +35,10 @@ namespace FoodPop
         // EN: Exposes cached instances without allowing registry changes.
         // VI: Cung cấp instance đã lưu, không cho sửa danh sách quản lý.
         public IReadOnlyDictionary<Type, UICanvasPrime> UICanvasList => uiCanvasList;
+
+        // EN: Blocks the settings pause while LevelController waits to present a win; it clears the lock when the next level loads.
+        // VI: Chặn mở tạm dừng cài đặt trong lúc LevelController chờ hiện bảng thắng; khóa được gỡ khi nạp màn tiếp theo.
+        public bool PauseLocked { get; set; }
         [Tooltip("Thanh thông báo ngắn có hiệu ứng hiện và ẩn, không chặn thao tác.")]
         [SerializeField] private ShortMessageView shortMessage;
 
@@ -151,14 +155,14 @@ namespace FoodPop
             if (typeof(T) != typeof(CanvasBuyBooster)) ReleaseBuyPause();
         }
 
-        // EN: Opens victory, binds the next-level action and plays the win cue.
-        // VI: Mở chiến thắng, nối hành động sang màn và phát âm thắng.
-        public void ShowWin(UnityAction next, bool hasNextLevel = true, bool animate = true)
+        // EN: Opens victory, binds the next-level load and the start action run after the curtain opens, and plays the win cue.
+        // VI: Mở chiến thắng, nối hành động nạp màn kế tiếp và hành động bắt đầu chạy sau khi rèm mở, rồi phát âm thắng.
+        public void ShowWin(UnityAction next, UnityAction start, bool hasNextLevel = true, bool animate = true)
         {
             CanvasWin canvas = GetUICanvas<CanvasWin>();
             if (PreparePopup(canvas))
             {
-                canvas.Show(next, hasNextLevel, animate);
+                canvas.Show(next, start, hasNextLevel, animate);
                 soundManager?.PlayEvent(IngameSoundManager.Event.GameWin);
             }
         }
@@ -212,11 +216,11 @@ namespace FoodPop
             return canvas;
         }
 
-        // EN: Opens settings pause only during running gameplay without replacing another popup.
-        // VI: Mở tạm dừng từ cài đặt chỉ khi gameplay đang chạy, không thay thế popup khác.
+        // EN: Opens settings pause only during running gameplay without replacing another popup, and never while a win is waiting to be shown.
+        // VI: Mở tạm dừng từ cài đặt chỉ khi gameplay đang chạy, không thay thế popup khác và không mở khi bảng thắng đang chờ hiện.
         public void ShowPause()
         {
-            if (Application.isPlaying && (activePopup != null || Time.timeScale <= 0f)) return;
+            if (Application.isPlaying && (PauseLocked || activePopup != null || Time.timeScale <= 0f)) return;
             CanvasPause canvas = GetUICanvas<CanvasPause>();
             if (PreparePopup(canvas)) canvas.Open();
         }

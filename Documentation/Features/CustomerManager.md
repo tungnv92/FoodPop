@@ -28,8 +28,8 @@ Hoạt cảnh bay/ghép món thuộc `ServingFood` — xem [ServingFood.md](Serv
 
 ## Hoàn thành khách
 - `OnIngredientDelivered` cập nhật tiến độ; món đủ và hết chuyến bay → `ServingFood.CompleteDish`. `OnDishDelivered` đánh dấu món đã giao.
-- Đủ order → `HasCompletedOrder = true` (dùng cho cảnh báo thoát, [UI.md](UI.md#cảnh-báo-thoát)) → `FinishCustomer`: dừng đồng hồ, chữ khen tại `HeartPosition`, âm khách vui, chờ `leaveDelay`, ẩn thẻ, chờ `happy` xong → khách cũ chuyển sang hình rời quầy riêng (`lane.leaver`, nhân bản từ mẫu khách chờ, cùng sorting với khách ở quầy) và đi ra → sau `nextCustomerDelay` (mặc định 0.5s) reset khay, `completedCustomers++`, phát `RemainingCustomersChanged`, lấy khách kế tiếp bước lên trong lúc khách cũ vẫn đang đi ra. Khách cuối cùng phải đi ra hẳn rồi mới `CheckAllServed`.
-- `CheckAllServed` đặt `AllServed` một lần khi hết hàng chung và mọi làn đã xong (LevelController xử lý thắng).
+- Đủ order → `HasCompletedOrder = true` (dùng cho cảnh báo thoát, [UI.md](UI.md#cảnh-báo-thoát)) → `FinishCustomer`: dừng đồng hồ, chữ khen tại `HeartPosition`, âm khách vui, chờ `leaveDelay`, ẩn thẻ, chờ `happy` xong → khách cũ chuyển sang hình rời quầy riêng (`lane.leaver`, nhân bản từ mẫu khách chờ, cùng sorting với khách ở quầy) và đi ra → sau `nextCustomerDelay` (mặc định 0.5s) reset khay, `completedCustomers++`, phát `RemainingCustomersChanged`, lấy khách kế tiếp bước lên trong lúc khách cũ vẫn đang đi ra. Khách cuối không chờ đi ra hẳn: thắng màn tính từ lúc nhận đủ món (xem dòng dưới).
+- `FinishCustomer` đếm `servedCustomers`; khách cuối (đếm đủ số khách của level) bật `AllServed` ngay khi nhận đủ món (trước animation vui). Mỗi khách được tính là đã đi (`goneCustomers`) ngay khi hình rời quầy ra khỏi khung camera chính (`IsOffScreen` theo bounds renderer, muộn nhất khi đi hết `slideDistance`; khách không có hình tính ngay). Đủ số khách thì bật `AllCustomersGone`. Level không có khách bật cả hai lúc `LoadCustomers`. LevelController xử lý thắng ([UI.md](UI.md#thắng)).
 
 ## Hàng chờ
 - `waitingFigures` của `waitingLane` hiển thị `customerQueue.Count − nextCustomer` người (`waitingTint`, `waitingScale`, sorting giảm dần); pool tự bổ sung.
@@ -101,7 +101,7 @@ Play Mode HotPotDemo level 2: spine đúng vị trí ở quầy/hàng chờ, `an
 | `Instance` | Singleton theo scene |
 | `LoadCustomers(LevelConfig)` | Nạp hàng chung, phân khách đầu |
 | `TryFindCustomer(FoodType)` | Có khách nhận ngay nguyên liệu này không |
-| `AllServed`, `RemainingCustomers`, `HasCompletedOrder` | Trạng thái |
+| `AllServed`, `AllCustomersGone`, `RemainingCustomers`, `HasCompletedOrder` | Trạng thái |
 | `RemainingCustomersChanged`, `CustomerArrived` | Sự kiện |
 | `GetNeededIngredients(List<FoodType>)` | Nhu cầu theo thứ tự khách → món (theo thứ tự trên thẻ, quy về ô khay đang phục vụ) → công thức, đúng số lượng còn thiếu (`DishProgress.CollectMissing`: nguyên liệu trùng chỉ tính số lần còn thiếu), trừ phần đã có/đang đáp trên băng |
 | `HasAutoCompleteTarget()`, `TryReserveAutoComplete(out AutoCompleteJob)` | AutoComplete: chọn món thiếu nhiều nguyên liệu nhất (bằng nhau: khách sớm hơn, món trước), giữ chỗ toàn bộ nguyên liệu thiếu, đúng số lượng (`CollectMissing`) |

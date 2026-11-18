@@ -51,9 +51,13 @@ namespace FoodPop
 
         public bool BoosterPaused { get; set; }
 
-        // EN: True once every customer of the level has been served.
-        // VI: True khi mọi khách của level đã được phục vụ.
-        public bool AllServed => allServedLogged;
+        // EN: True as soon as the last customer of the level has received every dish (before the happy animation and walk-out).
+        // VI: True ngay khi khách cuối của level nhận đủ mọi món (trước animation vui và lúc đi ra).
+        public bool AllServed { get; private set; }
+
+        // EN: True once every customer of the level has walked out of the camera view (or immediately for a level without customers).
+        // VI: True khi mọi khách của level đã đi ra khỏi khung camera (hoặc ngay lập tức với level không có khách).
+        public bool AllCustomersGone { get; private set; }
 
         // EN: True while a timed customer (Boss, Shipper) is still ordering with no serving time left.
         // VI: Đúng khi có khách tính giờ (Boss, Shipper) vẫn đang chờ món mà đã hết thời gian phục vụ.
@@ -89,10 +93,11 @@ namespace FoodPop
         private PraiseText praiseText;
 
         private long arrivalCounter;
-        private bool allServedLogged;
         private List<CustomerOrder> customerQueue = new List<CustomerOrder>();
         private int nextCustomer;
         private int completedCustomers;
+        private int servedCustomers;
+        private int goneCustomers;
         private Lane waitingLane;
         private Coroutine queueWalk;
         // EN: Portrait picked for each customer in the shared queue (index = queue position), so the same customer keeps one look.
@@ -162,8 +167,8 @@ namespace FoodPop
             instance = null;
         }
 
-        // EN: Resets customer progress and the completed-order flag, prewarms the bounded waiting-figure pool, reserves the first customers and publishes the remaining count.
-        // VI: Đặt lại tiến độ/cờ hoàn thành order, tạo sẵn pool hình khách chờ có giới hạn, lấy khách đầu hàng chung và báo số khách còn lại.
+        // EN: Resets customer progress and the completed-order/all-served flags, prewarms the bounded waiting-figure pool, reserves the first customers and publishes the remaining count; a level without customers counts as served at once.
+        // VI: Đặt lại tiến độ, cờ hoàn thành order và cờ phục vụ xong, tạo sẵn pool hình khách chờ có giới hạn, lấy khách đầu hàng chung và báo số khách còn lại; level không có khách được tính là phục vụ xong ngay.
         public void LoadCustomers(LevelConfig config)
         {
             if (config == null) return;
@@ -172,10 +177,13 @@ namespace FoodPop
             customerQueue = config.GetCustomerQueue();
             nextCustomer = 0;
             completedCustomers = 0;
+            servedCustomers = 0;
+            goneCustomers = 0;
             HasCompletedOrder = false;
             arrivalCounter = 0;
             waitingLane = null;
-            allServedLogged = false;
+            AllServed = false;
+            AllCustomersGone = false;
             portraitByCustomer.Clear();
             portraitBag.Clear();
             lastRandomPortrait = null;
@@ -202,7 +210,11 @@ namespace FoodPop
                 EnsureFigures(waitingLane, QueuePoolSize);
                 LayoutWaitingQueue(waitingLane, QueueMove.Snap);
             }
-            CheckAllServed();
+            if (customerQueue.Count == 0)
+            {
+                AllServed = true;
+                AllCustomersGone = true;
+            }
             RemainingCustomersChanged?.Invoke(RemainingCustomers);
         }
 
@@ -533,21 +545,6 @@ namespace FoodPop
             queueWalk = null;
         }
 
-        // EN: Completes only after shared waiting and assigned or departing customers are exhausted.
-        // VI: Chỉ hoàn tất khi hết khách chờ chung và khách đã phân chỗ hoặc đang rời đi.
-        private void CheckAllServed()
-        {
-            if (allServedLogged || nextCustomer < customerQueue.Count)
-                return;
-            foreach (Lane lane in lanes)
-            {
-                if (lane != null && lane.queue != null && lane.queueIndex < lane.queue.Count)
-                    return;
-            }
-            allServedLogged = true;
-            Debug.Log("[CustomerManager] Đã phục vụ hết khách của level.", this);
-        }
-
         // EN: Finds the ordering lane whose customer arrived first and has a tray slot that can take the ingredient (see TryFindDish); retarget is the slot whose dish must first move onto that slot, or -1. Nothing is changed here.
         // VI: Tìm làn đang order có khách đến sớm nhất và có ô khay nhận được nguyên liệu (xem TryFindDish); retarget là ô có món phải chuyển sang ô đó trước, hoặc -1. Hàm này không thay đổi gì.
         private bool TryFindCustomer(FoodType type, out Lane best, out int bestDish, out int retarget)
@@ -780,10 +777,16 @@ namespace FoodPop
                 bar.Hide();
         }
 
-        // EN: Waits for the happy animation and configured departure delays, starts the walk-out, then after nextCustomerDelay advances the queue so the next customer walks up while the previous one is still leaving; the last customer must finish leaving before the level checks completion.
-        // VI: Chờ animation vui hoàn tất và các thời gian trễ rời quầy, bắt đầu đi ra, sau nextCustomerDelay thì chuyển hàng để khách mới bước lên trong lúc khách cũ vẫn đang đi; khách cuối phải đi ra hẳn rồi mới kiểm tra hoàn thành màn.
+        // EN: Counts the customer as served (the last one sets AllServed at once), waits for the happy animation and configured departure delays, starts the walk-out (a customer without a figure counts as gone at once), then after nextCustomerDelay advances the queue so the next customer walks up while the previous one is still leaving.
+        // VI: Tính khách là đã phục vụ (khách cuối bật AllServed ngay), chờ animation vui hoàn tất và các thời gian trễ rời quầy, bắt đầu đi ra (khách không có hình được tính là đã đi ngay), sau nextCustomerDelay thì chuyển hàng để khách mới bước lên trong lúc khách cũ vẫn đang đi.
         private IEnumerator FinishCustomer(Lane lane)
         {
+            bool isLast = ++servedCustomers >= customerQueue.Count;
+            if (isLast)
+            {
+                AllServed = true;
+                Debug.Log("[CustomerManager] Đã phục vụ hết khách của level.", this);
+            }
             lane.ordering = false;
             StopServeTimer(lane);
             CustomerSpine spine = lane.customer != null ? ShowSpine(lane.customer.Portrait, lane.customerNumber) : null;
@@ -801,7 +804,10 @@ namespace FoodPop
             }
             if (happyComplete != null)
                 yield return happyComplete;
-            Coroutine leaving = lane.customer != null ? StartCoroutine(WalkOut(lane)) : null;
+            if (lane.customer != null)
+                StartCoroutine(WalkOut(lane));
+            else
+                MarkCustomerGone();
             if (Config.customers.nextCustomerDelay > 0f)
                 yield return new WaitForSeconds(Config.customers.nextCustomerDelay);
             ResetServing(lane);
@@ -816,16 +822,11 @@ namespace FoodPop
                 yield return BringNextCustomer(lane);
             }
             else
-            {
                 FillIdleLanes();
-                if (leaving != null)
-                    yield return leaving;
-                CheckAllServed();
-            }
         }
 
-        // EN: Hands the served customer to a dedicated leaving figure (walking spine for Normal customers, same sorting as the counter) so the counter view is free for the next customer, then walks it slideDistance off-screen at walkSpeed.
-        // VI: Chuyển khách vừa phục vụ sang một hình rời quầy riêng (spine đi bộ với khách Normal, cùng thứ tự vẽ với khách ở quầy) để view quầy rảnh cho khách mới, rồi cho hình đó đi ra ngoài màn hình một đoạn slideDistance với tốc độ walkSpeed.
+        // EN: Hands the served customer to a dedicated leaving figure (walking spine for Normal customers, same sorting as the counter) so the counter view is free for the next customer, then walks it slideDistance at walkSpeed; the customer counts as gone as soon as its figure leaves the camera view, or at the end of the walk at the latest.
+        // VI: Chuyển khách vừa phục vụ sang một hình rời quầy riêng (spine đi bộ với khách Normal, cùng thứ tự vẽ với khách ở quầy) để view quầy rảnh cho khách mới, rồi cho hình đó đi một đoạn slideDistance với tốc độ walkSpeed; khách được tính là đã đi ngay khi hình ra khỏi khung camera, muộn nhất là khi đi hết quãng.
         private IEnumerator WalkOut(Lane lane)
         {
             SpriteRenderer portrait = lane.customer.Portrait;
@@ -842,12 +843,49 @@ namespace FoodPop
             ShowSpine(leaver, lane.customerNumber)?.Play(Config.customers.walkAnimation, true);
             lane.customer.SetVisible(false);
             Vector3 target = leaver.transform.position + Vector3.right * (lane.slideDirection * Config.customers.slideDistance);
+            Renderer[] renderers = leaver.GetComponentsInChildren<Renderer>();
+            bool gone = false;
             while (leaver.transform.position != target)
             {
                 leaver.transform.position = Vector3.MoveTowards(leaver.transform.position, target, Config.customers.walkSpeed * Time.deltaTime);
+                if (!gone && IsOffScreen(renderers, leaver.transform.position))
+                {
+                    gone = true;
+                    MarkCustomerGone();
+                }
                 yield return null;
             }
+            if (!gone)
+                MarkCustomerGone();
             leaver.gameObject.SetActive(false);
+        }
+
+        // EN: True when every visible renderer of a walking figure lies fully left or right of the main camera's view (the position is used when nothing is visible).
+        // VI: True khi mọi renderer đang hiện của hình khách đang đi nằm hẳn bên trái hoặc bên phải khung camera chính (dùng vị trí khi không có renderer nào hiện).
+        private static bool IsOffScreen(Renderer[] renderers, Vector3 position)
+        {
+            Camera cam = Camera.main;
+            Bounds bounds = new Bounds(position, Vector3.zero);
+            bool any = false;
+            foreach (Renderer renderer in renderers)
+            {
+                if (!renderer.enabled || !renderer.gameObject.activeInHierarchy)
+                    continue;
+                if (any) bounds.Encapsulate(renderer.bounds);
+                else bounds = renderer.bounds;
+                any = true;
+            }
+            float halfWidth = cam.orthographicSize * cam.aspect;
+            float camX = cam.transform.position.x;
+            return bounds.max.x < camX - halfWidth || bounds.min.x > camX + halfWidth;
+        }
+
+        // EN: Counts one more customer out of view and sets AllCustomersGone once every customer of the level is gone.
+        // VI: Đếm thêm một khách đã ra khỏi khung hình và bật AllCustomersGone khi mọi khách của level đã đi hết.
+        private void MarkCustomerGone()
+        {
+            if (++goneCustomers >= customerQueue.Count)
+                AllCustomersGone = true;
         }
 
         // EN: Makes sure the lane has at least count figures, copying the authored template (spine initialized now, physics off) when the pool (scene figures first) is too small.

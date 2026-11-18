@@ -11,7 +11,7 @@
 - `Scripts/gamebase/LevelConfig.cs`, asset `Config/Resources/Levels/LevelConfig_NN.asset`, nạp theo tên bằng `LevelConfig.Load(n)`; `levelNumber` (≥ 1) phải khớp tên file và hiển thị qua `UILevel`.
 - `customerQueue`: danh sách khách cấp lần lượt cho hai chỗ trên quầy.
 - Board: `boardRows` × `boardColumns`, `ingredientBoard` là danh sách `BoardColumn` (trái → phải), mỗi cột `foods` từ trên xuống; `GetBoardCell`, `GetBoardCount(FoodType)`. Ô có thể ẩn/đóng băng (`OrderFood.isHidden`, `isFrozen`, `blockValue`), đĩa đôi và `dishLinks` — xem [LevelEditor.md](LevelEditor.md).
-- **Độ khó**: `difficultyMode` (`Normal=0`, `Hard=1`, `Easy=2`) do tác giả đặt, runtime không suy từ số màn. Hiện Hard: 15, 20, 25, 30. `ForRetry` dùng bản Hard khi retry < 2, từ lần 2 nạp `LevelConfig_NN_Easy` (cùng `levelNumber`); thiếu bản Easy thì giữ Hard.
+- **Độ khó**: `difficultyMode` (`Normal=0`, `Hard=1`, `Easy=2`) do tác giả đặt, runtime không suy từ số màn. Hiện Hard: 15, 20, 25, 30. `ForRetry` dùng bản Hard khi retry < 2, từ lần 2 nạp `LevelConfig_NN_Easy` (cùng `levelNumber`); thiếu bản Easy thì giữ Hard. Retry (`RecordTrackingManager.retryCount`) chỉ tăng khi thua thật (`LoseType.LoseGame`, qua `RecordRetry`); Replay/BackHome ở Setting chỉ reset chuỗi thắng, không tính retry. Thắng màn thì `ResetWin` xóa retry.
 - `LevelController` cung cấp `CurrentLevel`, phát `LevelLoaded` sau khi nạp; chơi lại/màn tiếp không đổi tiến trình hồ sơ.
 
 ## Khách (`CustomerOrder`)

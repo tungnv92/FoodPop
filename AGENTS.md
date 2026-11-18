@@ -46,9 +46,11 @@
   5. Private helpers and coroutines in the order they are first called, placed after the public methods that use them.
 - When modifying a class whose members are out of order, reorder that class in the same task. Reordering must be pure moves: no behavior changes, keep every EN/VI comment attached to its member, and verify that no lines were lost or altered. Unity serializes fields by name, so moving fields does not lose Inspector values.
 - Do not reorder classes outside the scope of the task or third-party code.
+- Cross-cutting concerns such as Tracking may be grouped in a named `#region` placed after the private helpers. Inside the region, members follow the same first-call order. Do not move members out of an existing region when reordering.
 - VI: Quy tắc bắt buộc: sắp xếp thành viên trong class theo đúng thứ tự Unity chạy, áp dụng cho mọi class mới và mọi class được tạo hoặc sửa.
 - VI: Thứ tự: (1) kiểu lồng, hằng số, property và event công khai; (2) field serialize theo nhóm chức năng, rồi tới biến trạng thái riêng; (3) callback Unity theo thứ tự chạy `Awake` → `OnEnable` → `Reset`/`OnValidate` → `Start` → `FixedUpdate` → `Update` → `LateUpdate` → callback vẽ/gizmo → `OnApplicationFocus`/`OnApplicationPause`/`OnApplicationQuit` → `OnDisable` → `OnDestroy`, callback va chạm/trigger/pointer đặt sau `LateUpdate`; (4) API công khai theo luồng gameplay; (5) hàm private và coroutine theo thứ tự được gọi lần đầu, đặt sau hàm công khai dùng chúng.
 - VI: Khi sửa một class đang sai thứ tự, sắp xếp lại class đó ngay trong cùng nhiệm vụ. Chỉ di chuyển, không đổi hành vi, giữ comment EN/VI đi cùng hàm và kiểm tra không mất hoặc sửa dòng nào. Không sắp xếp class ngoài phạm vi nhiệm vụ hoặc code bên thứ ba.
+- VI: Phần chức năng cắt ngang như Tracking được phép gom vào một `#region` có tên, đặt sau các hàm private. Bên trong region vẫn theo thứ tự gọi lần đầu. Khi sắp xếp lại class, không đưa thành viên ra khỏi region có sẵn.
 
 ## Mandatory bilingual function comments
 

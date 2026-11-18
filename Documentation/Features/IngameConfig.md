@@ -14,8 +14,8 @@ Asset `Assets/HotPot/Config/Resources/IngameConfig.asset`, truy cập qua `Ingam
 | `orderPop` | Nảy ảnh món và dấu tích trên order |
 | `iceHit` | Nảy khi đĩa đóng băng bị trừ |
 | `trayStack` | Kích thước/bước xếp chồng trên khay |
-| `preWin` | `speedMultiplier` (1.3, khoảng 1–2), `hidePlatesDelay` (1 s), `plateShrinkDuration` (0,35 s) |
-| `winReward` | `coin` (100, nút nhận thường ở WinPopup), `watchAdsCoin` (200, nút xem quảng cáo) |
+| `preWin` | `speedMultiplier` (1.3, khoảng 1–2), `winPanelDelay` (0 s: chờ thêm sau khi mọi khách đã ra khỏi màn hình rồi mới hiện bảng thắng), `plateShrinkDuration` (0,35 s) |
+| `winReward` | `coin` (100, nút nhận thường ở WinPopup), `watchAdsCoin` (200, nút xem quảng cáo), `levelBackHome` (100: thắng từ level này trở đi thì về Home thay vì chơi tiếp; luồng Home chưa có) |
 | **Food Icons** | Gán `FoodIconConfig.asset` một lần; đọc qua `IngameConfig.Instance.FoodIcons` |
 
 ## Bảng nguyên liệu (FoodIconConfig)

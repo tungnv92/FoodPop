@@ -60,6 +60,7 @@ namespace FoodPop
         [SerializeField, Min(0f)] private float coinCountDelay = 0.4f;
 
         private UnityAction nextAction;
+        private UnityAction startAction;
         private bool hasNextLevel;
         private bool claimed;
         private Tween curtainHold;
@@ -104,13 +105,15 @@ namespace FoodPop
                 StopTitleSequence();
             }
             nextAction = null;
+            startAction = null;
         }
 
-        // EN: Restart curtain Close (with the chef win already playing) then the win title, keeping wallet and claims hidden until the configured delay from Win Start.
-        // VI: Chạy lại curtain Close (đầu bếp đã phát thắng) rồi title thắng, ẩn ví và thưởng tới hết khoảng chờ tính từ Win Start.
-        public void Show(UnityAction next, bool hasNextLevel = true, bool animate = true)
+        // EN: Stores the next-level load and the start action run after the curtain opens, then restarts curtain Close (with the chef win already playing) and the win title, keeping wallet and claims hidden until the configured delay from Win Start.
+        // VI: Lưu hành động nạp màn kế tiếp và hành động bắt đầu chạy sau khi mở rèm, rồi chạy lại curtain Close (đầu bếp đã phát thắng) và title thắng, ẩn ví và thưởng tới hết khoảng chờ tính từ Win Start.
+        public void Show(UnityAction next, UnityAction start, bool hasNextLevel = true, bool animate = true)
         {
             nextAction = next;
+            startAction = start;
             this.hasNextLevel = hasNextLevel;
             claimed = false;
             ResetClaimReveal();
@@ -327,12 +330,39 @@ namespace FoodPop
             rewardFlight = DOVirtual.DelayedCall(flightDuration, CompleteReward).SetUpdate(true);
         }
 
-        // EN: Runs after the coin flight duration (unscaled timer, independent of particle events) and moves on to the next level when one exists; the reward was already credited at claim.
-        // VI: Chạy khi hết thời lượng xu bay (hẹn giờ unscaled, không phụ thuộc sự kiện particle) và chuyển sang màn kế tiếp nếu có; phần thưởng đã được cộng lúc nhận.
+        // EN: Runs after the coin flight duration (unscaled timer, independent of particle events); when the player continues to the next level it starts the curtain Open transition. The reward was already credited at claim.
+        // VI: Chạy khi hết thời lượng xu bay (hẹn giờ unscaled, không phụ thuộc sự kiện particle); nếu chơi tiếp màn kế tiếp thì bắt đầu chuyển cảnh mở rèm. Phần thưởng đã được cộng lúc nhận.
         private void CompleteReward()
         {
             rewardFlight = null;
-            if (hasNextLevel) CloseWithAnimation(nextAction);
+            if (hasNextLevel) PlayCurtainOpen();
+        }
+
+        // EN: Hides everything except the closed curtain, loads the next level behind it (LevelController keeps this popup open), then plays curtain Open once in unscaled time to reveal the new level.
+        // VI: Ẩn mọi thứ trừ rèm đang đóng, nạp màn kế tiếp phía sau rèm (LevelController giữ popup này mở), rồi phát curtain Open một lần theo thời gian unscaled để lộ ra màn mới.
+        private void PlayCurtainOpen()
+        {
+            StopTitleSequence();
+            SetClaimVisible(false);
+            glowRoot.SetActive(false);
+            titleAnimation.gameObject.SetActive(false);
+            blackBackground.gameObject.SetActive(false);
+            nextAction.Invoke();
+            Spine.TrackEntry open = curtainAnimation.AnimationState.SetAnimation(0, "Open", false);
+            open.MixDuration = 0f;
+            open.Complete += OnCurtainOpened;
+        }
+
+        // EN: Once curtain Open has finished, closes the WinPopup without the generic close sound and then starts the new level (gameplay stays paused until here).
+        // VI: Khi mở rèm xong thì đóng WinPopup không phát âm đóng chung, rồi bắt đầu màn mới (gameplay tạm dừng tới lúc này).
+        private void OnCurtainOpened(Spine.TrackEntry entry)
+        {
+            entry.Complete -= OnCurtainOpened;
+            if (!isActiveAndEnabled) return;
+            UnityAction start = startAction;
+            closing = true;
+            Close();
+            start.Invoke();
         }
     }
 }

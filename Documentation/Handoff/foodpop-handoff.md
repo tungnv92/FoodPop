@@ -18,6 +18,7 @@
 | Hàng khách, đồng hồ Boss/Shipper | [CustomerManager.md](../Features/CustomerManager.md) |
 | Khay, ghép món, hoạt cảnh món | [ServingFood.md](../Features/ServingFood.md) |
 | UI, popup, luồng thắng/thua/hồi sinh, âm thanh, hướng dẫn | [UI.md](../Features/UI.md) |
+| Hiệu ứng xu tái sử dụng, demo và export Unity package | [CoinAttraction.md](../Features/CoinAttraction.md) |
 | Booster, túi giữ món, mua booster | [Booster.md](../Features/Booster.md) |
 | Dữ liệu người chơi, lưu offline | [DataSystem.md](../Features/DataSystem.md) |
 | Level Editor Unity | [LevelEditor.md](../Features/LevelEditor.md) |
@@ -41,13 +42,17 @@
   3. Vị trí chữ khen: `CustomerView.PraisePosition`/`PortraitCenterOffsetX` dùng bounds của sprite đang bị tắt — kiểm tra có lệch không.
   4. Các bước sau theo kế hoạch: spine riêng cho Boss/Shipper, có thể chuyển spine vào `Assets/HotPot/Art/...` khi người dùng yêu cầu.
   5. Chưa commit (git còn thay đổi font không liên quan của người dùng — đừng commit chung).
-- **Play test chưa chạy:** chuỗi thắng (chờ 1 s, thu nhỏ đĩa, Curtain Close → nền đen fade → Win title); hồi sinh hết giờ (popup, thanh toán, +30 s); pre-win; FinalFood_8 khay riêng; opacity icon order; gà teriyaki; nhận món trực tiếp từ board; giới thiệu booster mở khóa; khóa booster theo level; luồng thua → chơi lại bản Easy.
+- **Play test chưa chạy:** chuỗi thắng (ẩn đĩa khi khách cuối nhận đủ món, chờ khách ra khỏi màn, Curtain Close → nền đen fade → Win title); hồi sinh hết giờ (popup, thanh toán, +30 s); pre-win; FinalFood_8 khay riêng; opacity icon order; gà teriyaki; nhận món trực tiếp từ board; giới thiệu booster mở khóa; khóa booster theo level; luồng thua → chơi lại bản Easy.
 - Xác nhận lỗi "vừa Play không pick được đĩa" (02/11) đã hết; gán `Slot Food` cho mọi ConveyorSlot; tắt `logPickFailures`.
 - Gán clip nhạc nền; kiểm tra rung trên thiết bị thật; nối SDK Ads (Watch hiện gọi thẳng callback thành công ở BuyBooster, Revive, Win).
-- Console: lỗi serialize trùng `restScale` ở `CanvasBoosterIntro`; cảnh báo thiếu animation `Idle` của `Chef_SkeletonData`; cảnh báo PMA/Linear của Curtain.
+- Console còn cần xem: cảnh báo thiếu animation `Idle` của `Chef_SkeletonData`; cảnh báo PMA/Linear của Curtain. Lỗi field trùng `restScale` ở CanvasBoosterIntro đã sửa 18/11 bằng cache riêng `LevelPopupView.entranceRestScale`; xem [UI.md](../Features/UI.md).
 - Level 29 v12 mới có trên web, chưa đồng bộ về Unity. 165 nhóm order (level 16–25) chưa có prefab món khớp.
 - Level30 Hard chưa xác nhận mục tiêu winrate 40–50% (kết quả mô phỏng v20 phân cực: nhóm bình thường 0/50, cẩn thận 50/50; script ở `output/level30`).
 - Cucumber (FoodType 7) thiếu tham chiếu Raw/Prepared trong `FoodIconConfig`.
 - Đối chiếu `PlayHaptic()` (từng ghi là có kiểm tra null `ProfileManager.instance`/`PlayerDataManager`) với quy tắc cấm kiểm tra null trong `AGENTS.md`.
 - Có thể: hiệu ứng riêng khi nguyên liệu không cần sơ chế (Ice, Salt) đáp xuống đĩa; khay trượt theo khách; Level Editor cảnh báo khi cơm nằm sâu trong bảng.
 - Asset không còn dùng (kiểm tra reference trước khi xóa): `Prefabs/Effects/FoodLandEffect.prefab`, `Art/Sprites/Effects/IceBlock.png`, `Prefabs/Effects/ChefChopSmoke`, `ChefMeatDebris`, `ChefVegetableDebris`, `Art/Sprites/Effects/FxStarRays.png`, `FxCometArc.png`, `Art/Sprites/UI/Boosters/AutoCompleteStar.png`.
+
+## Cập nhật UI ngày 18/11/2026
+- CoinAttraction đã gom thành package độc lập và WinPopup dùng nested prefab mới; có nhịp rơi, glow Sprite riêng và điểm phát không bị Reward ghi đè. Trạng thái/kiểm chứng: [CoinFlipSprite.md](CoinFlipSprite.md); tài liệu hệ thống: [CoinAttraction.md](../Features/CoinAttraction.md).
+- Đã export bản thử `output/CoinFlight/CoinAttraction.unitypackage`; chưa import vào project khác hoặc build Android. Không commit chung các thay đổi gameplay đang có trong workspace.

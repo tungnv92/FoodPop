@@ -23,8 +23,15 @@ namespace FoodPop
         private UnityAction secondaryAction;
         private Coroutine entrance;
         private string availableStatus;
-        private Vector3 restScale;
+        private Vector3 entranceRestScale;
         private bool capturedDefaults;
+
+        // EN: Releases common popup state on disable; specialized canvases can extend cleanup for their subscriptions.
+        // VI: Giải phóng trạng thái popup chung khi tắt; canvas cụ thể có thể bổ sung dọn đăng ký sự kiện.
+        protected virtual void OnDisable()
+        {
+            ReleaseRuntimeState();
+        }
 
         // EN: Opens the authored popup without gameplay callbacks for generic access.
         // VI: Mở popup đã thiết kế không kèm callback gameplay cho API tổng quát.
@@ -33,14 +40,14 @@ namespace FoodPop
             Open(null, null, true, true);
         }
 
-        // EN: Opens a concrete popup while retaining authored text and scale and binding only this opening's actions.
-        // VI: Mở popup cụ thể, giữ chữ và tỉ lệ đã thiết kế, chỉ nối hành động cho lần mở hiện tại.
+        // EN: Opens a concrete popup using its own entrance-scale cache, retaining authored text and binding only this opening's actions.
+        // VI: Mở popup cụ thể bằng cache scale xuất hiện riêng, giữ chữ thiết kế và chỉ nối hành động cho lần mở hiện tại.
         protected void Open(UnityAction primary, UnityAction secondary, bool available, bool animate)
         {
             if (!capturedDefaults)
             {
                 availableStatus = statusLabel != null ? statusLabel.text : string.Empty;
-                restScale = card != null ? card.localScale : Vector3.one;
+                entranceRestScale = card != null ? card.localScale : Vector3.one;
                 capturedDefaults = true;
             }
             ReleaseRuntimeState();
@@ -57,38 +64,9 @@ namespace FoodPop
             if (statusLabel != null)
                 statusLabel.text = available || string.IsNullOrEmpty(unavailableStatus) ? availableStatus : unavailableStatus;
             if (canvasGroup != null) canvasGroup.alpha = 1f;
-            if (card != null) card.localScale = restScale;
+            if (card != null) card.localScale = entranceRestScale;
             if (animate && Application.isPlaying && card != null && canvasGroup != null)
                 entrance = StartCoroutine(AnimateEntrance());
-        }
-
-        // EN: Removes runtime callbacks owned by this view while preserving events assigned in the prefab Inspector.
-        // VI: Gỡ callback lúc chạy do view quản lý, giữ nguyên sự kiện được gán trong Inspector của prefab.
-        private void ClearActions()
-        {
-            if (primaryButton != null && primaryAction != null) primaryButton.onClick.RemoveListener(primaryAction);
-            if (secondaryButton != null && secondaryAction != null) secondaryButton.onClick.RemoveListener(secondaryAction);
-            primaryAction = null;
-            secondaryAction = null;
-        }
-
-        // EN: Animates the authored card with unscaled time so the popup works while the level is paused.
-        // VI: Chạy hoạt cảnh khung đã dựng bằng thời gian độc lập để popup hoạt động khi màn đang dừng.
-        private IEnumerator AnimateEntrance()
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.34f)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / 0.34f);
-                float back = 1f + 2.70158f * Mathf.Pow(t - 1f, 3f) + 1.70158f * Mathf.Pow(t - 1f, 2f);
-                card.localScale = restScale * Mathf.LerpUnclamped(0.88f, 1f, back);
-                canvasGroup.alpha = Mathf.Clamp01(t * 2f);
-                yield return null;
-            }
-            card.localScale = restScale;
-            canvasGroup.alpha = 1f;
-            entrance = null;
         }
 
         // EN: Releases animation and callbacks before hiding, including during Edit Mode previews.
@@ -115,11 +93,33 @@ namespace FoodPop
             ClearActions();
         }
 
-        // EN: Releases common popup state on disable; specialized canvases can extend cleanup for their subscriptions.
-        // VI: Giải phóng trạng thái popup chung khi tắt; canvas cụ thể có thể bổ sung dọn đăng ký sự kiện.
-        protected virtual void OnDisable()
+        // EN: Removes runtime callbacks owned by this view while preserving events assigned in the prefab Inspector.
+        // VI: Gỡ callback lúc chạy do view quản lý, giữ nguyên sự kiện được gán trong Inspector của prefab.
+        private void ClearActions()
         {
-            ReleaseRuntimeState();
+            if (primaryButton != null && primaryAction != null) primaryButton.onClick.RemoveListener(primaryAction);
+            if (secondaryButton != null && secondaryAction != null) secondaryButton.onClick.RemoveListener(secondaryAction);
+            primaryAction = null;
+            secondaryAction = null;
+        }
+
+        // EN: Animates the card from this view's entrance-scale cache in unscaled time while the level is paused.
+        // VI: Chạy hoạt cảnh khung từ cache scale xuất hiện riêng theo thời gian độc lập khi màn đang dừng.
+        private IEnumerator AnimateEntrance()
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.34f)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / 0.34f);
+                float back = 1f + 2.70158f * Mathf.Pow(t - 1f, 3f) + 1.70158f * Mathf.Pow(t - 1f, 2f);
+                card.localScale = entranceRestScale * Mathf.LerpUnclamped(0.88f, 1f, back);
+                canvasGroup.alpha = Mathf.Clamp01(t * 2f);
+                yield return null;
+            }
+            card.localScale = entranceRestScale;
+            canvasGroup.alpha = 1f;
+            entrance = null;
         }
     }
 }

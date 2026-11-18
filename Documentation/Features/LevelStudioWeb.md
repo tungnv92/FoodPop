@@ -27,7 +27,7 @@ Web mô phỏng lại runtime Unity bằng JavaScript (không chạy C#). `scrip
 ## Trạng thái level
 | Level | Trạng thái |
 | --- | --- |
-| 01–25 | Đã nhập về Unity. Level 17 cân bằng lại (Web v10). `LevelConfig_15/20/25_Easy` đã nhập. 165 nhóm order chưa có prefab món khớp (`dish: {fileID: 0}`) |
+| 01–25 | Đã nhập về Unity. Level 16 = Web **v15** (10 ô ẩn, 3 nhóm nối; hàng khách không đổi). Level 17 cân bằng lại (Web v10). `LevelConfig_15/20/25_Easy` đã nhập. 165 nhóm order chưa có prefab món khớp (`dish: {fileID: 0}`) |
 | 29 | Web **v12** (board 4×20 đầy, mức dễ). **Chưa đồng bộ về Unity** |
 | 30 Hard | Web **v20** = Unity local (5×16, 14 khách/35 món/115 phần, 14 nhóm nối) |
 | 30 Easy | Web **v5** = Unity local (giữ 76/80 vị trí của Hard; 14 khách/30 món/105 phần, 24 hidden, 9 nhóm nối) |

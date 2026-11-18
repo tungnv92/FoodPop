@@ -133,13 +133,19 @@ namespace FoodPop
         }
 
 
-        // EN: Cancels preparation, starts shrinking every conveyor plate away without releasing food, and starts victory animation.
-        // VI: Hủy sơ chế, bắt đầu thu nhỏ dần toàn bộ đĩa băng chuyền không trả food và bắt đầu animation thắng.
-        public void PlayWin()
+        // EN: Called as soon as the last customer is served: stops the chef taking new work, cancels preparation and starts shrinking every conveyor plate away without releasing food.
+        // VI: Gọi ngay khi phục vụ xong khách cuối: chặn đầu bếp nhận việc mới, hủy sơ chế và bắt đầu thu nhỏ dần toàn bộ đĩa băng chuyền không trả food.
+        public void HideDishes()
         {
             levelWon = true;
             CancelPreparation();
             shrinkDishesRoutine = StartCoroutine(ShrinkAllDishes(Config.preWin.plateShrinkDuration));
+        }
+
+        // EN: Starts the chef's victory animation when the win panel is presented.
+        // VI: Bắt đầu animation thắng của đầu bếp khi hiện bảng thắng.
+        public void PlayWin()
+        {
             ChefAnims.PlayWin();
         }
 

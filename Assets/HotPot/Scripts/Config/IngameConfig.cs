@@ -226,8 +226,8 @@ namespace FoodPop
         {
             [Tooltip("Hệ số tốc độ game khi vào pre-win (1.3 = nhanh hơn 30%).")]
             [Range(1f, 2f)] public float speedMultiplier = 1.3f;
-            [Tooltip("Thời gian chờ (giây, tốc độ thường) sau khi phục vụ xong khách cuối rồi mới thu nhỏ đĩa và hiện bảng thắng.")]
-            [Min(0f)] public float hidePlatesDelay = 1f;
+            [Tooltip("Thời gian chờ thêm (giây, tốc độ thường) sau khi mọi khách đã đi ra khỏi màn hình rồi mới hiện bảng thắng. Đĩa đã ẩn từ lúc khách cuối nhận đủ món.")]
+            [Min(0f)] public float winPanelDelay = 0f;
             [Tooltip("Thời gian (giây) để đĩa trên băng chuyền thu nhỏ dần tới khi biến mất lúc thắng.")]
             [Min(0.01f)] public float plateShrinkDuration = 0.35f;
         }
@@ -239,6 +239,8 @@ namespace FoodPop
             [Min(0)] public int coin = 100;
             [Tooltip("Số xu nhận khi xem quảng cáo ở bảng thắng.")]
             [Min(0)] public int watchAdsCoin = 200;
+            [Tooltip("Thắng từ level này trở đi thì nhận thưởng xong quay về Home thay vì chơi tiếp màn kế tiếp. Tạm đặt 100 vì chưa có scene Home.")]
+            [Min(1)] public int levelBackHome = 100;
         }
 
         // EN: Exposes the single shared ingredient catalogue referenced by the gameplay configuration.
