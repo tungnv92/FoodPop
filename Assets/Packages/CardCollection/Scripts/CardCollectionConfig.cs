@@ -378,15 +378,15 @@ namespace GamePackages
             };
         }
 
-        // EN: Initializes the default grand reward (6000 Coins and 6x SuperBear boosters) matching the event UI design.
-        // VI: Khởi tạo phần thưởng lớn mặc định (6000 Xu và 6 Booster SuperBear) khớp với thiết kế giao diện sự kiện.
+        // EN: Initializes the default grand reward (6000 Coins and 6x AutoComplete boosters) matching the event UI design.
+        // VI: Khởi tạo phần thưởng lớn mặc định (6000 Xu và 6 Booster AutoComplete) khớp với thiết kế giao diện sự kiện.
         private void EnsureDefaultGrandRewards()
         {
             if (grandRewardResources != null && grandRewardResources.Count > 0) return;
             grandRewardResources = new List<ResourceGame>
             {
                 new ResourceGame { type = ResourceType.Coin, value = 6000 },
-                new ResourceGame { type = ResourceType.BoosterSuperBear, value = 6 },
+                new ResourceGame { type = ResourceType.BoosterAutoComplete, value = 6 },
             };
         }
 
@@ -426,10 +426,10 @@ namespace GamePackages
                         collectionName = defaultNames[i],
                         rewards = new List<ResourceGame>
                         {
-                            new ResourceGame { type = ResourceType.BoosterAddSlot, value = 1 },
+                            new ResourceGame { type = ResourceType.BoosterClean, value = 1 },
                             new ResourceGame { type = ResourceType.BoosterPickup, value = 1 },
                             new ResourceGame { type = ResourceType.BoosterShuffle, value = 1 },
-                            new ResourceGame { type = ResourceType.BoosterSuperBear, value = 1 },
+                            new ResourceGame { type = ResourceType.BoosterAutoComplete, value = 1 },
                         }
                     });
                 }
@@ -522,7 +522,7 @@ namespace GamePackages
                 new CardSpinSlotInfo { slotIndex = 0,  subPool = 3, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.Coin, value = 1000 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 1,  subPool = 1, slotType = CardSpinSlotType.SpecificCard, cardRarity = CardRarity.OneStar,   specificCardId = 27, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 2,  subPool = 4, slotType = CardSpinSlotType.SpecificCard, cardRarity = CardRarity.ThreeStar, specificCardId = 33, weight = 10f },
-                new CardSpinSlotInfo { slotIndex = 3,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterAddSlot, value = 1 }, weight = 10f },
+                new CardSpinSlotInfo { slotIndex = 3,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterClean, value = 1 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 4,  subPool = 1, slotType = CardSpinSlotType.SpecificCard, cardRarity = CardRarity.OneStar,   specificCardId = 28, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 5,  subPool = 2, slotType = CardSpinSlotType.SpecificCard, cardRarity = CardRarity.TwoStar,   specificCardId = 30, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 6,  subPool = 5, slotType = CardSpinSlotType.SpecificCard, cardRarity = CardRarity.FourStar,  specificCardId = 35, weight = 10f },
@@ -561,7 +561,7 @@ namespace GamePackages
         {
             return new List<CardSpinSlotInfo>
             {
-                new CardSpinSlotInfo { slotIndex = 0,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterSuperBear, value = 2 }, weight = 10f },
+                new CardSpinSlotInfo { slotIndex = 0,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterAutoComplete, value = 2 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 1,  subPool = 1, slotType = CardSpinSlotType.SpecificCard, cardRarity = CardRarity.OneStar,   specificCardId = 45, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 2,  subPool = 4, slotType = CardSpinSlotType.SpecificCard, cardRarity = CardRarity.ThreeStar, specificCardId = 51, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 3,  subPool = 5, slotType = CardSpinSlotType.SpecificCard, cardRarity = CardRarity.FourStar,  specificCardId = 53, weight = 10f },
@@ -582,15 +582,15 @@ namespace GamePackages
         {
             return new List<CardSpinSlotInfo>
             {
-                new CardSpinSlotInfo { slotIndex = 0,  subPool = 2, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterSuperBear, value = 3 }, weight = 10f },
-                new CardSpinSlotInfo { slotIndex = 1,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterAddSlot, value = 1 }, weight = 10f },
+                new CardSpinSlotInfo { slotIndex = 0,  subPool = 2, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterAutoComplete, value = 3 }, weight = 10f },
+                new CardSpinSlotInfo { slotIndex = 1,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterClean, value = 1 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 2,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterPickup, value = 1 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 3,  subPool = 2, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.Coin, value = 3000 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 4,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterShuffle, value = 2 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 5,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.Coin, value = 900 }, weight = 10f },
-                new CardSpinSlotInfo { slotIndex = 6,  subPool = 2, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterSuperBear, value = 3 }, weight = 10f },
+                new CardSpinSlotInfo { slotIndex = 6,  subPool = 2, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterAutoComplete, value = 3 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 7,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.Coin, value = 600 }, weight = 10f },
-                new CardSpinSlotInfo { slotIndex = 8,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterSuperBear, value = 1 }, weight = 10f },
+                new CardSpinSlotInfo { slotIndex = 8,  subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterAutoComplete, value = 1 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 9,  subPool = 2, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.Coin, value = 1500 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 10, subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.BoosterPickup, value = 2 }, weight = 10f },
                 new CardSpinSlotInfo { slotIndex = 11, subPool = 1, slotType = CardSpinSlotType.Resource, resourceReward = new ResourceGame { type = ResourceType.Coin, value = 300 }, weight = 10f },

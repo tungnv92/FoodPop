@@ -20,7 +20,7 @@ public class NavigationGroup : MonoBehaviour
     private IEnumerator Start()
     {
         yield return new WaitForEndOfFrame();
-        _activeImageRectTf.ChangeSizeDeltaX(_panelRectTf.rect.width / TabCount);
+        _activeImageRectTf.ChangeSizeDeltaX(_panelRectTf.rect.width / TabCount * 1.3f);
 
         int defaultIndex = Mathf.Clamp(_defaultTabIndex, 0, TabCount - 1);
         _buttons[defaultIndex].OnClick();

@@ -39,6 +39,7 @@ namespace GamePackages
         public LavaQuestConfig LavaQuestConfig;
         public MissionControlConfig MissionControlConfig;
         public TowerRiseConfig TowerRiseConfig;
+        public CardCollectionConfig CardCollectionConfig;
         [Header("Avatar & Frame Configs")]
         public HomeFeatures.Profile.AvatarConfig AvatarConfig;
         public FrameConfig FrameConfig;

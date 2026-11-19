@@ -12,7 +12,7 @@ public class PlayButton : MonoBehaviour
     // VI: Điều phối Start qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
     private void Start()
     {
-        levelTmp.text = $"Level {ProfileManager.instance.PlayerData.currentLevel}";
+        levelTmp.text = $"Level {ProfileManager.instance.GetCurrentLevel()}";
         //bool isHard = GameManager.Ins.IsHardLevel();
         //bool isSuperHard = GameManager.Ins.IsSuperHardLevel();
 

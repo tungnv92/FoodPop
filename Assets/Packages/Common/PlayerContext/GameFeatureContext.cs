@@ -12,6 +12,7 @@ namespace GamePackages
         public LavaQuestManager LavaQuestManager = new();
         public MissionControlManager MissionControlManager = new();
         public TowerRiseManager TowerRiseManager = new();
+        public CardCollectionManager CardCollectionManager = new();
         List<IFeatureSave> l_FeatureSave = new();
         List<IFeatureUpdate> l_FeatureUpdate = new();
         List<IFeatureNewDay> l_FeatureNewday = new();
@@ -32,6 +33,7 @@ namespace GamePackages
             LavaQuestManager.LavaQuestConfig = context.LavaQuestConfig;
             MissionControlManager.MissionControlConfig = context.MissionControlConfig;
             TowerRiseManager.TowerRiseConfig = context.TowerRiseConfig;
+            CardCollectionManager.CardCollectionConfig = context.CardCollectionConfig;
 
             RegistryFeatureContext();
             RegistryExtraFeatureContext(context, saveService);
@@ -44,10 +46,13 @@ namespace GamePackages
             LavaQuestManager.SetContext(data.LavaQuestData);
             MissionControlManager.SetContext(data.MissionControlData);
             TowerRiseManager.SetContext(data.TowerRiseData);
+            CardCollectionManager.SetContext(data.CardCollectionData);
         }
         /// <summary>
         /// Registry All Feature
         /// </summary>
+        // EN: Registers all feature managers into their corresponding lifecycle and dependency lists.
+        // VI: Đăng ký toàn bộ manager tính năng vào các danh sách vòng đời và phụ thuộc tương ứng.
         void RegistryFeatureContext()
         {
             l_FeatureSave.Clear();
@@ -64,6 +69,7 @@ namespace GamePackages
             RegisterFeature(LavaQuestManager);
             RegisterFeature(MissionControlManager);
             RegisterFeature(TowerRiseManager);
+            RegisterFeature(CardCollectionManager);
         }
         /// <summary>
         /// Registry Extra Context (Time, Data)

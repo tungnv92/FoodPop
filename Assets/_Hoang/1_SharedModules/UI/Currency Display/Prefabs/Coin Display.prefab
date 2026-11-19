@@ -115,7 +115,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: -120, y: -40}
-  m_SizeDelta: {x: 208, y: 69}
+  m_SizeDelta: {x: 208, y: 75}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5595991812798021684
 CanvasRenderer:
@@ -145,7 +145,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 2adb48674c8d36746a6d1c547c0b3041, type: 3}
+  m_Sprite: {fileID: 6174992275886439526, guid: af3632bb10bf24b408592996d040fbad, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -315,7 +315,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
   m_AnchoredPosition: {x: 1.0399017, y: 0.3}
-  m_SizeDelta: {x: 100, y: 105}
+  m_SizeDelta: {x: 90, y: 90}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5595991814249734381
 CanvasRenderer:
@@ -345,7 +345,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: a6c90861ba194ea459c1b4131e13c0d4, type: 3}
+  m_Sprite: {fileID: 200966331114845232, guid: ff215e3da3e2d704287a304697e8034f, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -465,7 +465,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8924859931482464756, guid: 83ea04b0f85730d4aa9bd46fc5af0965, type: 3}
       propertyPath: _bursts.Array.data[0].used
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8924859931482464756, guid: 83ea04b0f85730d4aa9bd46fc5af0965, type: 3}
       propertyPath: _startSize.xCurve.m_ConstantMax

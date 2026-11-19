@@ -53,10 +53,7 @@ namespace GamePackages
             set => CardCollectionConfig = value;
         }
 
-        public new CardCollectionData Data =>
-            base.Data ?? (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null
-                ? ProfileManager.instance.PlayerData.CardCollectionData
-                : null);
+        public new CardCollectionData Data => base.Data;
 
         public event Action OnDataChanged;
 
@@ -85,8 +82,7 @@ namespace GamePackages
             isCheatForceActive ||
             (Data != null && Data.isUnlocked) ||
             (ProfileManager.instance != null &&
-             ProfileManager.instance.PlayerData != null &&
-             ProfileManager.instance.PlayerData.currentLevel > UnlockLevel);
+             ProfileManager.instance.GetCurrentLevel() > UnlockLevel);
 
         // EN: Checks whether the event is currently active (enabled, unlocked, and within the 14-day window).
         // VI: Kiểm tra xem sự kiện hiện đang hoạt động hay không (được bật, đã mở khóa và còn trong thời hạn 14 ngày).
@@ -97,15 +93,11 @@ namespace GamePackages
 
         // EN: Binds the persistent CardCollectionData instance and initializes or validates the event cycle.
         // VI: Gắn dữ liệu CardCollectionData lưu trữ và khởi tạo hoặc kiểm tra chu kỳ sự kiện.
-        public override void SetContext(CardCollectionData data)
+        internal override void SetContext(CardCollectionData data)
         {
             if (data == null)
             {
                 data = new CardCollectionData();
-                if (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null)
-                {
-                    ProfileManager.instance.PlayerData.CardCollectionData = data;
-                }
             }
             base.SetContext(data);
             CheckUnlockAndCycle();
@@ -300,9 +292,9 @@ namespace GamePackages
         // VI: Xử lý khi thắng màn chơi; mở khóa sự kiện khi thắng màn 40 và thưởng 1 thẻ theo NormalGachaRule nếu thắng ngay lần thử đầu.
         public CardDropResult OnLevelWin(bool isFirstTry)
         {
-            if (ProfileManager.instance != null && ProfileManager.instance.PlayerData != null)
+            if (ProfileManager.instance != null)
             {
-                int currentLevel = ProfileManager.instance.PlayerData.currentLevel;
+                int currentLevel = ProfileManager.instance.GetCurrentLevel();
                 if (currentLevel >= UnlockLevel && (Data == null || !Data.isUnlocked))
                 {
                     CheckUnlockAndCycle(true);
@@ -783,9 +775,9 @@ namespace GamePackages
 
             if (config.grandRewardFrameId >= 0 &&
                 ProfileManager.instance != null &&
-                ProfileManager.instance.PlayerData != null)
+                ProfileManager.instance.PlayerDataManager != null)
             {
-                ProfileManager.instance.PlayerData.frame_avatar_id = config.grandRewardFrameId;
+                ProfileManager.instance.PlayerDataManager.SetFrame(config.grandRewardFrameId);
             }
 
             if (config.grandRewardResources != null)
@@ -829,14 +821,14 @@ namespace GamePackages
                 case ResourceType.UnlimitedLives:
                     pdm.AddUnlimitedLiveTime(reward.value, placement);
                     break;
-                case ResourceType.BoosterAddSlot:
+                case ResourceType.BoosterClean:
                 case ResourceType.BoosterShuffle:
                 case ResourceType.BoosterPickup:
-                case ResourceType.BoosterSuperBear:
+                case ResourceType.BoosterAutoComplete:
                     pdm.OnAddBooster(reward.type, reward.value, placement);
                     break;
                 default:
-                    pdm.OnAddResource(reward.type, reward.value, placement);
+                    Debug.LogWarning($"[CardCollectionManager] Unsupported reward ResourceType: {reward.type}");
                     break;
             }
         }
