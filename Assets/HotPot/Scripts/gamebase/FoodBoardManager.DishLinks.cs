@@ -8,6 +8,7 @@ namespace FoodPop
     {
         private readonly Dictionary<Food, DishLinkGroup> dishLinks = new Dictionary<Food, DishLinkGroup>();
         private readonly Dictionary<DishLinkGroup, DishLinkView> linkViews = new Dictionary<DishLinkGroup, DishLinkView>();
+        private readonly Stack<DishLinkView> linkViewPool = new Stack<DishLinkView>();
         private readonly DishPickBatch pickBatch = new DishPickBatch();
 
         // EN: Reports live chain membership, independent of the dish's current row or column.
@@ -198,16 +199,38 @@ namespace FoodPop
             return true;
         }
 
-        // EN: Creates one view per chain, with exactly one straight segment for A–B and another for B–C.
-        // VI: Tạo một hình hiển thị mỗi chuỗi, đúng một đoạn thẳng A–B và một đoạn B–C.
+        // EN: Takes a Dish Link view from the pool (instantiating the prefab only when empty), with one straight segment for A–B and another for B–C.
+        // VI: Lấy view Dish Link từ pool (chỉ tạo từ prefab khi pool rỗng), một đoạn thẳng A–B và một đoạn B–C.
         private void CreateLinkView(DishLinkGroup group)
         {
-            GameObject root = new GameObject("Dish Link · A–B–C");
-            root.transform.SetParent(transform, false);
-            DishLinkView view = root.AddComponent<DishLinkView>();
+            DishLinkView view = linkViewPool.Count > 0 ? linkViewPool.Pop() : Instantiate(dishLinkPrefab, transform, false);
+            view.name = "Dish Link · A–B–C";
+            view.gameObject.SetActive(true);
             view.Initialize(group.Members.Count);
             linkViews.Add(group, view);
-            view.Refresh(group.Members, HasHeadMember(group));
+            RefreshLinkView(group, view);
+        }
+
+        // EN: Redraws one chain with its members' current board depths and front-row highlight.
+        // VI: Vẽ lại một chuỗi theo độ sâu hàng hiện tại của các thành viên và trạng thái sáng ở hàng đầu.
+        private void RefreshLinkView(DishLinkGroup group, DishLinkView view)
+        {
+            List<int> rows = new List<int>(group.Members.Count);
+            foreach (Food dish in group.Members)
+                rows.Add(GetDishDepth(dish));
+            view.Refresh(group.Members, rows, HasHeadMember(group));
+        }
+
+        // EN: Returns the deepest board row a dish occupies (vertical doubles span two rows), or -1 when it is off the board.
+        // VI: Trả về hàng sâu nhất mà đĩa chiếm trên board (đĩa đôi dọc chiếm hai hàng), hoặc -1 khi đĩa không còn trên board.
+        private int GetDishDepth(Food dish)
+        {
+            int depth = -1;
+            foreach (List<Food> dishes in columnDishes)
+                for (int r = 0; r < dishes.Count; r++)
+                    if (dishes[r] == dish)
+                        depth = Mathf.Max(depth, r);
+            return depth;
         }
 
         // EN: Reports whether any linked dish is at the front, independently of whole-group pick eligibility.
@@ -226,7 +249,7 @@ namespace FoodPop
         {
             foreach (KeyValuePair<DishLinkGroup, DishLinkView> entry in linkViews)
             {
-                entry.Value.Refresh(entry.Key.Members, HasHeadMember(entry.Key));
+                RefreshLinkView(entry.Key, entry.Value);
                 if (!InputLocked)
                     foreach (Food dish in entry.Key.Members)
                         dish.Selection?.SetSelectable(IsDishAtHead(dish));
@@ -240,20 +263,22 @@ namespace FoodPop
             return IsDishAtHead(dish) || (dishLinks.TryGetValue(dish, out DishLinkGroup group) && group.IsExposed(columnDishes));
         }
 
-        // EN: Removes exhausted members for AutoComplete; remaining A–C reconnect directly and singleton chains dissolve.
-        // VI: Gỡ thành viên hết nguyên liệu do AutoComplete; A–C còn lại nối thẳng và chuỗi còn một đĩa tự giải thể.
+        // EN: Removes a dish leaving the board (picked, AutoComplete or returned); remaining A–C reconnect on the same view and singleton chains dissolve, returning their view to the pool.
+        // VI: Gỡ đĩa rời board (được lấy, AutoComplete hoặc trả về); A–C còn lại nối thẳng trên cùng view, chuỗi còn một đĩa tự giải thể và trả view về pool.
         private void DetachDishLink(Food dish)
         {
             if (dish == null || !dishLinks.TryGetValue(dish, out DishLinkGroup group))
                 return;
             dishLinks.Remove(dish);
-            DestroyLinkView(group);
             group.Remove(dish);
             if (group.Members.Count >= 2)
-                CreateLinkView(group);
-            else
-                foreach (Food remaining in group.Members)
-                    dishLinks.Remove(remaining);
+            {
+                RefreshLinkView(group, linkViews[group]);
+                return;
+            }
+            ReleaseLinkView(group);
+            foreach (Food remaining in group.Members)
+                dishLinks.Remove(remaining);
         }
 
         // EN: Clears every placeholder of a dish without shifting any column until the entire group has been removed.
@@ -266,28 +291,29 @@ namespace FoodPop
                         dishes[r] = null;
         }
 
-        // EN: Disables a chain immediately before releasing its generated visuals in play or editor previews.
-        // VI: Tắt chuỗi ngay trước khi giải phóng hình sinh trong gameplay hoặc xem trước editor.
-        private void DestroyLinkView(DishLinkGroup group)
+        // EN: Returns the members' food to its normal layer, then hides the chain's view and keeps it in the pool during play; editor previews destroy it so no hidden view is saved into the scene.
+        // VI: Trả món của các thành viên về lớp vẽ thường, rồi ẩn view của chuỗi và cất vào pool khi đang chơi; xem trước editor thì hủy để không lưu view ẩn vào scene.
+        private void ReleaseLinkView(DishLinkGroup group)
         {
             if (!linkViews.TryGetValue(group, out DishLinkView view))
                 return;
             linkViews.Remove(group);
             if (view == null)
                 return;
+            view.ResetIngredientLayers(group.Members);
             view.gameObject.SetActive(false);
             if (Application.isPlaying)
-                Destroy(view.gameObject);
+                linkViewPool.Push(view);
             else
                 DestroyImmediate(view.gameObject);
         }
 
-        // EN: Cancels all live links before replay or manager destruction so pooled dishes never keep old chain references.
-        // VI: Hủy mọi liên kết trước replay hoặc hủy manager để đĩa trong pool không giữ tham chiếu chuỗi cũ.
+        // EN: Releases all live links before replay or manager destruction so pooled dishes never keep old chain references.
+        // VI: Trả mọi liên kết về pool trước replay hoặc hủy manager để đĩa trong pool không giữ tham chiếu chuỗi cũ.
         private void ClearDishLinks()
         {
             foreach (DishLinkGroup group in new List<DishLinkGroup>(linkViews.Keys))
-                DestroyLinkView(group);
+                ReleaseLinkView(group);
             dishLinks.Clear();
         }
     }

@@ -1,6 +1,7 @@
 using GamePackages;
 using Lofelt.NiceVibrations;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -21,10 +22,6 @@ namespace FoodPop
         // VI: Cung cấp cấu hình màn hiện tại cho HUD cập nhật theo sự kiện.
         public LevelConfig CurrentLevel => levelConfig;
 
-        // EN: Reads the active level number for progression and tracking.
-        // VI: Lấy số màn hiện tại để xử lý tiến độ và thống kê.
-        private int LevelIndex => CurrentLevel.levelNumber;
-
         [Tooltip("Manager bảng nguyên liệu của scene.")]
         [SerializeField] private FoodBoardManager boardManager;
         [Tooltip("Manager khách hàng và order của scene.")]
@@ -35,6 +32,9 @@ namespace FoodPop
         [SerializeField] private bool showResultPanel = true;
         [SerializeField] private UnityEvent onWon = new UnityEvent();
         [SerializeField] private UnityEvent onLost = new UnityEvent();
+        // EN: Reads the active level number for progression and tracking.
+        // VI: Lấy số màn hiện tại để xử lý tiến độ và thống kê.
+        private int LevelIndex => CurrentLevel.levelNumber;
         private LevelConfig levelConfig;
         private LevelConfig nextLevelConfig;
         private float previousTimeScale = 1f;
@@ -42,8 +42,9 @@ namespace FoodPop
         private CanvasRevive.ReviveCase reviveCase;
         private bool preWinActive;
         private float preWinBaseTimeScale = 1f;
-        private bool isQuitLoseLife;
+        private Coroutine winRoutine;
         private PlayerDataManager PlayerDataManager;
+        private bool isQuitLoseLife;
         private RecordTrackingManager RecordManager;
         DateTime dStartGame, dEndGame;
 
@@ -78,18 +79,20 @@ namespace FoodPop
                 EnterPreWin();
         }
 
-        // EN: Releases the owned global pause and the pre-win speed-up when the controller is disabled.
-        // VI: Giải phóng tạm dừng toàn cục và mức tăng tốc pre-win khi controller bị tắt.
+        // EN: Cancels a pending win presentation and releases the owned global pause and the pre-win speed-up when the controller is disabled.
+        // VI: Hủy phần trình diễn thắng đang chờ và giải phóng tạm dừng toàn cục cùng mức tăng tốc pre-win khi controller bị tắt.
         private void OnDisable()
         {
+            StopWinPresentation();
             RestoreTimeScale();
             ExitPreWin();
         }
 
-        // EN: Resolves authored Hard levels against the saved retry count before resetting gameplay; Edit Mode does not read the runtime profile.
-        // VI: Chọn bản màn Hard theo số lần chơi lại đã lưu trước khi đặt lại gameplay; Edit Mode không đọc hồ sơ runtime.
-        public void LoadLevel(LevelConfig config)
+        // EN: Resolves retry difficulty and resets gameplay, cancelling a pending win presentation and any running booster, unlocking board taps and the settings pause, and restoring plates and chef animation after a result. Unless behindCurtain is set, every popup is hidden and the gameplay pause is released; behind the WinPopup curtain both stay until StartNextLevel.
+        // VI: Chọn độ khó theo lần chơi lại và đặt lại gameplay, hủy phần trình diễn thắng đang chờ và booster đang chạy, mở lại chạm board và nút tạm dừng cài đặt, khôi phục đĩa và animation đầu bếp sau khi có kết quả. Nếu không bật behindCurtain thì ẩn mọi popup và bỏ tạm dừng gameplay; khi nạp sau rèm WinPopup thì giữ cả hai tới StartNextLevel.
+        public void LoadLevel(LevelConfig config, bool behindCurtain = false)
         {
+            StopWinPresentation();
             if (config != null && Application.isPlaying)
                 config = config.ForRetry(RecordManager.GetRetryCount(config.levelNumber));
             if (config == null)
@@ -99,27 +102,32 @@ namespace FoodPop
             }
             levelConfig = config;
             nextLevelConfig = null;
-            if (ResolveUIManager()) uiManager.HideAll();
-            RestoreTimeScale();
+            if (ResolveUIManager())
+            {
+                if (!behindCurtain) uiManager.HideAll();
+                uiManager.PauseLocked = false;
+            }
+            if (!behindCurtain) RestoreTimeScale();
             ExitPreWin();
             State = LevelState.NotLoaded;
             if (boardManager == null) boardManager = FoodBoardManager.Instance;
             if (customerManager == null) customerManager = CustomerManager.Instance;
             if (BoosterController.Instance != null)
-            {
-                BoosterController.Instance.CancelCleanCollection();
-                BoosterController.Instance.CancelPickupForReplay();
-            }
+                BoosterController.Instance.CancelForReplay();
             if (ChefManager.Instance != null)
             {
                 ChefManager.Instance.CancelPreparation();
+                if (Application.isPlaying) ChefManager.Instance.ResetForLevel();
                 foreach (ConveyorSlot slot in ChefManager.Instance.Slots)
                     if (slot != null) slot.ClearFood();
             }
             FoodHoldingStorage storage = FindFirstObjectByType<FoodHoldingStorage>();
             if (storage != null) storage.ResetForLevel();
             if (boardManager != null)
+            {
+                boardManager.ResultLocked = false;
                 boardManager.LoadIngredientBoard(config.ingredientBoard, config.dishLinks);
+            }
             else
                 Debug.LogWarning("[LevelController] Chưa gán FoodBoardManager.", this);
             if (customerManager != null)
@@ -133,35 +141,6 @@ namespace FoodPop
                 StateChanged?.Invoke(State);
             }
             dStartGame = DateTime.Now;
-        }
-
-        // EN: Records the replay before loading so the second retry immediately selects the Easy variant of an authored Hard level.
-        // VI: Ghi nhận chơi lại trước khi nạp để lần chơi lại thứ hai chọn ngay biến thể Easy của màn được cấu hình Hard.
-        public void ReplayLevel()
-        {
-            TrackingLose(LoseType.Replay);
-            LoadLevel(levelConfig);
-            //SDKBridge.ShowInter(placementBack, InterPlacement.BackHome, LevelIndex);
-        }
-
-        public void BackHome()
-        {
-            TrackingLose(LoseType.BackHome);
-            //SDKBridge.ShowInter(placementBack, InterPlacement.BackHome, LevelIndex);
-        }
-
-        // EN: Advances only from a won level to the next numbered level loaded from Resources when the win was shown, reusing the complete level reset flow.
-        // VI: Chỉ chuyển từ màn đã thắng sang màn có số kế tiếp đã nạp từ Resources lúc hiện popup thắng, dùng lại toàn bộ luồng đặt lại màn.
-        public void NextLevel()
-        {
-            if (State != LevelState.Won || nextLevelConfig == null)
-                return;
-            LevelConfig next = nextLevelConfig;
-            nextLevelConfig = null;
-            LoadLevel(next);
-            Resources.UnloadUnusedAssets();
-            //SDKBridge.ShowInter(GamePlacement.EndGame, InterPlacement.Win, LevelIndex);
-            //SDKBridge.TrackUserProperty(UserProperty.Level, LevelIndex.ToString());
         }
 
         // EN: Adds thirty seconds to expired customers for timeout revival, otherwise starts conveyor cleaning.
@@ -194,6 +173,46 @@ namespace FoodPop
             if (State == LevelState.ReviveOffered) FinishLevel(LevelState.Lost);
         }
 
+        // EN: Tracks the abandoned attempt (resets the win streak without counting a retry) and reloads the current level.
+        // VI: Ghi nhận lượt chơi bị bỏ dở (reset chuỗi thắng nhưng không tính lần chơi lại) rồi nạp lại màn hiện tại.
+        public void ReplayLevel()
+        {
+            TrackingLose(LoseType.Replay);
+            LoadLevel(levelConfig);
+            //SDKBridge.ShowInter(placementBack, InterPlacement.BackHome, LevelIndex);
+        }
+
+        // EN: Tracks leaving the level for Home as an abandoned attempt; CanvasPause loads the Home scene afterwards.
+        // VI: Ghi nhận việc rời màn về Home là lượt chơi bị bỏ dở; CanvasPause tự nạp scene Home sau đó.
+        public void BackHome()
+        {
+            TrackingLose(LoseType.BackHome);
+            //SDKBridge.ShowInter(placementBack, InterPlacement.BackHome, LevelIndex);
+        }
+
+        // EN: Advances only from a won level to the next numbered level loaded from Resources when the win was shown, reusing the complete level reset flow behind the closed WinPopup curtain: the popup stays open and gameplay stays paused until StartNextLevel.
+        // VI: Chỉ chuyển từ màn đã thắng sang màn có số kế tiếp đã nạp từ Resources lúc hiện popup thắng, dùng lại toàn bộ luồng đặt lại màn phía sau rèm WinPopup đang đóng: popup vẫn mở và gameplay vẫn tạm dừng tới StartNextLevel.
+        public void NextLevel()
+        {
+            if (State != LevelState.Won || nextLevelConfig == null)
+                return;
+            LevelConfig next = nextLevelConfig;
+            nextLevelConfig = null;
+            LoadLevel(next, true);
+            Resources.UnloadUnusedAssets();
+            //SDKBridge.ShowInter(GamePlacement.EndGame, InterPlacement.Win, LevelIndex);
+            //SDKBridge.TrackUserProperty(UserProperty.Level, LevelIndex.ToString());
+        }
+
+        // EN: Starts the level loaded by NextLevel once the WinPopup curtain has fully opened, releasing the pause kept during the transition.
+        // VI: Bắt đầu màn do NextLevel nạp khi rèm WinPopup đã mở hẳn, bỏ tạm dừng được giữ trong lúc chuyển cảnh.
+        public void StartNextLevel()
+        {
+            RestoreTimeScale();
+        }
+
+        // EN: Plays an emphasis vibration when the player has vibration enabled.
+        // VI: Phát rung nhấn mạnh khi người chơi đang bật rung.
         public void PlayHaptic()
         {
             if (PlayerDataManager.isVibrateOn) HapticPatterns.PlayEmphasis(0.8f, 0.5f);
@@ -207,6 +226,48 @@ namespace FoodPop
             for (int number = PlayerDataManager.GetCurrentLevel(); config == null && number >= 1; number--)
                 config = LevelConfig.Load(number);
             return config;
+        }
+
+        // EN: Stops the delayed win presentation if it has not started yet.
+        // VI: Dừng phần trình diễn thắng bị trì hoãn nếu nó chưa bắt đầu.
+        private void StopWinPresentation()
+        {
+            if (winRoutine != null)
+                StopCoroutine(winRoutine);
+            winRoutine = null;
+        }
+
+        // EN: Resolves the existing scene UIManager without creating manager objects beneath the level controller.
+        // VI: Lấy UIManager có sẵn trong scene mà không tạo object quản lý dưới controller màn chơi.
+        private bool ResolveUIManager()
+        {
+            if (uiManager == null) uiManager = UIManager.Instance;
+            if (uiManager == null || !uiManager.isActiveAndEnabled)
+            {
+                Debug.LogError("[LevelController] Chưa có UIManager hoạt động trong scene.", this);
+                return false;
+            }
+            return true;
+        }
+
+        // EN: Restores only the time pause owned by this controller when reloading or leaving the scene.
+        // VI: Chỉ khôi phục tạm dừng thời gian do controller này giữ khi nạp lại hoặc rời scene.
+        private void RestoreTimeScale()
+        {
+            if (!ownsTimePause) return;
+            Time.timeScale = previousTimeScale;
+            ownsTimePause = false;
+        }
+
+        // EN: Returns to the speed recorded when pre-win started and logs it; does nothing outside pre-win.
+        // VI: Trả về tốc độ đã ghi lúc bắt đầu pre-win và log lại; không làm gì khi không ở pre-win.
+        private void ExitPreWin()
+        {
+            if (!preWinActive)
+                return;
+            preWinActive = false;
+            Time.timeScale = preWinBaseTimeScale;
+            Debug.Log($"[LevelController] Thoát pre-win, trả tốc độ về {preWinBaseTimeScale:0.##}.", this);
         }
 
         // EN: Continues the existing level after successful cleaning, or restores the offer if cleaning failed.
@@ -223,19 +284,6 @@ namespace FoodPop
             StateChanged?.Invoke(State);
         }
 
-        // EN: Publishes victory or a declined defeat once, retaining the original time scale across the revive offer.
-        // VI: Phát chiến thắng hoặc thất bại đã từ chối hồi sinh một lần, giữ tốc độ thời gian gốc qua lời mời hồi sinh.
-        private void FinishLevel(LevelState result)
-        {
-            if (State != LevelState.Playing && !(State == LevelState.ReviveOffered && result == LevelState.Lost)) return;
-            State = result;
-            PauseGameplay();
-            ShowResult(result);
-            StateChanged?.Invoke(State);
-            if (result == LevelState.Won) onWon.Invoke();
-            else onLost.Invoke();
-        }
-
         // EN: Pauses and offers the matching timeout or conveyor revive without resetting progress.
         // VI: Tạm dừng và mời hồi sinh đúng trường hợp hết giờ hoặc kẹt băng, giữ tiến độ hiện tại.
         private void OfferRevive(CanvasRevive.ReviveCase reason = CanvasRevive.ReviveCase.OutOfSlots)
@@ -248,6 +296,79 @@ namespace FoodPop
                 uiManager.ShowRevive(ReviveLevel, DeclineRevive,
                     reason == CanvasRevive.ReviveCase.OutOfTime || (boosters != null && boosters.CanCleanForRevive()), reason: reason);
             StateChanged?.Invoke(State);
+        }
+
+        // EN: Freezes gameplay while recording its original speed only when acquiring the pause.
+        // VI: Dừng gameplay và chỉ lưu tốc độ gốc khi bắt đầu giữ quyền tạm dừng.
+        private void PauseGameplay()
+        {
+            if (!ownsTimePause)
+            {
+                previousTimeScale = Time.timeScale;
+                ownsTimePause = true;
+            }
+            Time.timeScale = 0f;
+        }
+
+        // EN: Publishes the result and locks board taps at once; defeat pauses and shows at once, victory restores the pre-win speed, locks the settings pause so Replay/Home cannot interrupt, hides the conveyor plates immediately and defers its presentation.
+        // VI: Phát kết quả và khóa chạm board ngay; thua thì tạm dừng và hiện ngay, thắng thì trả tốc độ pre-win về bình thường, khóa nút tạm dừng cài đặt để không bấm Replay/Home chen ngang, ẩn ngay các đĩa băng chuyền rồi mới trình diễn sau.
+        private void FinishLevel(LevelState result)
+        {
+            if (State != LevelState.Playing && !(State == LevelState.ReviveOffered && result == LevelState.Lost)) return;
+            State = result;
+            boardManager.ResultLocked = true;
+            if (result == LevelState.Won)
+            {
+                ExitPreWin();
+                uiManager.PauseLocked = true;
+                ChefManager.Instance.HideDishes();
+                StateChanged?.Invoke(State);
+                winRoutine = StartCoroutine(PresentWin());
+                return;
+            }
+            PauseGameplay();
+            ShowResult(result);
+            StateChanged?.Invoke(State);
+            onLost.Invoke();
+        }
+
+        // EN: Waits until every customer has walked out of the camera view plus the configured delay at normal speed, then pauses, plays the chef's unscaled celebration and shows the win panel.
+        // VI: Chờ tới khi mọi khách đã đi ra khỏi khung camera cộng thêm khoảng trễ cấu hình ở tốc độ thường, rồi tạm dừng, phát animation thắng không phụ thuộc timeScale của đầu bếp và hiện bảng thắng.
+        private IEnumerator PresentWin()
+        {
+            yield return new WaitUntil(() => customerManager.AllCustomersGone);
+            yield return new WaitForSeconds(IngameConfig.Instance.preWin.winPanelDelay);
+            winRoutine = null;
+            PauseGameplay();
+            ChefManager.Instance.PlayWin();
+            ShowResult(LevelState.Won);
+            onWon.Invoke();
+        }
+
+        // EN: Delegates victory and defeat presentation to UIManager with the matching gameplay action; on victory it loads the next numbered level from Resources and continues to it only below winReward.levelBackHome (from that level on the player returns Home instead).
+        // VI: Giao hiển thị chiến thắng và thất bại cho UIManager cùng hành động gameplay tương ứng; khi thắng thì nạp level số kế tiếp từ Resources và chỉ chơi tiếp khi level hiện tại nhỏ hơn winReward.levelBackHome (từ level đó trở đi quay về Home).
+        private void ShowResult(LevelState result)
+        {
+            if (!showResultPanel || !ResolveUIManager()) return;
+            if (result == LevelState.Won)
+            {
+                nextLevelConfig = LevelConfig.Load(LevelIndex + 1);
+                bool continueToNext = nextLevelConfig != null && LevelIndex < IngameConfig.Instance.winReward.levelBackHome;
+                uiManager.ShowWin(NextLevel, StartNextLevel, continueToNext);
+                TrackingWin();
+            } else
+            {
+                uiManager.ShowLose(RetryLevel);
+                TrackingLose(LoseType.LoseGame);
+            }
+        }
+
+        // EN: Reloads the current level from the lose popup; the defeat was already tracked when the popup opened.
+        // VI: Nạp lại màn hiện tại từ popup thua; lần thua đã được ghi nhận khi popup mở.
+        private void RetryLevel()
+        {
+            LoadLevel(levelConfig);
+            //SDKBridge.ShowInter(placementBack, InterPlacement.BackHome, LevelIndex);
         }
 
         // EN: Declare deadlock only after all work settles, no belt food can serve and no exposed group fits the shared pick rule.
@@ -284,92 +405,6 @@ namespace FoodPop
             return CountBoardPortions() <= chef.CountEmptySlots();
         }
 
-        // EN: Speeds the whole game up by the configured pre-win multiplier, remembering the speed it started from, and logs the trigger values.
-        // VI: Tăng tốc toàn bộ game theo hệ số pre-win đã cấu hình, ghi nhớ tốc độ trước khi tăng và log các giá trị kích hoạt.
-        private void EnterPreWin()
-        {
-            preWinActive = true;
-            preWinBaseTimeScale = Time.timeScale;
-            Time.timeScale = preWinBaseTimeScale * IngameConfig.Instance.preWin.speedMultiplier;
-            Debug.Log($"[LevelController] Vào pre-win ở level {LevelIndex}: còn {CountBoardPortions()} phần trên board, {ChefManager.Instance.CountEmptySlots()} slot trống; tốc độ {preWinBaseTimeScale:0.##} -> {Time.timeScale:0.##}.", this);
-        }
-
-        // EN: Restores only the time pause owned by this controller when reloading or leaving the scene.
-        // VI: Chỉ khôi phục tạm dừng thời gian do controller này giữ khi nạp lại hoặc rời scene.
-        private void RestoreTimeScale()
-        {
-            if (!ownsTimePause) return;
-            Time.timeScale = previousTimeScale;
-            ownsTimePause = false;
-        }
-
-        // EN: Returns to the speed recorded when pre-win started and logs it; does nothing outside pre-win.
-        // VI: Trả về tốc độ đã ghi lúc bắt đầu pre-win và log lại; không làm gì khi không ở pre-win.
-        private void ExitPreWin()
-        {
-            if (!preWinActive)
-                return;
-            preWinActive = false;
-            Time.timeScale = preWinBaseTimeScale;
-            Debug.Log($"[LevelController] Thoát pre-win, trả tốc độ về {preWinBaseTimeScale:0.##}.", this);
-        }
-
-        // EN: Resolves the existing scene UIManager without creating manager objects beneath the level controller.
-        // VI: Lấy UIManager có sẵn trong scene mà không tạo object quản lý dưới controller màn chơi.
-        private bool ResolveUIManager()
-        {
-            if (uiManager == null) uiManager = UIManager.Instance;
-            if (uiManager == null || !uiManager.isActiveAndEnabled)
-            {
-                Debug.LogError("[LevelController] Chưa có UIManager hoạt động trong scene.", this);
-                return false;
-            }
-            return true;
-        }
-
-        private void TrackingLose(LoseType loseType)
-        {
-            dEndGame = DateTime.Now;
-            int duration_fail = (int)(dEndGame - dStartGame).TotalSeconds;
-            int remaining_heart = ProfileManager.instance.GameFeatureContext.HeartManager.GetRemainHeart();
-            int remain_coin = PlayerDataManager.GetResourceValue(ResourceType.Coin);
-            int booster_pickup = PlayerDataManager.GetResourceValue(ResourceType.BoosterPickup);
-            int booster_clean = PlayerDataManager.GetResourceValue(ResourceType.BoosterClean);
-            int booster_shuffle = PlayerDataManager.GetResourceValue(ResourceType.BoosterShuffle);
-            int booster_autocomplete = PlayerDataManager.GetResourceValue(ResourceType.BoosterAutoComplete);
-            //SDKBridge.TrackEventLose(LevelIndex, remaining_heart, duration_fail, remain_coin, booster_pickup, booster_shuffle, booster_autocomplete, loseType.ToString());
-            RecordManager.ResetWinStreak();
-        }
-
-        // EN: Freezes gameplay while recording its original speed only when acquiring the pause.
-        // VI: Dừng gameplay và chỉ lưu tốc độ gốc khi bắt đầu giữ quyền tạm dừng.
-        private void PauseGameplay()
-        {
-            if (!ownsTimePause)
-            {
-                previousTimeScale = Time.timeScale;
-                ownsTimePause = true;
-            }
-            Time.timeScale = 0f;
-        }
-
-        // EN: Delegates victory and defeat presentation to UIManager with the matching gameplay action; on victory it loads the next numbered level from Resources to enable Next.
-        // VI: Giao hiển thị chiến thắng và thất bại cho UIManager cùng hành động gameplay tương ứng; khi thắng thì nạp level số kế tiếp từ Resources để bật nút Next.
-        private void ShowResult(LevelState result)
-        {
-            if (!showResultPanel || !ResolveUIManager()) return;
-            if (result == LevelState.Won)
-            {
-                nextLevelConfig = LevelConfig.Load(LevelIndex + 1);
-                uiManager.ShowWin(NextLevel, nextLevelConfig != null);
-                TrackingWin();
-            } else
-            {
-                uiManager.ShowLose(RetryLevel);
-                TrackingLose(LoseType.LoseGame);
-            }
-        }
-
         // EN: Sums the portions of every dish still on the board, counting a dish that spans two cells only once.
         // VI: Cộng số phần của mọi đĩa còn trên board, đĩa chiếm hai ô chỉ tính một lần.
         private int CountBoardPortions()
@@ -387,6 +422,20 @@ namespace FoodPop
             return total;
         }
 
+        // EN: Speeds the whole game up by the configured pre-win multiplier, remembering the speed it started from, and logs the trigger values.
+        // VI: Tăng tốc toàn bộ game theo hệ số pre-win đã cấu hình, ghi nhớ tốc độ trước khi tăng và log các giá trị kích hoạt.
+        private void EnterPreWin()
+        {
+            preWinActive = true;
+            preWinBaseTimeScale = Time.timeScale;
+            Time.timeScale = preWinBaseTimeScale * IngameConfig.Instance.preWin.speedMultiplier;
+            Debug.Log($"[LevelController] Vào pre-win ở level {LevelIndex}: còn {CountBoardPortions()} phần trên board, {ChefManager.Instance.CountEmptySlots()} slot trống; tốc độ {preWinBaseTimeScale:0.##} -> {Time.timeScale:0.##}.", this);
+        }
+
+        #region Tracking
+
+        // EN: Records the win (win streak, checkpoint outside the Editor), advances the saved level and clears per-level retry and spend tracking.
+        // VI: Ghi nhận thắng (chuỗi thắng, checkpoint ngoài Editor), tăng level đã lưu và xóa số lần chơi lại cùng số liệu tiêu dùng theo màn.
         private void TrackingWin()
         {
             dEndGame = DateTime.Now;
@@ -411,22 +460,41 @@ namespace FoodPop
             ResetQuitLoseStreak();
         }
 
-        private void RetryLevel()
-        {
-            LoadLevel(levelConfig);
-            //SDKBridge.ShowInter(placementBack, InterPlacement.BackHome, LevelIndex);
-        }
-
+        // EN: Clears the quit-lose flag locally and in the player data after a win.
+        // VI: Xóa cờ thoát-thua ở controller và trong dữ liệu người chơi sau khi thắng.
         private void ResetQuitLoseStreak()
         {
             isQuitLoseLife = false;
             PlayerDataManager.isLoseStreakQuit = false;
         }
 
+        // EN: Collects lose analytics and resets the win streak for every lose type; only a real defeat counts as a retry that drives the Easy variant.
+        // VI: Thu thập số liệu thua và reset chuỗi thắng cho mọi kiểu thua; chỉ thua thật mới tính là một lần chơi lại để chọn biến thể Easy.
+        private void TrackingLose(LoseType loseType)
+        {
+            dEndGame = DateTime.Now;
+            int duration_fail = (int)(dEndGame - dStartGame).TotalSeconds;
+            int remaining_heart = ProfileManager.instance.GameFeatureContext.HeartManager.GetRemainHeart();
+            int remain_coin = PlayerDataManager.GetResourceValue(ResourceType.Coin);
+            int booster_pickup = PlayerDataManager.GetResourceValue(ResourceType.BoosterPickup);
+            int booster_clean = PlayerDataManager.GetResourceValue(ResourceType.BoosterClean);
+            int booster_shuffle = PlayerDataManager.GetResourceValue(ResourceType.BoosterShuffle);
+            int booster_autocomplete = PlayerDataManager.GetResourceValue(ResourceType.BoosterAutoComplete);
+            //SDKBridge.TrackEventLose(LevelIndex, remaining_heart, duration_fail, remain_coin, booster_pickup, booster_shuffle, booster_autocomplete, loseType.ToString());
+            RecordManager.ResetWinStreak();
+            if (loseType == LoseType.LoseGame)
+                RecordManager.RecordRetry();
+        }
+
+        // EN: Sets the quit-lose flag locally and in the player data; currently not called anywhere.
+        // VI: Bật cờ thoát-thua ở controller và trong dữ liệu người chơi; hiện chưa được gọi ở đâu.
         private void MarkQuitLoseStreak()
         {
             isQuitLoseLife = true;
             PlayerDataManager.isLoseStreakQuit = true;
         }
+
+        #endregion
+
     }
 }

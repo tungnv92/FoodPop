@@ -56,7 +56,6 @@ namespace FoodPop
         private readonly Dictionary<SpriteRenderer, Vector3> plateRestScales = new Dictionary<SpriteRenderer, Vector3>();
         private SpriteRenderer activePlate;
         private OrderTweens tweens;
-        private OrderTweens Tweens => tweens ?? (tweens = new OrderTweens(this));
 
 
 
@@ -129,6 +128,29 @@ namespace FoodPop
             if (dish.Plate != null)
                 dish.Plate.enabled = false;
             dish.gameObject.SetActive(true);
+        }
+
+        // EN: Switches this slot to another dish picture without replaying anything: the ingredient layers already revealed (and the plate, if shown) appear at once on the new picture.
+        // VI: Đổi ô sang hình món khác mà không chạy lại hiệu ứng: các lớp nguyên liệu đã hiện (và đĩa, nếu đang hiện) hiện ngay trên hình mới.
+        public void ChangeDish(FinalFoodView prefab, float scale, int sortingLayer, int sortingOrder)
+        {
+            List<FoodType> shown = new List<FoodType>();
+            for (int i = 0; dish != null && i < revealed.Count; i++)
+                if (revealed[i])
+                    shown.Add(dish.Layers[i].ingredient);
+            bool plateShown = activePlate != null && activePlate.enabled;
+            BeginDish(prefab, scale, sortingLayer, sortingOrder);
+            foreach (FoodType type in shown)
+            {
+                int index = FindLayer(type);
+                if (index < 0)
+                    continue;
+                revealed[index] = true;
+                revealedCount++;
+                dish.Layers[index].renderer.enabled = true;
+            }
+            if (plateShown && activePlate != null)
+                activePlate.enabled = true;
         }
 
         // EN: Pops the plate chosen for the current dish in (once per dish); called by RevealIngredient when the first ingredient lands on this slot.
@@ -204,11 +226,20 @@ namespace FoodPop
 
 
 
-        // EN: Cancel preparation, hide the dish, restore its layers and its own plate to their resting state, and clear both slot plate visuals.
-        // VI: Hủy chế biến, ẩn món, trả các lớp và khay riêng của món về trạng thái nghỉ, rồi dọn hình của cả hai đĩa của ô.
+        // EN: Shows or hides the slot's dashed outline (hidden once the slot's dish has been served).
+        // VI: Hiện hoặc ẩn viền nét đứt của ô (ẩn khi món của ô đã được phục vụ xong).
+        public void SetOutlineVisible(bool visible)
+        {
+            if (outline != null)
+                outline.enabled = visible;
+        }
+
+        // EN: Cancel preparation, hide the dish, restore its layers and its own plate to their resting state, clear both slot plate visuals and show the slot outline again for the next dish.
+        // VI: Hủy chế biến, ẩn món, trả các lớp và khay riêng của món về trạng thái nghỉ, dọn hình của cả hai đĩa của ô và hiện lại viền ô cho món kế tiếp.
         public void ClearDish()
         {
             StopPreparation();
+            SetOutlineVisible(true);
             if (dish != null)
             {
                 for (int i = 0; i < dish.Layers.Count && i < layerScales.Count; i++)
@@ -296,6 +327,8 @@ namespace FoodPop
 
 
 #endif
+
+        private OrderTweens Tweens => tweens ?? (tweens = new OrderTweens(this));
 
         // EN: Stops the plate's pop, restores its resting scale and hides it.
         // VI: Dừng cú nảy của đĩa, trả scale nghỉ và ẩn đĩa.

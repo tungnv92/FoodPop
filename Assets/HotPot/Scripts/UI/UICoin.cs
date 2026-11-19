@@ -39,14 +39,13 @@ namespace FoodPop
             observing = false;
         }
 
-        // EN: Count up after the requested unscaled delay; the real Coin event settles the final balance.
-        // VI: Tăng số sau khoảng trễ unscaled được yêu cầu; sự kiện Coin thật chốt số dư cuối.
-        public void AnimateReward(int amount, float duration, float delay = 0f)
+        // EN: Shows the balance from before an already credited reward and counts up to the saved balance after the requested unscaled delay; call it after crediting so the Coin event does not cancel the count.
+        // VI: Hiện số dư trước khi cộng phần thưởng đã được cộng rồi tăng dần tới số dư đã lưu sau khoảng trễ unscaled; gọi sau khi cộng xu để sự kiện Coin không hủy hiệu ứng đếm.
+        public void AnimateReward(int from, float duration, float delay = 0f)
         {
-            int current = playerData.GetResourceValue(ResourceType.Coin);
-            ShowAmount(current);
-            int target = (int)System.Math.Min(int.MaxValue, (long)current + amount);
-            balanceTween = DOTween.To(() => current, value => amountLabel.text = value.ToString(), target, duration)
+            int target = playerData.GetResourceValue(ResourceType.Coin);
+            ShowAmount(from);
+            balanceTween = DOTween.To(() => from, value => amountLabel.text = value.ToString(), target, duration)
                 .SetEase(Ease.Linear).SetDelay(delay).SetUpdate(true);
         }
 

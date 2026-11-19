@@ -5,101 +5,89 @@ using UnityEngine.Rendering;
 
 namespace FoodPop
 {
-    // EN: Holds individual conveyor portions inside the holding bag and returns only ingredients still missing from current orders.
-    // VI: Giữ từng phần food của băng chuyền trong túi giữ món và chỉ trả nguyên liệu order hiện tại còn thiếu.
+    // EN: The always-visible holding cabinet: holds individual conveyor portions in fixed spots that stay hidden until they receive food (one portion per spot; the whole spot, tray and food together, hops when food lands and squashes when food leaves) and returns only ingredients still missing from current orders.
+    // VI: Tủ giữ món luôn hiện: giữ từng phần food của băng chuyền trong các ô cố định, ô ẩn cho tới khi nhận food (mỗi ô một phần; cả ô gồm khay và food nảy lên khi food đáp xuống và bẹp nhẹ khi food rời đi) và chỉ trả nguyên liệu order hiện tại còn thiếu.
     public sealed class FoodHoldingStorage : MonoBehaviour
     {
         public sealed class Portion
         {
             public FoodType type;
             public FoodState state;
+            public Transform spot;
             public SpriteRenderer visual;
             public Vector3 worldScale;
-            public Vector3 targetPosition;
-            public float targetAngle;
             public bool rising;
         }
 
-        [Tooltip("Túi giữ món (lớp sau, food, lớp trước) và hiệu ứng nảy nhún.")]
-        [SerializeField] private FoodHoldingTray tray;
-        [Tooltip("Object chứa hình food ở giữa lớp sau và lớp trước của túi.")]
+        // EN: Sorting order of stored food inside FoodRoot's sorting group, above each spot's tray sprite.
+        // VI: Thứ tự vẽ của food trong nhóm sắp xếp của FoodRoot, nằm trên sprite khay của từng ô.
+        private const int FoodSortingOrder = 5;
+
+        // EN: Number of hops a spot makes after food lands on it.
+        // VI: Số lần ô nảy lên sau khi food đáp xuống.
+        private const int SpotHops = 2;
+
+        public bool IsReady => isActiveAndEnabled && foodRoot != null && spots.Length > 0;
+
+        public bool IsReturning => returning != null;
+
+        public int Count => portions.Count;
+
+        // EN: Number of spots that can still receive food.
+        // VI: Số ô còn nhận thêm được food.
+        public int FreeSpots => spots.Length - portions.Count;
+
+        [Tooltip("Object chứa các ô food ở giữa lớp sau và lớp trước của tủ.")]
         [SerializeField] private Transform foodRoot;
-        [Tooltip("Băng chuyền nhận food trả từ túi.")]
+        [Tooltip("Các ô đặt food theo thứ tự lấp; số ô là số food tối đa Clean thu được. Để trống thì dùng các object con trực tiếp của FoodRoot. Ô tự bật khi có food và tắt khi trống.")]
+        [SerializeField] private Transform[] spots = new Transform[0];
+        [Tooltip("Băng chuyền nhận food trả từ tủ.")]
         [SerializeField] private ConveyorChefMovement conveyor;
         [Tooltip("Thời gian food bay trở lại đĩa trống, tính bằng giây.")]
         [SerializeField, Min(0.05f)] private float returnDuration = 0.4f;
 
-        [Header("Xếp food trong túi")]
-        [Tooltip("Tỉ lệ kích thước food khi nằm trong túi so với kích thước trên băng chuyền.")]
+        [Header("Food trong ô")]
+        [Tooltip("Tỉ lệ kích thước food khi nằm trong ô so với kích thước trên băng chuyền.")]
         [SerializeField, Range(0.3f, 1.2f)] private float storedScale = 0.6f;
-        [Tooltip("Số food trên một hàng trong túi.")]
-        [SerializeField, Min(1)] private int perRow = 3;
-        [Tooltip("Khoảng cách ngang giữa hai food cùng hàng (tọa độ cục bộ của FoodRoot).")]
-        [SerializeField] private float columnSpacing = 0.36f;
-        [Tooltip("Độ cao hàng đầu tiên (tọa độ cục bộ của FoodRoot); các hàng sau xếp chồng cao dần.")]
-        [SerializeField] private float firstRowY = 0.2f;
-        [Tooltip("Khoảng cách dọc giữa hai hàng food.")]
-        [SerializeField] private float rowSpacing = 0.12f;
-        [Tooltip("Số hàng tối đa; food nhiều hơn sẽ chồng lên hàng trên cùng.")]
-        [SerializeField, Min(1)] private int maxRows = 3;
-        [Tooltip("Góc nghiêng tối đa của food trong túi (độ).")]
-        [SerializeField, Range(0f, 30f)] private float tiltAngle = 10f;
-        [Tooltip("Tốc độ food trượt vào chỗ trong túi (càng lớn càng nhanh).")]
+        [Tooltip("Vị trí food so với tâm ô (tọa độ cục bộ của ô).")]
+        [SerializeField] private Vector3 foodOffset = Vector3.zero;
+        [Tooltip("Tốc độ food thu về kích thước trong ô (càng lớn càng nhanh).")]
         [SerializeField, Min(1f)] private float settleSpeed = 14f;
-        [Tooltip("Thời gian food nhô lên miệng túi trước khi bay ra, tính bằng giây.")]
+        [Tooltip("Thời gian food phóng to tại ô trước khi bay ra, tính bằng giây.")]
         [SerializeField, Min(0f)] private float riseDuration = 0.15f;
 
+        [Header("Nảy ô (khay + food)")]
+        [Tooltip("Thời gian nảy của ô khi food đáp vào hoặc rời đi, tính bằng giây.")]
+        [SerializeField, Min(0.05f)] private float spotBounceDuration = 0.45f;
+        [Tooltip("Độ nhún tối đa của ô (0.1 = bẹp 10%); 0 để tắt bẹp-giãn.")]
+        [SerializeField, Range(0f, 0.4f)] private float spotBounceStrength = 0.1f;
+        [Tooltip("Độ cao lần nảy đầu của cả ô (khay + food) khi food đáp xuống, tọa độ cục bộ của FoodRoot; các lần sau thấp dần. 0 để chỉ bẹp-giãn tại chỗ.")]
+        [SerializeField, Min(0f)] private float spotHopHeight = 0.3f;
+
         private readonly List<Portion> portions = new List<Portion>();
+
         private readonly List<FoodType> needs = new List<FoodType>();
+
         private Coroutine returning;
         private ConveyorSlot returnSlot;
         private Portion returnPortion;
         private int returnArrivalId;
         private SpriteRenderer returnFlyer;
-        public bool IsReady => isActiveAndEnabled && tray != null && tray.isActiveAndEnabled && foodRoot != null;
-        public bool IsReturning => returning != null;
-        public int Count => portions.Count;
+        private Vector3[] spotRestScales = new Vector3[0];
+        private Vector3[] spotRestPositions = new Vector3[0];
+        private Coroutine[] spotBounces = new Coroutine[0];
 
-        // EN: World position of the bag mouth, where collected food enters and returned food leaves.
-        // VI: Vị trí world của miệng túi, nơi food thu vào đi vào và food trả về đi ra.
-        public Vector3 MouthPosition => tray != null ? tray.MouthPosition : foodRoot != null ? foodRoot.position : transform.position;
-
-        // EN: Fills missing references from this object's own hierarchy.
-        // VI: Tự gán các tham chiếu còn thiếu từ chính cây object của túi.
+        // EN: Fills missing references from this object's own hierarchy, remembers each spot's authored pose and hides every spot until it receives food.
+        // VI: Tự gán các tham chiếu còn thiếu từ chính cây object của tủ, ghi nhớ tư thế thiết kế của từng ô và ẩn mọi ô cho tới khi ô nhận food.
         private void Awake()
         {
             ResolveReferences();
+            CaptureSpotRest();
+            HideAllSpots();
         }
 
-        // EN: Uses the FoodHoldingTray on this object and the child named "FoodRoot" when they are not assigned; warns once when FoodRoot is still missing.
-        // VI: Dùng FoodHoldingTray trên object này và object con tên "FoodRoot" khi chưa được gán; cảnh báo nếu vẫn thiếu FoodRoot.
-        private void ResolveReferences()
-        {
-            if (tray == null)
-                tray = GetComponent<FoodHoldingTray>();
-            if (foodRoot == null)
-                foodRoot = FindChild(transform, "FoodRoot");
-            if (foodRoot == null)
-                Debug.LogWarning("[FoodHoldingStorage] Không tìm thấy FoodRoot trong túi giữ món nên Clean không dùng được. Hãy gán foodRoot hoặc thêm object con tên FoodRoot.", this);
-        }
-
-        // EN: Depth-first search for a descendant with the given name.
-        // VI: Tìm theo chiều sâu object con cháu có tên đã cho.
-        private static Transform FindChild(Transform parent, string childName)
-        {
-            foreach (Transform child in parent)
-            {
-                if (child.name == childName)
-                    return child;
-                Transform found = FindChild(child, childName);
-                if (found != null)
-                    return found;
-            }
-            return null;
-        }
-
-        // EN: Reserves demand returns with a unique slot arrival identity while no booster owns the bag; only ingredients a current customer can accept right now leave the bag (raw ones are re-prepared by the chef on the belt).
-        // VI: Giữ chỗ chuyến trả theo nhu cầu bằng mã đáp riêng khi không booster nào đang dùng túi; chỉ trả nguyên liệu mà khách hiện tại nhận được ngay (món thô sẽ được đầu bếp sơ chế lại trên băng).
+        // EN: Reserves demand returns with a unique slot arrival identity while no booster owns the cabinet; only ingredients a current customer can accept right now leave it (raw ones are re-prepared by the chef on the belt).
+        // VI: Giữ chỗ chuyến trả theo nhu cầu bằng mã đáp riêng khi không booster nào đang dùng tủ; chỉ trả nguyên liệu mà khách hiện tại nhận được ngay (món thô sẽ được đầu bếp sơ chế lại trên băng).
         private void Update()
         {
             if (!IsReady || IsReturning || portions.Count == 0 || conveyor == null || conveyor.BoosterPaused ||
@@ -127,6 +115,203 @@ namespace FoodPop
             }
         }
 
+        // EN: Smoothly moves visible portions onto their tray and scales them to their stored size (or to full size while rising out of their spot).
+        // VI: Đưa mượt food đang hiện về vị trí trên khay và thu về kích thước trong ô (hoặc phóng tới kích thước đầy đủ khi đang chuẩn bị bay ra).
+        private void LateUpdate()
+        {
+            if (portions.Count == 0)
+                return;
+            float blend = 1f - Mathf.Exp(-settleSpeed * Time.deltaTime);
+            foreach (Portion portion in portions)
+            {
+                if (portion.visual == null || !portion.visual.enabled)
+                    continue;
+                Transform visual = portion.visual.transform;
+                visual.localPosition = Vector3.Lerp(visual.localPosition, foodOffset, blend);
+                visual.localScale = Vector3.Lerp(visual.localScale, LocalScaleFor(portion, portion.rising ? 1f : storedScale), blend);
+            }
+        }
+
+        // EN: Releases only the pending return's owned reservation (keeping its ingredient in the cabinet) and puts every spot with captured bounce state back to its rest pose because coroutines stop here (the loop follows the runtime arrays, which a script reload empties while the serialized spots stay filled).
+        // VI: Chỉ giải phóng phần giữ chỗ của chuyến trả đang chờ (giữ nguyên liệu trong tủ) và đưa mọi ô đã có trạng thái nảy về tư thế nghỉ vì coroutine dừng tại đây (vòng lặp theo mảng runtime, vốn bị làm rỗng khi tải lại script trong khi mảng spots serialize vẫn còn).
+        private void OnDisable()
+        {
+            CancelPendingReturn();
+            for (int i = 0; i < spotBounces.Length; i++)
+                StopSpotBounce(i);
+        }
+
+        // EN: Registers a hidden portion in the first free spot with its original conveyor world scale; the spot (still hidden) and the food appear when DropIn or Reveal is called. Returns null when every spot is taken. Uses the shared ingredient configuration for the fallback icon.
+        // VI: Ghi nhận một phần food (đang ẩn) vào ô trống đầu tiên cùng scale world gốc trên băng; ô (vẫn đang ẩn) và food hiện ra khi gọi DropIn hoặc Reveal. Trả về null khi mọi ô đã có food. Dùng cấu hình nguyên liệu chung cho icon dự phòng.
+        public Portion Store(FoodType type, FoodState state, Sprite sprite, Vector3 worldScale)
+        {
+            Transform spot = FindFreeSpot();
+            if (spot == null)
+                return null;
+            var visual = new GameObject("Stored food · " + type).AddComponent<SpriteRenderer>();
+            visual.transform.SetParent(spot, false);
+            visual.sprite = sprite != null ? sprite : IngameConfig.Instance.FoodIcons != null ? IngameConfig.Instance.FoodIcons.GetIcon(type, state) : null;
+            visual.sortingOrder = FoodSortingOrder;
+            visual.enabled = false;
+            var portion = new Portion { type = type, state = state, spot = spot, visual = visual, worldScale = worldScale };
+            portions.Add(portion);
+            SnapToSpot(portion);
+            return portion;
+        }
+
+        // EN: Returns a stored portion's current world position in its spot.
+        // VI: Trả về vị trí world hiện tại của food trong ô của nó.
+        public Vector3 GetPosition(Portion portion)
+        {
+            return portion.visual != null ? portion.visual.transform.position : portion.spot.position;
+        }
+
+        // EN: Turns the spot on as the food lands, shows the food at full size on its tray (it shrinks to its stored size) and makes the whole spot hop.
+        // VI: Bật ô lên khi food đáp xuống, hiện food ở kích thước đầy đủ trên khay (rồi thu về kích thước trong ô) và cho cả ô nảy lên.
+        public void DropIn(Portion portion)
+        {
+            if (portion == null || portion.visual == null)
+                return;
+            portion.spot.gameObject.SetActive(true);
+            Transform visual = portion.visual.transform;
+            visual.localPosition = foodOffset;
+            visual.localScale = LocalScaleFor(portion, 1f);
+            portion.rising = false;
+            portion.visual.enabled = true;
+            BounceSpot(portion.spot, true);
+        }
+
+        // EN: Turns the spot on and shows a portion directly on its tray without bouncing (used when a collection or return is cancelled).
+        // VI: Bật ô và hiện food ngay trên khay, không nảy (dùng khi lượt thu hoặc chuyến trả bị hủy).
+        public void Reveal(Portion portion)
+        {
+            if (portion == null || portion.visual == null)
+                return;
+            portion.spot.gameObject.SetActive(true);
+            portion.rising = false;
+            if (!portion.visual.enabled)
+                SnapToSpot(portion);
+            portion.visual.enabled = true;
+        }
+
+        // EN: Reveals every collected portion after a cancelled collection.
+        // VI: Hiện mọi food đã thu sau khi lượt thu bị hủy.
+        public void CancelCollection()
+        {
+            foreach (Portion portion in portions) Reveal(portion);
+        }
+
+        // EN: Cancels return reservations and clears the old level's stored portions and spots before loading a new board.
+        // VI: Hủy chỗ giữ chuyến trả, xóa food và tắt các ô của level cũ trước khi nạp board mới.
+        public void ResetForLevel()
+        {
+            CancelPendingReturn();
+            StopAllCoroutines();
+            returning = null;
+            returnSlot = null;
+            returnPortion = null;
+            foreach (Portion portion in portions.ToArray())
+                RemovePortion(portion);
+        }
+
+        // EN: Supplies a portion to AutoComplete; the flight starts from the portion's spot, which turns off.
+        // VI: Cấp phần food cho AutoComplete; chuyến bay bắt đầu từ ô của food (ô đó tắt đi).
+        public bool TryTake(FoodType type, out Vector3 position, out Sprite sprite)
+        {
+            position = default;
+            sprite = null;
+            Portion portion = portions.Find(item => item.type == type && item != returnPortion);
+            if (portion == null)
+                return false;
+            position = GetPosition(portion);
+            sprite = portion.visual.sprite;
+            RemovePortion(portion);
+            return true;
+        }
+
+        // EN: Cancels a pending transfer before AutoComplete reads inventory, returning its single portion to its spot.
+        // VI: Hủy chuyến chuyển đang chờ trước khi AutoComplete đọc kho, trả đúng một phần về ô của nó.
+        public void CancelPendingReturn()
+        {
+            ConveyorSlot slot = returnSlot;
+            Portion portion = returnPortion;
+            int arrivalId = returnArrivalId;
+            if (returning != null) StopCoroutine(returning);
+            returning = null;
+            if (slot != null) slot.CancelFoodArrival(arrivalId);
+            if (portion != null && portions.Contains(portion)) Reveal(portion);
+            if (returnFlyer != null) Destroy(returnFlyer.gameObject);
+            returnFlyer = null;
+            returnSlot = null;
+            returnPortion = null;
+        }
+
+#if UNITY_EDITOR
+        // EN: Assigns scene references without changing cabinet placement.
+        // VI: Gán tham chiếu scene mà không thay đổi vị trí tủ.
+        public void Configure(Transform root, ConveyorChefMovement belt)
+        {
+            foodRoot = root;
+            conveyor = belt;
+        }
+#endif
+
+        // EN: Uses the child named "FoodRoot" and FoodRoot's direct children as spots when they are not assigned; warns once when FoodRoot is still missing.
+        // VI: Dùng object con tên "FoodRoot" và các object con trực tiếp của FoodRoot làm ô khi chưa được gán; cảnh báo nếu vẫn thiếu FoodRoot.
+        private void ResolveReferences()
+        {
+            if (foodRoot == null)
+                foodRoot = FindChild(transform, "FoodRoot");
+            if (foodRoot == null)
+            {
+                Debug.LogWarning("[FoodHoldingStorage] Không tìm thấy FoodRoot trong tủ giữ món nên Clean không dùng được. Hãy gán foodRoot hoặc thêm object con tên FoodRoot.", this);
+                return;
+            }
+            if (spots.Length == 0)
+            {
+                spots = new Transform[foodRoot.childCount];
+                for (int i = 0; i < spots.Length; i++)
+                    spots[i] = foodRoot.GetChild(i);
+            }
+        }
+
+        // EN: Depth-first search for a descendant with the given name.
+        // VI: Tìm theo chiều sâu object con cháu có tên đã cho.
+        private static Transform FindChild(Transform parent, string childName)
+        {
+            foreach (Transform child in parent)
+            {
+                if (child.name == childName)
+                    return child;
+                Transform found = FindChild(child, childName);
+                if (found != null)
+                    return found;
+            }
+            return null;
+        }
+
+        // EN: Remembers each spot's authored scale and position so bounces always settle back to them.
+        // VI: Ghi nhớ scale và vị trí thiết kế của từng ô để nhịp nảy luôn trở về đúng tư thế đó.
+        private void CaptureSpotRest()
+        {
+            spotRestScales = new Vector3[spots.Length];
+            spotRestPositions = new Vector3[spots.Length];
+            spotBounces = new Coroutine[spots.Length];
+            for (int i = 0; i < spots.Length; i++)
+            {
+                spotRestScales[i] = spots[i] != null ? spots[i].localScale : Vector3.one;
+                spotRestPositions[i] = spots[i] != null ? spots[i].localPosition : Vector3.zero;
+            }
+        }
+
+        // EN: Turns every spot off so no empty tray shows before food arrives, even when the scene left spots on for layout work.
+        // VI: Tắt mọi ô để không có khay trống nào hiện trước khi food tới, kể cả khi scene đang để ô bật để chỉnh bố cục.
+        private void HideAllSpots()
+        {
+            foreach (Transform spot in spots)
+                if (spot != null) spot.gameObject.SetActive(false);
+        }
+
         // EN: Finds an active empty slot; reservations made before flight prevent other picks from taking it.
         // VI: Tìm slot rỗng đang hoạt động; giữ chỗ trước khi bay tránh lượt pick khác chiếm slot.
         private ConveyorSlot FindEmptySlot()
@@ -135,112 +320,6 @@ namespace FoodPop
                 if (slot != null && slot.isActiveAndEnabled && slot.isEmpty)
                     return slot;
             return null;
-        }
-
-        // EN: Registers a hidden portion with its original conveyor world scale; it appears when DropIn or Reveal is called. Uses the shared ingredient configuration for the fallback icon.
-        // VI: Ghi nhận một phần food (đang ẩn) cùng scale world gốc trên băng; food hiện ra khi gọi DropIn hoặc Reveal. Dùng cấu hình nguyên liệu chung cho icon dự phòng.
-        public Portion Store(FoodType type, FoodState state, Sprite sprite, Vector3 worldScale)
-        {
-            var visual = new GameObject("Stored food · " + type).AddComponent<SpriteRenderer>();
-            visual.transform.SetParent(foodRoot, false);
-            visual.sprite = sprite != null ? sprite : IngameConfig.Instance.FoodIcons != null ? IngameConfig.Instance.FoodIcons.GetIcon(type, state) : null;
-            visual.enabled = false;
-            var portion = new Portion { type = type, state = state, visual = visual, worldScale = worldScale };
-            portions.Add(portion);
-            LayoutPortions();
-            SnapToTarget(portion);
-            return portion;
-        }
-
-        // EN: Returns a stored portion's current world position inside the bag.
-        // VI: Trả về vị trí world hiện tại của food đang nằm trong túi.
-        public Vector3 GetPosition(Portion portion)
-        {
-            return portion.visual != null ? portion.visual.transform.position : foodRoot.position;
-        }
-
-        // EN: Shows a portion at full size at the bag mouth, lets it sink into its place behind the front layer, and bounces the bag.
-        // VI: Hiện food ở kích thước đầy đủ tại miệng túi, cho food chìm xuống chỗ của nó phía sau lớp trước, rồi nảy túi.
-        public void DropIn(Portion portion)
-        {
-            if (portion == null || portion.visual == null || foodRoot == null)
-                return;
-            Transform visual = portion.visual.transform;
-            Vector3 mouth = MouthPosition;
-            visual.position = new Vector3(mouth.x, mouth.y, foodRoot.position.z);
-            visual.localRotation = Quaternion.identity;
-            visual.localScale = LocalScaleFor(portion, 1f);
-            portion.rising = false;
-            portion.visual.enabled = true;
-            if (tray != null) tray.Bounce();
-        }
-
-        // EN: Shows a portion directly in its place (used when a collection or return is cancelled).
-        // VI: Hiện food ngay tại chỗ của nó trong túi (dùng khi lượt thu hoặc chuyến trả bị hủy).
-        public void Reveal(Portion portion)
-        {
-            if (portion == null || portion.visual == null)
-                return;
-            portion.rising = false;
-            if (!portion.visual.enabled)
-                SnapToTarget(portion);
-            portion.visual.enabled = true;
-        }
-
-        // EN: Reveals every collected portion after a cancelled collection and hides the bag when nothing was collected.
-        // VI: Hiện mọi food đã thu sau khi lượt thu bị hủy và ẩn túi nếu chưa thu được gì.
-        public void CancelCollection()
-        {
-            foreach (Portion portion in portions) Reveal(portion);
-            HideIfEmpty();
-        }
-
-        // EN: Pops the bag in before food is collected into it.
-        // VI: Cho túi bật hiện trước khi thu food vào.
-        public void ShowBag()
-        {
-            if (tray != null) tray.Show();
-        }
-
-        // EN: Hides the bag once it holds no food.
-        // VI: Ẩn túi khi trong túi không còn food.
-        public void HideIfEmpty()
-        {
-            if (portions.Count == 0 && tray != null) tray.Hide();
-        }
-
-        // EN: Cancels return reservations and clears the old level's stored portions before loading a new board.
-        // VI: Hủy chỗ giữ chuyến trả và xóa food trong túi của level cũ trước khi nạp board mới.
-        public void ResetForLevel()
-        {
-            CancelPendingReturn();
-            StopAllCoroutines();
-            returning = null;
-            returnSlot = null;
-            returnPortion = null;
-            foreach (Portion portion in portions)
-                if (portion.visual != null) Destroy(portion.visual.gameObject);
-            portions.Clear();
-            if (tray != null) tray.HideImmediate();
-        }
-
-        // EN: Supplies a portion to AutoComplete; the flight starts from the bag mouth, the bag bounces and hides when it becomes empty.
-        // VI: Cấp phần food cho AutoComplete; chuyến bay bắt đầu từ miệng túi, túi nảy lên và ẩn đi khi đã trống.
-        public bool TryTake(FoodType type, out Vector3 position, out Sprite sprite)
-        {
-            position = default;
-            sprite = null;
-            Portion portion = portions.Find(item => item.type == type && item != returnPortion);
-            if (portion == null)
-                return false;
-            position = MouthPosition;
-            sprite = portion.visual.sprite;
-            portions.Remove(portion);
-            Destroy(portion.visual.gameObject);
-            LayoutPortions();
-            if (tray != null) tray.Bounce();
-            HideIfEmpty();
-            return true;
         }
 
         // EN: Cleans up only this return's arrival identity so reused slots retain their replacement food.
@@ -264,8 +343,8 @@ namespace FoodPop
             }
         }
 
-        // EN: Raises the portion to the bag mouth, then flies it to the reserved slot; storage data moves only when this exact arrival lands, so stale flights never finish or clear newer food. The bag hides after its last portion leaves.
-        // VI: Nâng food lên miệng túi rồi bay tới slot đã giữ chỗ; dữ liệu kho chỉ chuyển khi đúng mã đáp này hoàn tất, nên chuyến cũ không đáp hoặc xóa food mới. Túi ẩn đi sau khi phần cuối cùng rời túi.
+        // EN: Grows the portion to full size in its spot, bounces the spot as the food leaves, then flies it to the reserved slot; storage data moves (and the spot turns off) only when this exact arrival lands, so stale flights never finish or clear newer food.
+        // VI: Phóng food tới kích thước đầy đủ tại ô, nảy ô khi food rời đi, rồi bay tới slot đã giữ chỗ; dữ liệu kho chỉ chuyển (và ô tắt đi) khi đúng mã đáp này hoàn tất, nên chuyến cũ không đáp hoặc xóa food mới.
         private IEnumerator ReturnToBelt(Portion portion, ConveyorSlot slot, int arrivalId)
         {
             if (!IsReady || portion.visual == null)
@@ -285,9 +364,9 @@ namespace FoodPop
                 flyer = CreateFlyer(portion.visual.sprite);
                 returnFlyer = flyer;
                 Vector3 startScale = portion.visual.transform.lossyScale;
+                Vector3 start = portion.visual.transform.position;
                 portion.visual.enabled = false;
-                if (tray != null) tray.Bounce();
-                Vector3 start = MouthPosition;
+                BounceSpot(portion.spot, false);
                 for (float elapsed = 0f; elapsed < returnDuration; elapsed += Time.deltaTime)
                 {
                     if (slot == null || !slot.OwnsFoodArrival(arrivalId))
@@ -298,12 +377,7 @@ namespace FoodPop
                     yield return null;
                 }
                 if (slot != null && slot.CompleteFoodArrival(arrivalId))
-                {
-                    portions.Remove(portion);
-                    Destroy(portion.visual.gameObject);
-                    LayoutPortions();
-                    HideIfEmpty();
-                }
+                    RemovePortion(portion);
             }
             finally
             {
@@ -318,76 +392,91 @@ namespace FoodPop
             }
         }
 
-        // EN: Creates an independent flight sprite above the conveyor, outside the bag's sorting group.
-        // VI: Tạo sprite bay độc lập phía trên băng chuyền, ngoài nhóm sắp xếp của túi.
+        // EN: Creates an independent flight sprite above the conveyor, outside the cabinet's sorting group.
+        // VI: Tạo sprite bay độc lập phía trên băng chuyền, ngoài nhóm sắp xếp của tủ.
         private SpriteRenderer CreateFlyer(Sprite sprite)
         {
             var flyer = new GameObject("Holding return flight").AddComponent<SpriteRenderer>();
             flyer.sprite = sprite;
-            var group = tray.GetComponent<SortingGroup>();
+            var group = GetComponent<SortingGroup>();
             flyer.sortingLayerID = group != null ? group.sortingLayerID : 0;
             flyer.sortingOrder = 600;
             return flyer;
         }
 
-        // EN: Computes each portion's place in the bag: rows fill from the bottom up (older food lower, newer food peeking out of the mouth), odd rows offset by half a column, each portion with a small fixed tilt.
-        // VI: Tính chỗ của từng food trong túi: các hàng xếp từ dưới lên (food cũ nằm dưới, food mới nhô lên miệng túi), hàng lẻ lệch nửa cột, mỗi food nghiêng nhẹ một góc cố định.
-        private void LayoutPortions()
+        // EN: Restarts a bounce on one whole spot (tray and food together); hop makes it jump when food lands, otherwise it only squashes in place. The cabinet itself stays still.
+        // VI: Khởi động lại nhịp nảy trên cả một ô (khay và food cùng lúc); hop cho ô bật lên khi food đáp, ngược lại chỉ bẹp-giãn tại chỗ. Bản thân tủ đứng yên.
+        private void BounceSpot(Transform spot, bool hop)
         {
-            int columns = Mathf.Max(1, perRow);
-            float halfWidth = columnSpacing * (columns - 1) * 0.5f;
-            for (int i = 0; i < portions.Count; i++)
-            {
-                Portion portion = portions[i];
-                int row = i / columns;
-                float x = (i % columns) * columnSpacing - halfWidth;
-                if (row % 2 == 1 && columns > 1)
-                {
-                    x += columnSpacing * 0.5f;
-                    if (x > halfWidth + 0.001f) x = -halfWidth + columnSpacing * 0.25f;
-                }
-                float y = firstRowY + Mathf.Min(row, Mathf.Max(1, maxRows) - 1) * rowSpacing;
-                portion.targetPosition = new Vector3(x, y, 0f);
-                portion.targetAngle = ((i * 37) % 21 - 10) / 10f * tiltAngle;
-                if (portion.visual != null) portion.visual.sortingOrder = i;
-            }
-        }
-
-        // EN: Smoothly moves visible portions toward their place (or toward the mouth while rising out).
-        // VI: Di chuyển mượt food đang hiện tới chỗ của nó (hoặc tới miệng túi khi đang nhô lên để ra ngoài).
-        private void LateUpdate()
-        {
-            if (foodRoot == null || portions.Count == 0)
+            int index = System.Array.IndexOf(spots, spot);
+            if (index < 0 || !isActiveAndEnabled || (spotBounceStrength <= 0f && (!hop || spotHopHeight <= 0f)))
                 return;
-            float blend = 1f - Mathf.Exp(-settleSpeed * Time.deltaTime);
-            Vector3 mouth = foodRoot.InverseTransformPoint(MouthPosition);
-            foreach (Portion portion in portions)
-            {
-                if (portion.visual == null || !portion.visual.enabled)
-                    continue;
-                Transform visual = portion.visual.transform;
-                Vector3 target = portion.rising ? new Vector3(mouth.x, mouth.y, 0f) : portion.targetPosition;
-                visual.localPosition = Vector3.Lerp(visual.localPosition, target, blend);
-                visual.localRotation = Quaternion.Slerp(visual.localRotation, Quaternion.Euler(0f, 0f, portion.rising ? 0f : portion.targetAngle), blend);
-                visual.localScale = Vector3.Lerp(visual.localScale, LocalScaleFor(portion, portion.rising ? 1f : storedScale), blend);
-            }
+            StopSpotBounce(index);
+            spotBounces[index] = StartCoroutine(PlaySpotBounce(index, hop));
         }
 
-        // EN: Places a portion exactly at its layout target.
-        // VI: Đặt food đúng vào vị trí xếp của nó.
-        private void SnapToTarget(Portion portion)
+        // EN: Stops a spot's bounce and puts the spot back to its authored scale and position.
+        // VI: Dừng nhịp nảy của một ô và đưa ô về scale và vị trí thiết kế.
+        private void StopSpotBounce(int index)
         {
-            Transform visual = portion.visual.transform;
-            visual.localPosition = portion.targetPosition;
-            visual.localRotation = Quaternion.Euler(0f, 0f, portion.targetAngle);
-            visual.localScale = LocalScaleFor(portion, storedScale);
+            if (spotBounces[index] != null)
+                StopCoroutine(spotBounces[index]);
+            spotBounces[index] = null;
+            if (spots[index] == null)
+                return;
+            spots[index].localScale = spotRestScales[index];
+            spots[index].localPosition = spotRestPositions[index];
         }
 
-        // EN: Local scale that gives the portion its original world size times the factor, compensating FoodRoot's scale.
-        // VI: Scale cục bộ để food có kích thước world gốc nhân hệ số, đã bù scale của FoodRoot.
+        // EN: Damped bounce on one spot. With hop: SpotHops jumps that get lower, squashing (lower and wider) each time it touches down. Without hop: squashes, stretches slightly, then settles. Always ends at the rest pose.
+        // VI: Nhịp nảy tắt dần trên một ô. Có hop: SpotHops lần bật lên thấp dần, mỗi lần chạm xuống thì bẹp (thấp và rộng hơn). Không hop: bẹp, giãn nhẹ rồi đứng yên. Luôn kết thúc ở tư thế nghỉ.
+        private IEnumerator PlaySpotBounce(int index, bool hop)
+        {
+            Transform spot = spots[index];
+            Vector3 restScale = spotRestScales[index];
+            Vector3 restPosition = spotRestPositions[index];
+            for (float elapsed = 0f; elapsed < spotBounceDuration; elapsed += Time.deltaTime)
+            {
+                float t = elapsed / spotBounceDuration;
+                float decay = 1f - t;
+                float height = 0f;
+                float squash;
+                if (hop)
+                {
+                    float arc = Mathf.Abs(Mathf.Sin(t * Mathf.PI * SpotHops));
+                    height = spotHopHeight * arc * decay;
+                    squash = spotBounceStrength * decay * Mathf.Pow(1f - arc, 4f);
+                }
+                else
+                    squash = spotBounceStrength * Mathf.Sin(t * Mathf.PI * 2f) * decay;
+                spot.localPosition = restPosition + Vector3.up * height;
+                spot.localScale = new Vector3(restScale.x * (1f + squash * 0.6f), restScale.y * (1f - squash), restScale.z);
+                yield return null;
+            }
+            spot.localScale = restScale;
+            spot.localPosition = restPosition;
+            spotBounces[index] = null;
+        }
+
+        // EN: Removes a portion from storage, destroys its sprite, stops its spot's bounce and turns the spot off.
+        // VI: Xóa food khỏi kho, hủy sprite của nó, dừng nảy và tắt ô chứa nó.
+        private void RemovePortion(Portion portion)
+        {
+            portions.Remove(portion);
+            if (portion.visual != null) Destroy(portion.visual.gameObject);
+            int index = System.Array.IndexOf(spots, portion.spot);
+            if (index >= 0) StopSpotBounce(index);
+            if (portion.spot != null) portion.spot.gameObject.SetActive(false);
+        }
+
+        // EN: Local scale that gives the portion its original world size times the factor, compensating its spot's authored scale (so spot bounces still show on the food).
+        // VI: Scale cục bộ để food có kích thước world gốc nhân hệ số, bù theo scale thiết kế của ô (để nhịp nảy của ô vẫn thấy trên food).
         private Vector3 LocalScaleFor(Portion portion, float factor)
         {
-            Vector3 parentScale = foodRoot.lossyScale;
+            Transform spot = portion.spot;
+            int index = System.Array.IndexOf(spots, spot);
+            Vector3 spotScale = index >= 0 ? spotRestScales[index] : spot.localScale;
+            Vector3 parentScale = Vector3.Scale(spot.parent != null ? spot.parent.lossyScale : Vector3.one, spotScale);
             Vector3 scale = portion.worldScale * factor;
             return new Vector3(
                 scale.x / Mathf.Max(0.001f, Mathf.Abs(parentScale.x)),
@@ -395,39 +484,25 @@ namespace FoodPop
                 scale.z / Mathf.Max(0.001f, Mathf.Abs(parentScale.z)));
         }
 
-        // EN: Cancels a pending transfer before AutoComplete reads inventory, returning its single portion to the bag.
-        // VI: Hủy chuyến chuyển đang chờ trước khi AutoComplete đọc kho, trả đúng một phần về túi giữ món.
-        public void CancelPendingReturn()
+        // EN: First spot (in order) not used by any stored portion.
+        // VI: Ô đầu tiên (theo thứ tự) chưa có food nào chiếm.
+        private Transform FindFreeSpot()
         {
-            ConveyorSlot slot = returnSlot;
-            Portion portion = returnPortion;
-            int arrivalId = returnArrivalId;
-            if (returning != null) StopCoroutine(returning);
-            returning = null;
-            if (slot != null) slot.CancelFoodArrival(arrivalId);
-            if (portion != null && portions.Contains(portion)) Reveal(portion);
-            if (returnFlyer != null) Destroy(returnFlyer.gameObject);
-            returnFlyer = null;
-            returnSlot = null;
-            returnPortion = null;
+            foreach (Transform spot in spots)
+                if (spot != null && !portions.Exists(portion => portion.spot == spot))
+                    return spot;
+            return null;
         }
 
-        // EN: Releases only the pending return's owned reservation and keeps its ingredient available in the bag.
-        // VI: Chỉ giải phóng phần giữ chỗ của chuyến trả đang chờ, giữ nguyên liệu còn dùng được trong túi.
-        private void OnDisable()
+        // EN: Places a portion exactly on its spot at its stored size.
+        // VI: Đặt food đúng vào ô của nó với kích thước trong ô.
+        private void SnapToSpot(Portion portion)
         {
-            CancelPendingReturn();
+            Transform visual = portion.visual.transform;
+            visual.localPosition = foodOffset;
+            visual.localRotation = Quaternion.identity;
+            visual.localScale = LocalScaleFor(portion, storedScale);
         }
 
-#if UNITY_EDITOR
-        // EN: Assigns scene references without changing bag placement.
-        // VI: Gán tham chiếu scene mà không thay đổi vị trí túi.
-        public void Configure(FoodHoldingTray bag, Transform root, ConveyorChefMovement belt)
-        {
-            tray = bag;
-            foodRoot = root;
-            conveyor = belt;
-        }
-#endif
     }
 }

@@ -84,18 +84,33 @@ namespace FoodPop
         {
             [Tooltip("Thời gian (giây) chờ sau khi bắn tim rồi khách mới rời đi.")]
             [Min(0f)] public float leaveDelay = 0.6f;
-            [Tooltip("Thời gian (giây) khách trượt ra hoặc trượt vào.")]
-            [Min(0.05f)] public float slideDuration = 0.45f;
-            [Tooltip("Quãng đường (đơn vị world) trượt sang ngang để khách ra khỏi màn hình.")]
+            [Tooltip("Thời gian (giây) từ lúc khách cũ bắt đầu đi ra tới lúc khách tiếp theo trong hàng bắt đầu bước lên quầy.")]
+            [Min(0f)] public float nextCustomerDelay = 0.5f;
+            [Tooltip("Tốc độ đi bộ (đơn vị world/giây) dùng chung khi khách bước lên quầy, rời quầy và dồn lên trong hàng chờ; quãng đường dài thì đi lâu hơn.")]
+            [Min(0.1f)] public float walkSpeed = 5f;            [Tooltip("Quãng đường (đơn vị world) trượt sang ngang để khách ra khỏi màn hình.")]
             [Min(0f)] public float slideDistance = 9f;
             [Tooltip("Màu phủ cho khách chưa tới lượt order (tối hơn khách đang order).")]
             public Color waitingTint = new Color(0.55f, 0.55f, 0.6f, 1f);
             [Tooltip("Kích thước khách chưa tới lượt so với khách đang order (0.8 = nhỏ hơn 20%).")]
             [Range(0.3f, 1f)] public float waitingScale = 0.8f;
-            [Tooltip("Thời gian (giây) khách đầu hàng bước lên quầy và cả hàng dồn lên.")]
-            [Min(0.05f)] public float stepForwardDuration = 0.4f;
             [Tooltip("Khoảng cách (world) giữa hai người trong hàng khi scene không đặt sẵn khách chờ: x dịch ra phía ngoài làn, y dịch lên phía sau.")]
             public Vector2 queueSpacing = new Vector2(0.8f, 0.45f);
+            [Tooltip("Số chỗ trong hàng chờ nhìn thấy trên màn hình; chỉ tạo bấy nhiêu hình khách chờ cộng một hình ngoài màn hình để dồn hàng, khách còn lại vẫn được tính nhưng không hiện. Tăng nếu màn hình rộng thấy được nhiều chỗ hơn.")]
+            [Min(1)] public int maxVisibleWaiting = 4;
+
+            [Header("Spine khách thường")]
+            [Tooltip("Thời gian chờ tối thiểu trước khi khách thường giận; chọn lại ngẫu nhiên khi tới quầy hoặc nhận nguyên liệu đúng.")]
+            [Min(0f)] public float angryDelay = 10f;
+            [Tooltip("Thời gian chờ tối đa trước khi khách giận; mỗi lần bắt đầu chờ chọn ngẫu nhiên giữa mốc tối thiểu và mốc này.")]
+            [Min(0f)] public float angryDelayMax = 15f;
+            [Tooltip("Tên animation đứng yên (quầy và hàng chờ).")]
+            public string idleAnimation = "idle";
+            [Tooltip("Tên animation đi bộ (bước lên quầy và rời quầy).")]
+            public string walkAnimation = "walk";
+            [Tooltip("Tên animation vui khi nhận đủ món.")]
+            public string happyAnimation = "happy";
+            [Tooltip("Tên animation giận khi chờ quá lâu.")]
+            public string angryAnimation = "angry";
         }
 
         [Serializable]
@@ -211,6 +226,21 @@ namespace FoodPop
         {
             [Tooltip("Hệ số tốc độ game khi vào pre-win (1.3 = nhanh hơn 30%).")]
             [Range(1f, 2f)] public float speedMultiplier = 1.3f;
+            [Tooltip("Thời gian chờ thêm (giây, tốc độ thường) sau khi mọi khách đã đi ra khỏi màn hình rồi mới hiện bảng thắng. Đĩa đã ẩn từ lúc khách cuối nhận đủ món.")]
+            [Min(0f)] public float winPanelDelay = 0f;
+            [Tooltip("Thời gian (giây) để đĩa trên băng chuyền thu nhỏ dần tới khi biến mất lúc thắng.")]
+            [Min(0.01f)] public float plateShrinkDuration = 0.35f;
+        }
+
+        [Serializable]
+        public class WinRewardSettings
+        {
+            [Tooltip("Số xu nhận khi bấm nút nhận thưởng thường ở bảng thắng.")]
+            [Min(0)] public int coin = 100;
+            [Tooltip("Số xu nhận khi xem quảng cáo ở bảng thắng.")]
+            [Min(0)] public int watchAdsCoin = 200;
+            [Tooltip("Thắng từ level này trở đi thì nhận thưởng xong quay về Home thay vì chơi tiếp màn kế tiếp. Tạm đặt 100 vì chưa có scene Home.")]
+            [Min(1)] public int levelBackHome = 100;
         }
 
         // EN: Exposes the single shared ingredient catalogue referenced by the gameplay configuration.
@@ -271,6 +301,9 @@ namespace FoodPop
 
         [Tooltip("Pre-win: tăng tốc game khi số phần món còn trên board vừa đủ số slot trống trên băng chuyền")]
         public PreWinSettings preWin = new PreWinSettings();
+
+        [Tooltip("Phần thưởng xu ở bảng thắng")]
+        public WinRewardSettings winReward = new WinRewardSettings();
 
         private static IngameConfig defaultConfig;
 

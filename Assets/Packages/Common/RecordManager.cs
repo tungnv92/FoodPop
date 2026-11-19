@@ -146,9 +146,17 @@ namespace GamePackages
         {
             return Data.win_streak;
         }
+        // EN: Resets the win streak after any lost or abandoned attempt.
+        // VI: Reset chuỗi thắng sau mọi lượt thua hoặc bỏ dở.
         public void ResetWinStreak()
         {
             Data.win_streak = 0;
+        }
+
+        // EN: Counts one real defeat of the current level; ResetWin clears it when the level is won.
+        // VI: Đếm một lần thua thật ở màn hiện tại; ResetWin xóa số này khi thắng màn.
+        public void RecordRetry()
+        {
             Data.retryCount++;
         }
         public void ResetWin()

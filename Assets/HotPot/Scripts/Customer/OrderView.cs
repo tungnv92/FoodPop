@@ -113,9 +113,6 @@ namespace FoodPop
         [Tooltip("Số món dùng để xem trước bố cục trong Edit Mode (không ảnh hưởng khi chạy game).")]
         [Range(0, CustomerOrder.MaxDishes)][SerializeField] private int previewDishCount = 1;
 
-        [Tooltip("Camera đổi vị trí chạm trên màn hình sang world; để trống dùng Camera.main. Vùng chạm là BoxCollider2D trên từng ô món.")]
-        private Camera inputCamera => Camera.main;
-
         private readonly List<List<FoodType>> recipes = new List<List<FoodType>>();
         private readonly List<List<bool>> arrived = new List<List<bool>>();
         private readonly List<Sprite> iconBuffer = new List<Sprite>();
@@ -132,9 +129,6 @@ namespace FoodPop
         private CustomerTimerBar timerBar;
         private readonly Dictionary<Transform, Vector3> restScales = new Dictionary<Transform, Vector3>();
 
-        // EN: Tween runner for the dish show/hide animations.
-        // VI: Bộ chạy tween cho hoạt cảnh ẩn/hiện món.
-        private OrderTweens Tweens => tweens ?? (tweens = new OrderTweens(this));
         private int activeCount;
         private bool ingredientOrdersMode;
 
@@ -333,6 +327,27 @@ namespace FoodPop
                 ShowIngredients(dish);
         }
 
+        // EN: Moves one arrived-ingredient mark from one dish to another (a tray slot switched to serving another dish) and refreshes both ingredient views if open.
+        // VI: Chuyển một dấu nguyên liệu đã tới từ món này sang món khác (một ô khay chuyển sang phục vụ món khác) và cập nhật lưới nguyên liệu của cả hai nếu đang mở.
+        public void MoveIngredientMark(int fromDish, int toDish, FoodType type)
+        {
+            if (fromDish >= 0 && fromDish < recipes.Count)
+            {
+                List<FoodType> recipe = recipes[fromDish];
+                for (int i = recipe.Count - 1; i >= 0; i--)
+                {
+                    if (recipe[i] == type && arrived[fromDish][i])
+                    {
+                        arrived[fromDish][i] = false;
+                        break;
+                    }
+                }
+                if (IsExpanded(fromDish))
+                    ShowIngredients(fromDish);
+            }
+            MarkIngredientArrived(toDish, type);
+        }
+
         // EN: Finds the active dish slot whose BoxCollider2D contains a world point.
         // VI: Tìm ô món đang dùng có BoxCollider2D chứa điểm world.
         public bool TryGetDishAt(Vector3 world, out int dish)
@@ -467,6 +482,13 @@ namespace FoodPop
             };
         }
 #endif
+
+        [Tooltip("Camera đổi vị trí chạm trên màn hình sang world; để trống dùng Camera.main. Vùng chạm là BoxCollider2D trên từng ô món.")]
+        private Camera inputCamera => Camera.main;
+
+        // EN: Tween runner for the dish show/hide animations.
+        // VI: Bộ chạy tween cho hoạt cảnh ẩn/hiện món.
+        private OrderTweens Tweens => tweens ?? (tweens = new OrderTweens(this));
 
         // EN: Keeps the timer bar just outside the background's customer-side edge, since the background width follows the dish count.
         // VI: Giữ thanh thời gian ngay ngoài mép nền phía khách, vì chiều rộng nền đổi theo số món.

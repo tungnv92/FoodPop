@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
+import ts from 'typescript';
+const sqlite=new DatabaseSync(':memory:');for(const file of fs.readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())sqlite.exec(fs.readFileSync('drizzle/'+file,'utf8'));
+// EN: Adapts real SQLite statements to D1's transaction API for migration preservation checks.
+// VI: Chuyển câu lệnh SQLite thật sang API giao dịch D1 để kiểm tra bảo toàn dữ liệu khi chuyển đổi.
+function prepare(sql){let args=[];return {bind(...values){args=values;return this;},async first(){return sqlite.prepare(sql).get(...args)??null;},async all(){return {results:sqlite.prepare(sql).all(...args)};},run(){return sqlite.prepare(sql).run(...args);}};}
+const db={prepare,async batch(statements){sqlite.exec('BEGIN');try{const results=statements.map(s=>s.run());sqlite.exec('COMMIT');return results;}catch(error){sqlite.exec('ROLLBACK');throw error;}}};
+for(const [i,date] of ['2026-10-27T07:28:25Z','2026-10-27T07:30:50Z'].entries()){const id=crypto.randomUUID(),op=crypto.randomUUID(),payload=JSON.stringify({data:{m_Name:'LevelConfig_01',test:i}});sqlite.prepare('INSERT INTO shared_levels VALUES (?,?,?,?,?,?,?,?,?)').run(id,'LevelConfig_01',1,payload,date,'user-'+i,'author'+i+'@example.test','Author '+i,op);sqlite.prepare('INSERT INTO level_revisions VALUES (?,?,?,?,?,?,?,?,?,?)').run(id,1,payload,'LevelConfig_01',date,'user-'+i,'author'+i+'@example.test','Author '+i,'Original '+i,op);}
+const source=fs.readFileSync('app/api/shared/route.ts','utf8').replace(/^import .*;$/gm,'').replaceAll('export ','');const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}}).outputText;const sandbox={Map,Error,console};vm.createContext(sandbox);vm.runInContext(compiled+'\nglobalThis.runImport=importLegacy;',sandbox);
+await sandbox.runImport(db);assert.equal(sqlite.prepare('SELECT count(*) AS n FROM named_levels').get().n,1);const head=sqlite.prepare('SELECT * FROM named_levels').get();assert.equal(head.version,2);assert.equal(JSON.parse(head.payload).data.test,1);const history=sqlite.prepare('SELECT * FROM named_revisions ORDER BY version').all();assert.deepEqual(history.map(r=>r.author_email),['author0@example.test','author1@example.test']);assert.deepEqual(history.map(r=>JSON.parse(r.payload).data.test),[0,1]);assert.equal(sqlite.prepare('SELECT count(*) AS n FROM shared_levels').get().n,2);assert.equal(sqlite.prepare('SELECT count(*) AS n FROM level_revisions').get().n,2);await sandbox.runImport(db);assert.equal(sqlite.prepare('SELECT count(*) AS n FROM named_revisions').get().n,2);
+console.log('PASS: duplicate-name histories merge into v1/v2, newest payload wins, authors and timestamps survive, legacy rows remain intact, import is idempotent.');

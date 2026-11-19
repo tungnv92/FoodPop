@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
@@ -11,7 +12,8 @@ namespace FoodPop
         [Tooltip("Nút Confirm dùng chung cho về Home hoặc chơi lại.")]
         [SerializeField] private Button confirmButton;
         [Tooltip("Nút hủy thoát, quay lại Pause.")]
-        [SerializeField] private Button cancelButton;
+        [FormerlySerializedAs("cancelButton")]
+        [SerializeField] private Button closeButton;
         [Tooltip("Chữ cảnh báo mất một mạng, luôn hiển thị.")]
         [SerializeField] private TMP_Text infoLabel;
         [Tooltip("Hình cảnh báo mất một mạng, luôn hiển thị.")]
@@ -28,7 +30,7 @@ namespace FoodPop
             if (!Application.isPlaying) return;
             CacheFeedbackManagers();
             confirmButton.onClick.AddListener(Confirm);
-            cancelButton.onClick.AddListener(Cancel);
+            closeButton.onClick.AddListener(Cancel);
         }
 
         // EN: Cancels pending choices, removes owned listeners and releases only this canvas's pause.
@@ -39,7 +41,7 @@ namespace FoodPop
             if (Application.isPlaying)
             {
                 confirmButton.onClick.RemoveListener(Confirm);
-                cancelButton.onClick.RemoveListener(Cancel);
+                closeButton.onClick.RemoveListener(Cancel);
             }
             confirmAction = null;
             cancelAction = null;

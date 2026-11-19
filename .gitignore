@@ -16,6 +16,7 @@
 # IDE / generated project files
 .vs/
 .idea/
+.vscode/
 *.csproj
 *.sln
 *.suo
@@ -35,3 +36,6 @@ crashlytics-build.properties
 /tmp/
 /[Aa]ssets/_Recovery/
 /[Aa]ssets/_Recovery.meta
+
+# Multi Agents local run state
+/.multi-agents/

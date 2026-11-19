@@ -1,0 +1,18 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+for(const file of ['lib/js-yaml.min.js','core.js','play-engine.js'])vm.runInThisContext(fs.readFileSync('public/studio/'+file,'utf8'));
+const catalog=JSON.parse(fs.readFileSync('public/studio/catalog.json'));Core.setCatalog(catalog);
+// EN: Creates explicit customer and board fixtures independent of bundled sample recipes.
+// VI: Tạo fixture khách và board tường minh, độc lập công thức mẫu đi kèm.
+function make(recipe=[1,2],cells=[{foodType:1,requiredCount:2}]){return new LevelSimulation({boardColumns:1,boardRows:cells.length,ingredientBoard:[{foods:cells.map(c=>({...Core.emptyCell(),...c}))}],dishLinks:[],useUnifiedCustomerQueue:true,customerQueue:[{customerType:0,ingredientOrders:[{ingredients:recipe}],useIngredientOrders:true}]},catalog);}
+const golden=JSON.parse(fs.readFileSync('public/studio/unity/capacity-contract.json'));for(const row of golden){const s=make([row.need?1:2], [{foodType:1,requiredCount:row.portions}]);for(let i=row.slots;i<10;i++)s.slots[i].item={type:27,state:'prepared',landedAt:0};if(row.busy)s.chefItem={state:'preparing',readyAt:100};const plan=s.pickPlan(s.dishes[0]);assert.equal(!plan.error,['FitsConveyor','DirectToOrder'].includes(row.outcome),JSON.stringify(row));if(row.outcome==='DirectToOrder')assert.equal(plan.direct,0);}
+let s=make([1,2]);for(const slot of s.slots)slot.item={type:2,state:'prepared',landedAt:0};s.update(.1);assert.equal(s.state,'ReviveOffered');const time=s.time;s.update(5);assert.equal(s.time,time);assert(s.clean(true));s.update(2);assert.equal(s.state,'Playing');assert.equal(s.bag.length,10);assert.equal(s.boardCapacity(),10);assert(s.pick(0));s.update(12);assert(s.customers[0].dishes[0].arrived.includes(2),'Stored prepared food returns only after base is accepted');
+s=make([1,2]);for(const slot of s.slots)slot.item={type:2,state:'prepared',landedAt:0};s.update(.1);s.declineRevive();assert.equal(s.state,'Lost');
+s=make([1,2],[{foodType:2,requiredCount:1},{foodType:1,requiredCount:1,isHidden:1}]);assert(s.pickup(s.dishes[1].id));s.update(.4);assert.equal(s.moves,1);assert(s.slots.some(slot=>slot.item?.type===1),'Pickup bypasses depth and hidden');
+s=make([1,2],[{foodType:2,requiredCount:1},{foodType:1,requiredCount:1,isFrozen:1,blockValue:3}]);assert(!s.pickup(s.dishes[1].id));assert(s.autoComplete());s.update(8);assert.equal(s.customers[0].dishes[0].arrived.length,2);assert.equal(s.dishes.length,0);assert(s.won,'Autocomplete uses real board portions including ice');
+s=make([1,2],[{foodType:2,requiredCount:1,isHidden:1},{foodType:1,requiredCount:1}]);const count=s.portions(s.dishes).length;assert(s.shuffle(17));s.update(3);assert.equal(s.portions(s.dishes).length,count);assert.equal(s.at(0,0).foodType,1,'Needed base is prioritized at the front');
+s=make([1],[{foodType:1,requiredCount:1}]);assert(!s.preWin);s.update(.025);assert(s.preWin);const before=s.time;s.update(1);assert(Math.abs(s.time-before-catalog.unity.config.preWin.speedMultiplier)<1e-6);
+s=make([1],[{foodType:1,requiredCount:1}]);assert(s.pick(0));s.update(12);assert(s.won);assert.equal(s.state,'Won');
+for(const icon of catalog.unity.icons)for(const key of [icon.raw,icon.prepared])if(key)assert(fs.existsSync('public/studio/unity/sprites/'+key+'.png'));
+for(const dish of catalog.unity.dishes)for(const layer of dish.layers)assert(fs.existsSync('public/studio/unity/sprites/'+layer.sprite+'.png'));
+assert.equal(catalog.unity.failOnTimeout,false,'Current LevelController source does not offer timeout revive');
+console.log('PASS:',golden.length,'Unity golden capacity cases; settled deadlock/revive/decline, bag return, Pickup, Shuffle, real-portion AutoComplete, pre-win, victory, all icon/dish resources.');

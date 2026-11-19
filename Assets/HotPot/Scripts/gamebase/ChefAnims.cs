@@ -23,10 +23,14 @@ public class ChefAnims : MonoBehaviour
     [SerializeField] private AnimationReferenceAsset idleAnimation;
     [Tooltip("Animation nghỉ 2 (Idle2): phát lặp sau khi Idle1 chạy đủ thời gian chờ bên dưới.")]
     [SerializeField] private AnimationReferenceAsset idleLoopAnimation;
+    [Tooltip("Animation thắng màn, phát một lần rồi giữ tư thế cuối.")]
+    [SerializeField] private AnimationReferenceAsset winAnimation;
     [Tooltip("Thời gian (giây) giữ Idle1 trước khi chuyển sang Idle2.")]
     [SerializeField, Min(0f)] private float idleLoopDelay = 1.5f;
     [Tooltip("Animation sơ chế riêng cho từng nguyên liệu.")]
     [SerializeField] private List<IngredientAnimation> ingredientAnimations = new List<IngredientAnimation>();
+
+    private bool showingWin;
 
     // EN: Initializes Spine and starts the idle animation.
     // VI: Khởi tạo Spine và bắt đầu animation nghỉ.
@@ -36,10 +40,11 @@ public class ChefAnims : MonoBehaviour
         SetPreparing(false, FoodType.None);
     }
 
-    // EN: Plays one preparation cycle, or enters the idle sequence (Idle1, then Idle2 looping) without animation mixing; repeated calls keep the current animation.
-    // VI: Phát một lượt sơ chế, hoặc vào chuỗi nghỉ (Idle1 rồi lặp Idle2) không trộn animation; gọi lặp lại thì giữ animation đang chạy.
+    // EN: Plays preparation or idle without mixing, preserving the victory pose until a new level.
+    // VI: Phát sơ chế hoặc nghỉ không trộn, giữ tư thế thắng cho tới màn mới.
     public void SetPreparing(bool preparing, FoodType foodType)
     {
+        if (showingWin) return;
         skeletonAnimation.Initialize(false);
         var current = skeletonAnimation.AnimationState.GetCurrent(0);
         if (!preparing)
@@ -51,6 +56,26 @@ public class ChefAnims : MonoBehaviour
         AnimationReferenceAsset reference = GetPreparationAnimation(foodType);
         if (current == null || current.Animation != reference.Animation)
             skeletonAnimation.AnimationState.SetAnimation(0, reference.Animation, false).MixDuration = 0f;
+    }
+
+    // EN: Plays victory once using unscaled time and holds its final frame while gameplay is paused.
+    // VI: Phát thắng một lần bằng thời gian không phụ thuộc pause và giữ frame cuối.
+    public void PlayWin()
+    {
+        showingWin = true;
+        skeletonAnimation.Initialize(false);
+        skeletonAnimation.UnscaledTime = true;
+        skeletonAnimation.AnimationState.SetAnimation(0, winAnimation.Animation, false).MixDuration = 0f;
+    }
+
+    // EN: Restores scaled animation timing and the idle sequence for a new level.
+    // VI: Khôi phục thời gian animation theo game và chuỗi nghỉ cho màn mới.
+    public void ResetForLevel()
+    {
+        showingWin = false;
+        skeletonAnimation.Initialize(false);
+        skeletonAnimation.UnscaledTime = false;
+        PlayIdleSequence();
     }
 
     // EN: Resolves the explicit reference for an ingredient and reports incomplete or incompatible configuration.
@@ -77,6 +102,13 @@ public class ChefAnims : MonoBehaviour
         return GetPreparationAnimation(foodType).Animation.Duration;
     }
 
+    // EN: True when the given Spine animation is one of the two idle animations.
+    // VI: True khi animation Spine đã cho là một trong hai animation nghỉ.
+    private bool IsIdle(Spine.Animation animation)
+    {
+        return animation == idleAnimation.Animation || (idleLoopAnimation != null && animation == idleLoopAnimation.Animation);
+    }
+
     // EN: Loops Idle1 immediately, then queues Idle2 to start idleLoopDelay seconds later and loop, both without mixing.
     // VI: Lặp Idle1 ngay, rồi xếp Idle2 bắt đầu sau idleLoopDelay giây và lặp, cả hai không trộn animation.
     private void PlayIdleSequence()
@@ -86,10 +118,20 @@ public class ChefAnims : MonoBehaviour
             skeletonAnimation.AnimationState.AddAnimation(0, idleLoopAnimation.Animation, true, Mathf.Max(0.0001f, idleLoopDelay)).MixDuration = 0f;
     }
 
-    // EN: True when the given Spine animation is one of the two idle animations.
-    // VI: True khi animation Spine đã cho là một trong hai animation nghỉ.
-    private bool IsIdle(Spine.Animation animation)
-    {
-        return animation == idleAnimation.Animation || (idleLoopAnimation != null && animation == idleLoopAnimation.Animation);
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

@@ -2,6 +2,7 @@ using DG.Tweening;
 using Spine.Unity;
 using GamePackages;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -14,9 +15,11 @@ namespace FoodPop
         [Tooltip("Title Spine của popup thua, phát một lần trước khi hiện lựa chọn.")]
         [SerializeField] private SkeletonGraphic titleAnimation;
         [Tooltip("Nhóm chữ thông báo mất mạng.")]
-        [SerializeField] private Transform lossMessage;
+        [FormerlySerializedAs("lossMessage")]
+        [SerializeField] private Transform messageRoot;
         [Tooltip("Nhóm chứa hai nút Home và Retry.")]
-        [SerializeField] private Transform choiceButtons;
+        [FormerlySerializedAs("choiceButtons")]
+        [SerializeField] private Transform buttonsRoot;
         [Tooltip("Thời gian bật nhẹ thông báo và nút sau title, tính bằng giây unscaled.")]
         [SerializeField, Min(0.01f)] private float choiceRevealDuration = 0.3f;
 
@@ -81,22 +84,22 @@ namespace FoodPop
         {
             if (!capturedScales)
             {
-                messageRestScale = lossMessage.localScale;
-                buttonsRestScale = choiceButtons.localScale;
+                messageRestScale = messageRoot.localScale;
+                buttonsRestScale = buttonsRoot.localScale;
                 capturedScales = true;
             }
             choiceReveal?.Kill();
             choiceReveal = null;
-            lossMessage.localScale = messageRestScale;
-            choiceButtons.localScale = buttonsRestScale;
+            messageRoot.localScale = messageRestScale;
+            buttonsRoot.localScale = buttonsRestScale;
         }
 
         // EN: Show or hide only the message and navigation while leaving the title and wallet visible.
         // VI: Chỉ hiện/ẩn thông báo và điều hướng, giữ title và ví hiển thị.
         private void SetChoicesVisible(bool visible)
         {
-            lossMessage.gameObject.SetActive(visible);
-            choiceButtons.gameObject.SetActive(visible);
+            messageRoot.gameObject.SetActive(visible);
+            buttonsRoot.gameObject.SetActive(visible);
         }
 
         // EN: Play the authored loss animation once using unscaled time and listen to its actual completion.
@@ -121,11 +124,11 @@ namespace FoodPop
             titleEntry = null;
             if (!isActiveAndEnabled || closing) return;
             SetChoicesVisible(true);
-            lossMessage.localScale = messageRestScale * 0.8f;
-            choiceButtons.localScale = buttonsRestScale * 0.8f;
+            messageRoot.localScale = messageRestScale * 0.8f;
+            buttonsRoot.localScale = buttonsRestScale * 0.8f;
             choiceReveal = DOTween.Sequence().SetUpdate(true)
-                .Append(lossMessage.DOScale(messageRestScale, choiceRevealDuration).SetEase(Ease.OutBack))
-                .Insert(0.08f, choiceButtons.DOScale(buttonsRestScale, choiceRevealDuration).SetEase(Ease.OutBack))
+                .Append(messageRoot.DOScale(messageRestScale, choiceRevealDuration).SetEase(Ease.OutBack))
+                .Insert(0.08f, buttonsRoot.DOScale(buttonsRestScale, choiceRevealDuration).SetEase(Ease.OutBack))
                 .OnComplete(CompleteChoiceReveal);
         }
 

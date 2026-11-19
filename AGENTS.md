@@ -46,9 +46,11 @@
   5. Private helpers and coroutines in the order they are first called, placed after the public methods that use them.
 - When modifying a class whose members are out of order, reorder that class in the same task. Reordering must be pure moves: no behavior changes, keep every EN/VI comment attached to its member, and verify that no lines were lost or altered. Unity serializes fields by name, so moving fields does not lose Inspector values.
 - Do not reorder classes outside the scope of the task or third-party code.
+- Cross-cutting concerns such as Tracking may be grouped in a named `#region` placed after the private helpers. Inside the region, members follow the same first-call order. Do not move members out of an existing region when reordering.
 - VI: Quy tắc bắt buộc: sắp xếp thành viên trong class theo đúng thứ tự Unity chạy, áp dụng cho mọi class mới và mọi class được tạo hoặc sửa.
 - VI: Thứ tự: (1) kiểu lồng, hằng số, property và event công khai; (2) field serialize theo nhóm chức năng, rồi tới biến trạng thái riêng; (3) callback Unity theo thứ tự chạy `Awake` → `OnEnable` → `Reset`/`OnValidate` → `Start` → `FixedUpdate` → `Update` → `LateUpdate` → callback vẽ/gizmo → `OnApplicationFocus`/`OnApplicationPause`/`OnApplicationQuit` → `OnDisable` → `OnDestroy`, callback va chạm/trigger/pointer đặt sau `LateUpdate`; (4) API công khai theo luồng gameplay; (5) hàm private và coroutine theo thứ tự được gọi lần đầu, đặt sau hàm công khai dùng chúng.
 - VI: Khi sửa một class đang sai thứ tự, sắp xếp lại class đó ngay trong cùng nhiệm vụ. Chỉ di chuyển, không đổi hành vi, giữ comment EN/VI đi cùng hàm và kiểm tra không mất hoặc sửa dòng nào. Không sắp xếp class ngoài phạm vi nhiệm vụ hoặc code bên thứ ba.
+- VI: Phần chức năng cắt ngang như Tracking được phép gom vào một `#region` có tên, đặt sau các hàm private. Bên trong region vẫn theo thứ tự gọi lần đầu. Khi sắp xếp lại class, không đưa thành viên ra khỏi region có sẵn.
 
 ## Mandatory bilingual function comments
 
@@ -78,31 +80,49 @@ public void ExampleFunction()
 ## Mandatory file and asset organization
 
 - Every newly created, generated, imported, or copied project file must be placed in the correct folder for its type and gameplay feature. This is mandatory alongside bilingual function comments.
-- Main game content belongs under `Assets/HotPot`. Follow `Assets/HotPot/Documentation/AssetFolders.md` and the existing feature subfolders:
+- Main game content belongs under `Assets/HotPot`, in these folders (follow the existing feature subfolders):
   - Sprites/textures: `Art/Sprites/<feature>`.
   - Source fonts and TMP font assets: `Art/Fonts`; font material presets: `Art/Fonts/Materials`.
-  - Shaders: `Art/Shaders/<feature>`.
+  - Shaders: `Art/Shaders/<feature>` (never a separate `Shaders/` folder).
   - Materials: `Art/Materials/<feature>`; particle materials: `Art/Materials/Particles`.
   - Meshes: `Art/Meshes/<feature>`.
+  - Audio clips and mixers: `Audio/<feature>`.
   - Animation clips and Animator controllers: `Animations/<feature>`.
-  - Prefabs: `Prefabs`; scenes: `Scenes`; configuration assets: `Config`.
-  - Runtime scripts: `Scripts/<feature>`; editor-only tools: `Editor`; documentation: `Documentation`.
+  - Prefabs: `Prefabs/<feature>` (gameplay objects: `Prefabs/Ingame`); scenes: `Scenes`.
+  - Configuration assets: `Config`; shared config `Config/Resources/IngameConfig.asset`; levels `Config/Resources/Levels/LevelConfig_NN.asset`.
+  - Runtime scripts: `Scripts/<feature>`; editor-only tools: `Editor`.
+  - Documentation never goes under `Assets`; it lives in the root `Documentation/` folder (see "Documentation layout").
+- Sprite and texture images must have width and height that are multiples of 4 so Android can compress them to ETC2; otherwise Unity keeps them uncompressed (RGBA32). Also keep `Max Size` at or above the image size so Unity does not downscale it to an odd size.
 - Create a clearly named feature subfolder when needed. Do not mix sprites, shaders, materials, fonts, animations, or code in one folder, or leave generated assets loose in the project root.
-- Keep temporary outputs and source-art backups outside `Assets`, following the existing workspace conventions.
+- Keep temporary outputs and source-art backups outside `Assets`, in the workspace `tmp` and `output` folders.
 - Preserve `.meta` files and GUIDs when moving existing Unity assets. Update path-based loaders and documentation, and verify consuming references after moves.
 - Do not reorganize external libraries or folders outside `Assets/HotPot` unless explicitly requested.
-- Quy tắc bắt buộc: mọi file được tạo, sinh, import hoặc sao chép phải nằm đúng thư mục theo loại và chức năng, theo cấu trúc trên. Không để lẫn sprite, font, shader, material, animation và code. Khi di chuyển asset Unity phải giữ `.meta`/GUID, cập nhật đường dẫn và kiểm tra tham chiếu. File tạm và bản sao lưu ảnh nguồn phải ở ngoài `Assets`; không sắp xếp thư viện ngoài hoặc thư mục ngoài `Assets/HotPot` khi chưa được yêu cầu.
+- Quy tắc bắt buộc: mọi file được tạo, sinh, import hoặc sao chép phải nằm đúng thư mục theo loại và chức năng, theo cấu trúc trên. Ảnh sprite/texture phải có chiều rộng và cao chia hết cho 4 để nén ETC2 trên Android (không thì Unity để RGBA32 không nén), và `Max Size` không nhỏ hơn kích thước ảnh để Unity không thu nhỏ thành kích thước lẻ. Không để lẫn sprite, font, shader, material, âm thanh, animation và code; font và shader luôn nằm trong `Art/` (`Art/Fonts`, `Art/Shaders/<tính năng>`), âm thanh trong `Audio/<tính năng>`. Khi di chuyển asset Unity phải giữ `.meta`/GUID, cập nhật đường dẫn và kiểm tra tham chiếu. File tạm và bản sao lưu ảnh nguồn phải ở ngoài `Assets`; không sắp xếp thư viện ngoài hoặc thư mục ngoài `Assets/HotPot` khi chưa được yêu cầu.
 
 ## Mandatory automatic Markdown documentation updates
 
 - Whenever a change affects behavior, configuration, assets, workflows, or rules described in an existing `.md` file, automatically update the relevant Markdown documentation in the same task, without waiting for the user to request it.
-- Find and read the relevant documentation before updating it, including feature documents under `claude` and `Assets/HotPot/Documentation`. Update existing documents in place instead of creating duplicate descriptions.
+- Find and read the relevant documentation before updating it; all project documentation lives under `Documentation/` (see "Documentation layout" below). Update existing documents in place instead of creating duplicate descriptions.
 - Keep documentation consistent with the final implementation: revise outdated behavior, relevant usage instructions and references; record meaningful verification results and distinguish verified behavior from untested expectations. Do not claim tests that were not run.
 - Documentation updates are part of completing the change. Briefly mention the updated document in the completion response. If a feature has no existing document, follow the project's file organization rules when creating documentation that is needed.
 - VI: Mỗi khi thay đổi hành vi, cấu hình, asset, quy trình hoặc quy tắc đã được mô tả trong file `.md`, bắt buộc tự cập nhật tài liệu liên quan ngay trong cùng nhiệm vụ, không chờ người dùng yêu cầu.
-- VI: Tìm và đọc tài liệu liên quan trước khi cập nhật, gồm tài liệu tính năng trong `claude` và `Assets/HotPot/Documentation`; sửa trực tiếp tài liệu hiện có, tránh tạo bản mô tả trùng lặp.
+- VI: Tìm và đọc tài liệu liên quan trước khi cập nhật; toàn bộ tài liệu của dự án nằm trong `Documentation/` (xem mục "Documentation layout" bên dưới); sửa trực tiếp tài liệu hiện có, tránh tạo bản mô tả trùng lặp.
 - VI: Tài liệu phải khớp triển khai cuối cùng: sửa nội dung lỗi thời, hướng dẫn sử dụng và tham chiếu liên quan; ghi kết quả kiểm tra có ý nghĩa, phân biệt phần đã kiểm chứng với phần chưa kiểm tra. Không ghi đã chạy kiểm tra nếu thực tế chưa chạy.
 - VI: Cập nhật tài liệu là một phần bắt buộc để hoàn tất thay đổi; nhắc ngắn gọn file đã cập nhật khi báo hoàn tất. Nếu tính năng chưa có tài liệu, tuân thủ quy tắc tổ chức file của dự án khi cần tạo tài liệu mới.
+
+## Documentation layout (mandatory)
+
+- Every Markdown document or rule file (new or existing) lives under `Documentation/` at the project root. Never create `.md` files anywhere else (not in `Assets/`, `claude/`, `output/`, `design/`, …). Exceptions: `AGENTS.md`, `CLAUDE.md` and `README.md` at the root, and a `README.md` next to a standalone tool such as `Web/LevelStudio/`.
+- `Documentation/Rules/` — project rules; every file here is binding for all agents (Codex, Claude, Multi Agents workers).
+- `Documentation/Features/` — feature and system documentation, one flat folder (no per-area subfolders): gameplay systems, UI, boosters, config, data, editor and web tools.
+- `Documentation/Handoff/` — only handoff notes between agents and sessions (status, open work, what was verified), e.g. `foodpop-handoff.md` as the entry point. Describe how a system works in `Features/`, not here.
+- `Documentation/Design/<feature>/` — UI/art specs and mockups from the artist; image-generation prompts in `Documentation/Design/Prompts/`.
+- `Documentation/Chats/` — chat records written by Multi Agents (`/document`). `Documentation/INDEX.md` is an auto-generated index (statistics + tree); do not edit it by hand.
+- Docs were moved here on 2026-11-13 (`claude/*` → `Documentation/Handoff/`, `Assets/HotPot/Documentation/*` → `Documentation/Features/`, `output/**/prompts*.md` → `Documentation/Design/Prompts/`). Use the new paths in all references.
+- On 2026-11-17 `Features/HotPot/*` was flattened into `Features/`, and the system docs `Booster`, `UI`, `Conveyor`, `CustomerManager`, `LevelEditor` and `foodpop-FoodBoardManager` (renamed `FoodBoardManager.md`) moved from `Handoff/` to `Features/`.
+- VI: Mọi tài liệu Markdown và file quy tắc (mới hay cũ) nằm trong `Documentation/` ở gốc dự án; không tạo `.md` ở nơi khác (không đặt trong `Assets/`, `claude/`, `output/`, `design/`…). Ngoại lệ: `AGENTS.md`, `CLAUDE.md`, `README.md` ở gốc và `README.md` đi kèm công cụ độc lập như `Web/LevelStudio/`.
+- VI: `Rules/` = quy tắc (bắt buộc với mọi agent), `Features/` = tài liệu tính năng/hệ thống (một thư mục phẳng, không chia thư mục con theo khu vực), `Handoff/` = chỉ ghi chú bàn giao (trạng thái, việc còn treo, đã kiểm chứng gì), không mô tả cách hệ thống hoạt động, `Design/<tính năng>/` = spec + mockup của Artist, `Design/Prompts/` = prompt tạo ảnh, `Chats/` = tài liệu chat của Multi Agents. `INDEX.md` do app tự sinh, không sửa tay.
+- VI: Tài liệu đã được chuyển vào đây ngày 13/11/2026; ngày 17/11/2026 gộp `Features/HotPot/*` lên `Features/` và chuyển tài liệu hệ thống (`Booster`, `UI`, `Conveyor`, `CustomerManager`, `LevelEditor`, `FoodBoardManager`) từ `Handoff/` sang `Features/`. Mọi tham chiếu phải dùng đường dẫn mới.
 
 
 

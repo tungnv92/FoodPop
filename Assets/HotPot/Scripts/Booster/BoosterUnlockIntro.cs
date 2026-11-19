@@ -131,8 +131,8 @@ namespace FoodPop
             ReleasePause();
         }
 
-        // EN: Runs popup, flight, the one-time unlock gift (BoosterConfig unlockGift uses, granted together with the seen flag) and guided trial for each due booster, pausing the level around each one.
-        // VI: Chạy popup, chuyến bay, quà mở khóa một lần (số lượt unlockGift trong BoosterConfig, cộng cùng lúc ghi cờ đã xem) và lượt dùng thử cho từng booster đến lượt, tạm dừng màn chơi quanh mỗi booster.
+        // EN: Runs popup, flight, the one-time unlock gift (BoosterConfig unlockGift uses, saved before the seen flag so quitting between the two steps never loses the gift) and guided trial for each due booster, pausing the level around each one.
+        // VI: Chạy popup, chuyến bay, quà mở khóa một lần (số lượt unlockGift trong BoosterConfig, được lưu trước cờ đã xem để thoát app giữa hai bước không làm mất quà) và lượt dùng thử cho từng booster đến lượt, tạm dừng màn chơi quanh mỗi booster.
         private IEnumerator RunIntro(List<Booster> due)
         {
             yield return null;
@@ -147,8 +147,8 @@ namespace FoodPop
                 booster.ShowLockVisual(true);
                 yield return new WaitForSecondsRealtime(popupDelay);
                 yield return ShowPopupAndFly(booster);
-                MarkSeen(booster.Type);
                 booster.Grant(IngameConfig.Instance.Boosters.GetUnlockGift(booster.Type), "unlock_intro");
+                MarkSeen(booster.Type);
                 yield return RunTrial(booster);
                 activeBooster = null;
             }

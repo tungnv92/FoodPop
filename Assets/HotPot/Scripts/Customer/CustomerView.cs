@@ -1,11 +1,10 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 namespace FoodPop
 {
-    // EN: The customer standing at a counter lane, together with their order card: swaps the portrait and slides both in and out horizontally.
-    // VI: Khách đang đứng ở một làn quầy cùng thẻ order: đổi ảnh khách và trượt cả hai vào/ra theo chiều ngang.
+    // EN: The customer standing at a counter lane, together with their order card: swaps the portrait and places both at the counter seat (walking in/out is done by CustomerManager's walker/leaver figures).
+    // VI: Khách đang đứng ở một làn quầy cùng thẻ order: đổi ảnh khách và đặt cả hai tại chỗ đứng ở quầy (việc đi vào/ra do hình walker/leaver của CustomerManager đảm nhận).
     [DisallowMultipleComponent]
     public class CustomerView : MonoBehaviour
     {
@@ -99,14 +98,6 @@ namespace FoodPop
             ApplyOffset(0f);
         }
 
-        // EN: Slides from the counter to an off-screen offset (positive x = right) over the duration.
-        // VI: Trượt từ quầy ra vị trí lệch ngoài màn hình (x dương = sang phải) trong khoảng thời gian đã cho.
-        public IEnumerator SlideOut(float offsetX, float duration)
-        {
-            CaptureHome();
-            yield return Slide(0f, offsetX, duration, EaseIn);
-        }
-
         // EN: Stores the current positions of the customer and order card once.
         // VI: Lưu vị trí hiện tại của khách và thẻ order một lần.
         private void CaptureHome()
@@ -118,20 +109,6 @@ namespace FoodPop
             homeCaptured = true;
         }
 
-        // EN: Moves customer and card together from one horizontal offset to another using an easing curve.
-        // VI: Di chuyển khách và thẻ cùng lúc từ độ lệch ngang này sang độ lệch khác theo đường cong easing.
-        private IEnumerator Slide(float fromX, float toX, float duration, System.Func<float, float> ease)
-        {
-            float time = 0f;
-            while (time < duration)
-            {
-                time += Time.deltaTime;
-                ApplyOffset(Mathf.LerpUnclamped(fromX, toX, ease(Mathf.Clamp01(time / duration))));
-                yield return null;
-            }
-            ApplyOffset(toX);
-        }
-
         // EN: Places the customer and card at their home positions shifted by offsetX.
         // VI: Đặt khách và thẻ tại vị trí gốc dịch thêm offsetX.
         private void ApplyOffset(float offsetX)
@@ -141,9 +118,5 @@ namespace FoodPop
             if (orderCard != null)
                 orderCard.position = cardHome + shift + new Vector3(cardSeatOffsetX, 0f, 0f);
         }
-
-        // EN: Quadratic ease-in (starts slow, leaves fast).
-        // VI: Easing bậc hai tăng dần (bắt đầu chậm, rời đi nhanh).
-        private static float EaseIn(float t) => t * t;
     }
 }

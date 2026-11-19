@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5132827042457784578}
   - component: {fileID: 7431210056349137092}
   m_Layer: 0
-  m_Name: Text (TMP)
+  m_Name: Text_Replay
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -35,7 +35,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 5}
-  m_SizeDelta: {x: 300, y: 100}
+  m_SizeDelta: {x: 300, y: 130}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5132827042457784578
 CanvasRenderer:
@@ -95,9 +95,9 @@ MonoBehaviour:
   m_fontSize: 60
   m_fontSizeBase: 60
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 36
+  m_fontSizeMax: 60
   m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
@@ -111,7 +111,7 @@ MonoBehaviour:
   m_charWidthMaxAdj: 0
   m_TextWrappingMode: 1
   m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
+  m_overflowMode: 1
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
@@ -149,7 +149,7 @@ GameObject:
   - component: {fileID: 6527780373632015258}
   - component: {fileID: 5683057043308343818}
   m_Layer: 0
-  m_Name: On (1)
+  m_Name: Knob_Music_On
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -225,7 +225,7 @@ GameObject:
   - component: {fileID: 3039867684774414070}
   - component: {fileID: 4270892045369303746}
   m_Layer: 0
-  m_Name: Sound
+  m_Name: RowSound
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -252,7 +252,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 800, y: 100}
+  m_SizeDelta: {x: 775, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &4727139759581826046
 MonoBehaviour:
@@ -348,7 +348,7 @@ GameObject:
   - component: {fileID: 851295900263935464}
   - component: {fileID: 6210679182030360918}
   m_Layer: 0
-  m_Name: Off
+  m_Name: Off_Sound
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -426,7 +426,7 @@ GameObject:
   - component: {fileID: 3252028123734537886}
   - component: {fileID: 4592899508695377468}
   m_Layer: 0
-  m_Name: Replay
+  m_Name: BtnReplay
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -445,11 +445,11 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7237726404384076181}
-  m_Father: {fileID: 1496986022410214490}
+  m_Father: {fileID: 7529806488685650081}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 188, y: -291}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 350, y: 169}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2327469094214542710
@@ -547,6 +547,70 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoodPop.UIButtonScaleEffect
   pressedScale: 0.94
+--- !u!1 &1569674627613341012
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7529806488685650081}
+  - component: {fileID: 596066985521405706}
+  m_Layer: 0
+  m_Name: RootButtons
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &7529806488685650081
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1569674627613341012}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2643666357856928534}
+  - {fileID: 322274208114904544}
+  m_Father: {fileID: 1496986022410214490}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: -291}
+  m_SizeDelta: {x: 1000, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &596066985521405706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1569674627613341012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30649d3a9faa99c48a7b1166b86bf2a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.HorizontalLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 4
+  m_Spacing: 26
+  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandHeight: 0
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
 --- !u!1 &1738945044061392711
 GameObject:
   m_ObjectHideFlags: 0
@@ -634,7 +698,7 @@ GameObject:
   - component: {fileID: 8381598924885769936}
   - component: {fileID: 4372605603399685663}
   m_Layer: 0
-  m_Name: On (1)
+  m_Name: Knob_Vibration_On
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -711,7 +775,7 @@ GameObject:
   - component: {fileID: 3065473856079964630}
   - component: {fileID: 2166730624740058806}
   m_Layer: 0
-  m_Name: Resume
+  m_Name: BtnHome
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -730,11 +794,11 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8479887664756472363}
-  m_Father: {fileID: 1496986022410214490}
+  m_Father: {fileID: 7529806488685650081}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -188, y: -291}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 350, y: 169}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5320572350441952151
@@ -844,7 +908,7 @@ GameObject:
   - component: {fileID: 9031097209471569892}
   - component: {fileID: 4631729393857675205}
   m_Layer: 0
-  m_Name: Image
+  m_Name: icon_vibration
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1087,6 +1151,8 @@ MonoBehaviour:
   canvasGroup: {fileID: 110033835704853253}
   card: {fileID: 4971831859606658971}
   isDestroyOnClose: 0
+  openDuration: 0.24
+  closeDuration: 0.16
   homeButton: {fileID: 3065473856079964630}
   replayButton: {fileID: 3252028123734537886}
   closeButton: {fileID: 4213822979411808437}
@@ -1102,8 +1168,6 @@ MonoBehaviour:
     button: {fileID: 3603093180057091624}
     onState: {fileID: 5232415364961535656}
     offState: {fileID: 7707260487166978340}
-  openDuration: 0.24
-  closeDuration: 0.16
 --- !u!1 &3412433004251329278
 GameObject:
   m_ObjectHideFlags: 0
@@ -1117,7 +1181,7 @@ GameObject:
   - component: {fileID: 1816510362183862772}
   - component: {fileID: 6927362290644597119}
   m_Layer: 0
-  m_Name: Music
+  m_Name: RowMusic
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1144,7 +1208,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 115}
-  m_SizeDelta: {x: 800, y: 100}
+  m_SizeDelta: {x: 775, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &956789530942773765
 MonoBehaviour:
@@ -1240,7 +1304,7 @@ GameObject:
   - component: {fileID: 7598142902920019539}
   - component: {fileID: 5903969727469724179}
   m_Layer: 0
-  m_Name: Off
+  m_Name: Off_Music
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1316,7 +1380,7 @@ GameObject:
   - component: {fileID: 575130778914808442}
   - component: {fileID: 4651378837527285596}
   m_Layer: 0
-  m_Name: Text (TMP) (1)
+  m_Name: Text_Title
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1399,9 +1463,9 @@ MonoBehaviour:
   m_fontSize: 70
   m_fontSizeBase: 70
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 40
+  m_fontSizeMax: 70
   m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
@@ -1413,9 +1477,9 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 1
+  m_TextWrappingMode: 0
   m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
+  m_overflowMode: 1
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
@@ -1453,7 +1517,7 @@ GameObject:
   - component: {fileID: 3054120355262886902}
   - component: {fileID: 8649381327780098890}
   m_Layer: 0
-  m_Name: On (1)
+  m_Name: Knob_Music_Off
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1528,7 +1592,7 @@ GameObject:
   - component: {fileID: 8056140580120011186}
   - component: {fileID: 4472422579852114043}
   m_Layer: 0
-  m_Name: Image
+  m_Name: icon_sound
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1603,7 +1667,7 @@ GameObject:
   - component: {fileID: 5600905477721002716}
   - component: {fileID: 5755841209077916332}
   m_Layer: 0
-  m_Name: Text (TMP)
+  m_Name: Text_Sound
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1625,8 +1689,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 16, y: 0}
-  m_SizeDelta: {x: 400, y: 100}
+  m_AnchoredPosition: {x: -44.5, y: 0}
+  m_SizeDelta: {x: 279, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5600905477721002716
 CanvasRenderer:
@@ -1686,9 +1750,9 @@ MonoBehaviour:
   m_fontSize: 50
   m_fontSizeBase: 50
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 30
+  m_fontSizeMax: 50
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -1702,7 +1766,7 @@ MonoBehaviour:
   m_charWidthMaxAdj: 0
   m_TextWrappingMode: 1
   m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
+  m_overflowMode: 1
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
@@ -1740,7 +1804,7 @@ GameObject:
   - component: {fileID: 2049097112190141806}
   - component: {fileID: 3195849819201926951}
   m_Layer: 0
-  m_Name: popbg
+  m_Name: PopupBG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1758,8 +1822,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2643666357856928534}
-  - {fileID: 322274208114904544}
+  - {fileID: 7529806488685650081}
   - {fileID: 4986906576041396133}
   m_Father: {fileID: 4971831859606658971}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1818,7 +1881,7 @@ GameObject:
   - component: {fileID: 1007520993741608602}
   - component: {fileID: 379277531766703605}
   m_Layer: 0
-  m_Name: On
+  m_Name: On_Sound
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1894,7 +1957,7 @@ GameObject:
   - component: {fileID: 6882223909904203312}
   - component: {fileID: 5113906488591888598}
   m_Layer: 0
-  m_Name: On
+  m_Name: On_Vibration
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1970,7 +2033,7 @@ GameObject:
   - component: {fileID: 4985697352620895413}
   - component: {fileID: 4693439010417257095}
   m_Layer: 0
-  m_Name: Image
+  m_Name: SettingList
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2048,7 +2111,7 @@ GameObject:
   - component: {fileID: 6435877095355288584}
   - component: {fileID: 310779402063060246}
   m_Layer: 0
-  m_Name: On (1)
+  m_Name: Knob_Sound_On
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2123,7 +2186,7 @@ GameObject:
   - component: {fileID: 9178371708346804519}
   - component: {fileID: 2775358812620624653}
   m_Layer: 0
-  m_Name: Text (TMP)
+  m_Name: Text_Vibration
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2145,8 +2208,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 16, y: 0}
-  m_SizeDelta: {x: 400, y: 100}
+  m_AnchoredPosition: {x: -44.5, y: 0}
+  m_SizeDelta: {x: 279, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &9178371708346804519
 CanvasRenderer:
@@ -2206,9 +2269,9 @@ MonoBehaviour:
   m_fontSize: 50
   m_fontSizeBase: 50
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 30
+  m_fontSizeMax: 50
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -2222,7 +2285,7 @@ MonoBehaviour:
   m_charWidthMaxAdj: 0
   m_TextWrappingMode: 1
   m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
+  m_overflowMode: 1
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
@@ -2260,7 +2323,7 @@ GameObject:
   - component: {fileID: 3274815467034397371}
   - component: {fileID: 7591762593982403062}
   m_Layer: 0
-  m_Name: On (1)
+  m_Name: Knob_Vibration_Off
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2335,7 +2398,7 @@ GameObject:
   - component: {fileID: 3390854875894627628}
   - component: {fileID: 2860713599293017348}
   m_Layer: 0
-  m_Name: Text (TMP)
+  m_Name: Text_Music
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2357,8 +2420,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 16, y: 0}
-  m_SizeDelta: {x: 400, y: 100}
+  m_AnchoredPosition: {x: -44.5, y: 0}
+  m_SizeDelta: {x: 279, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3390854875894627628
 CanvasRenderer:
@@ -2418,9 +2481,9 @@ MonoBehaviour:
   m_fontSize: 50
   m_fontSizeBase: 50
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 30
+  m_fontSizeMax: 50
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -2434,7 +2497,7 @@ MonoBehaviour:
   m_charWidthMaxAdj: 0
   m_TextWrappingMode: 1
   m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
+  m_overflowMode: 1
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
@@ -2472,7 +2535,7 @@ GameObject:
   - component: {fileID: 5908590015164549814}
   - component: {fileID: 7146340334033096980}
   m_Layer: 0
-  m_Name: panelTitle
+  m_Name: TitleRibbon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2548,7 +2611,7 @@ GameObject:
   - component: {fileID: 6423243746172574199}
   - component: {fileID: 4978003984891396436}
   m_Layer: 0
-  m_Name: Text (TMP) (1)
+  m_Name: Text_Home
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2571,7 +2634,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 5}
-  m_SizeDelta: {x: 300, y: 100}
+  m_SizeDelta: {x: 300, y: 130}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6423243746172574199
 CanvasRenderer:
@@ -2631,9 +2694,9 @@ MonoBehaviour:
   m_fontSize: 60
   m_fontSizeBase: 60
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 36
+  m_fontSizeMax: 60
   m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
@@ -2647,7 +2710,7 @@ MonoBehaviour:
   m_charWidthMaxAdj: 0
   m_TextWrappingMode: 1
   m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
+  m_overflowMode: 1
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
@@ -2685,7 +2748,7 @@ GameObject:
   - component: {fileID: 4056269761361324351}
   - component: {fileID: 3381889500667300677}
   m_Layer: 0
-  m_Name: Off
+  m_Name: Off_Vibration
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2762,7 +2825,7 @@ GameObject:
   - component: {fileID: 5815844230387084837}
   - component: {fileID: 4152226669320178445}
   m_Layer: 0
-  m_Name: Vibarate
+  m_Name: RowVibration
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2789,7 +2852,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: -115}
-  m_SizeDelta: {x: 800, y: 100}
+  m_SizeDelta: {x: 775, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &3603093180057091624
 MonoBehaviour:
@@ -2885,7 +2948,7 @@ GameObject:
   - component: {fileID: 2086976788410112647}
   - component: {fileID: 4054133061903217218}
   m_Layer: 0
-  m_Name: On (1)
+  m_Name: Knob_Sound_Off
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2960,7 +3023,7 @@ GameObject:
   - component: {fileID: 1968738918965530558}
   - component: {fileID: 2626194874743767337}
   m_Layer: 0
-  m_Name: On
+  m_Name: On_Music
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3036,7 +3099,7 @@ GameObject:
   - component: {fileID: 7853806714590542261}
   - component: {fileID: 1523243026352011072}
   m_Layer: 0
-  m_Name: Image
+  m_Name: icon_music
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3113,7 +3176,7 @@ GameObject:
   - component: {fileID: 4213822979411808437}
   - component: {fileID: 2377654161169432299}
   m_Layer: 0
-  m_Name: ButtonClose
+  m_Name: BtnClose
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

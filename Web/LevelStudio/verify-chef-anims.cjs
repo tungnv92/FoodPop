@@ -1,0 +1,12 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+vm.runInThisContext(fs.readFileSync('public/studio/lib/spine-canvas.js','utf8'));
+vm.runInThisContext(fs.readFileSync('public/studio/play-demo.js','utf8'));
+const runtime=vm.runInThisContext('spine'),demo=vm.runInThisContext('PlayDemo');
+// EN: Parses the actual exported atlas and skeleton with the same Spine runtime used by the web demo.
+// VI: Đọc atlas và skeleton xuất thực tế bằng đúng runtime Spine của demo web.
+function load(root){const atlas=new runtime.TextureAtlas(fs.readFileSync(root+'/JapanChef.atlas.txt','utf8'));for(const page of atlas.pages){const image=fs.readFileSync(path.join(root,page.name));assert.equal(image.readUInt32BE(16),page.width);assert.equal(image.readUInt32BE(20),page.height);}return new runtime.SkeletonJson(new runtime.AtlasAttachmentLoader(atlas)).readSkeletonData(JSON.parse(fs.readFileSync(root+'/JapanChef.json','utf8')));}
+const root='public/studio/spine/chef-v2',data=load(root),skeleton=new runtime.Skeleton(data),state=new runtime.AnimationState(new runtime.AnimationStateData(data));state.data.defaultMix=0;
+for(const name of ['Defaul/Idle','Cut/Action','Boil/Action','Fry/Action','RiceBall/Action','Tea/Action']){assert(data.findAnimation(name));state.setAnimation(0,name,true);for(let frame=0;frame<80;frame++){state.update(.025);state.apply(skeleton);skeleton.update(.025);skeleton.updateWorldTransform(runtime.Physics.update);}}
+const catalog=JSON.parse(fs.readFileSync('public/studio/catalog.json','utf8'));demo.catalog=catalog;demo.chef={skeleton};assert.equal(demo.chefAnimation({type:22}),'Fry/Action');assert.equal(demo.chefAnimation({type:25}),'Fry/Action');assert.equal(demo.chefAnimation({type:1}),'RiceBall/Action');assert.equal(demo.chefAnimation({type:18}),'Tea/Action');assert.equal(demo.chefAnimation({type:24}),'Cut/Action');
+const old=load('public/studio/spine/chef');assert.throws(()=>new runtime.AnimationState(new runtime.AnimationStateData(old)).setAnimation(0,'Fry/Action',true),/Animation not found/);demo.chef={skeleton:new runtime.Skeleton(old)};assert.equal(demo.chefAnimation({type:22}),'Cut/Action');demo.chef={skeleton:{data:{findAnimation:()=>null}}};assert.equal(demo.chefAnimation({type:22}),null);
+console.log('PASS: actual Spine parsing, texture/atlas dimensions, six animations applied over 80 frames each, chicken action, old-export error reproduced, missing-animation fallback and no-animation safety.');

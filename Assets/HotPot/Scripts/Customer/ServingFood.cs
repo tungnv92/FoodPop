@@ -31,7 +31,8 @@ namespace FoodPop
 
         private OrderView orderView;
         private readonly List<FinalFoodView> dishPrefabs = new List<FinalFoodView>();
-        private readonly HashSet<int> incomingDishes = new HashSet<int>();
+        private readonly List<int> slotItems = new List<int>();
+        private readonly Dictionary<int, int> incomingFlights = new Dictionary<int, int>();
         private readonly HashSet<int> completingDishes = new HashSet<int>();
         private readonly HashSet<int> deliveredDishes = new HashSet<int>();
         private readonly HashSet<SpriteRenderer> ownedFlyers = new HashSet<SpriteRenderer>();
@@ -41,14 +42,6 @@ namespace FoodPop
         private Transform flyerRoot;
         private Action<int> ingredientDelivered;
         private Action<int> dishDelivered;
-
-        // EN: Resolves the shared animation configuration for this tray.
-        // VI: Lấy cấu hình hoạt cảnh dùng chung cho khay này.
-        private IngameConfig Config => IngameConfig.Instance;
-
-        // EN: Returns this instance's ingredient stack without searching another customer's tray.
-        // VI: Trả về chồng nguyên liệu của instance này, không tìm sang khay khách khác.
-        private TrayDishStack DishStack => tray != null ? tray.DishStack : null;
 
 #if UNITY_EDITOR
         // EN: Links only the tray on this prefab's own root in the editor.
@@ -69,8 +62,8 @@ namespace FoodPop
                 Destroy(flyerRoot.gameObject);
         }
 
-        // EN: Prepares this tray for one order (each dish with its optional picture prefab) and binds delivery notifications to the caller's customer progress.
-        // VI: Chuẩn bị khay này cho một order (mỗi món kèm prefab hình tùy chọn) và nối thông báo đáp món với tiến độ khách do bên gọi quản lý.
+        // EN: Prepares this tray for one order (each dish with its optional picture prefab; slot i starts serving card dish i) and binds delivery notifications to the caller's customer progress.
+        // VI: Chuẩn bị khay này cho một order (mỗi món kèm prefab hình tùy chọn; ô i ban đầu phục vụ món i trên thẻ) và nối thông báo đáp món với tiến độ khách do bên gọi quản lý.
         public void BeginOrder(OrderView view, IReadOnlyList<FinalFoodView> dishes,
             IReadOnlyList<IReadOnlyList<FoodType>> recipes,
             Action<int> onIngredientDelivered, Action<int> onDishDelivered)
@@ -78,6 +71,8 @@ namespace FoodPop
             ResetOrder();
             orderView = view;
             dishPrefabs.AddRange(dishes);
+            for (int i = 0; i < dishes.Count; i++)
+                slotItems.Add(i);
             ingredientDelivered = onIngredientDelivered;
             dishDelivered = onDishDelivered;
             if (DishStack != null)
@@ -86,13 +81,13 @@ namespace FoodPop
                 tray.SetSlotCount(dishes.Count);
         }
 
-        // EN: Allows only one ingredient flight to each live dish slot while keeping other slots independent.
-        // VI: Chỉ cho một nguyên liệu bay tới mỗi ô món đang hoạt động, các ô khác vẫn độc lập.
+        // EN: Allows only one ingredient flight to each live dish slot (whose card dish exists) while keeping other slots independent.
+        // VI: Chỉ cho một nguyên liệu bay tới mỗi ô món đang hoạt động (có món tương ứng trên thẻ), các ô khác vẫn độc lập.
         public bool CanServe(int dish)
         {
             return isActiveAndEnabled && orderView != null && dish >= 0 && dish < dishPrefabs.Count &&
-                dish < orderView.Items.Count && orderView.Items[dish] != null &&
-                !incomingDishes.Contains(dish) && !completingDishes.Contains(dish) && !deliveredDishes.Contains(dish);
+                slotItems[dish] < orderView.Items.Count && orderView.Items[slotItems[dish]] != null &&
+                !incomingFlights.ContainsKey(dish) && !completingDishes.Contains(dish) && !deliveredDishes.Contains(dish);
         }
 
         // EN: Consumes a prepared belt ingredient and starts this tray's flight after the customer has reserved its recipe entry.
@@ -112,7 +107,7 @@ namespace FoodPop
                 start = slot.LandingPosition,
                 startScale = slot.LandingScale
             };
-            incomingDishes.Add(dish);
+            AddIncomingFlight(dish);
             slot.ClearFood();
             StartCoroutine(FlyToTray(flight));
             return true;
@@ -134,14 +129,14 @@ namespace FoodPop
                 start = start,
                 startScale = startScale
             };
-            incomingDishes.Add(dish);
+            AddIncomingFlight(dish);
             StartCoroutine(FlyToTray(flight));
             return true;
         }
 
-        // EN: True while an ingredient is still flying to the given dish slot.
-        // VI: True khi còn nguyên liệu đang bay tới ô món đã cho.
-        public bool IsReceiving(int dish) => incomingDishes.Contains(dish);
+        // EN: True while at least one ingredient is still flying to the given dish slot (AutoComplete can launch several in a row).
+        // VI: True khi còn ít nhất một nguyên liệu đang bay tới ô món đã cho (AutoComplete có thể phóng nhiều cái liên tiếp).
+        public bool IsReceiving(int dish) => incomingFlights.ContainsKey(dish);
 
         // EN: World centre of a dish slot on this tray (the order card dish when there is no tray stack).
         // VI: Tâm world của ô món trên khay này (món trên thẻ order khi không có chồng trên khay).
@@ -149,8 +144,8 @@ namespace FoodPop
         {
             if (dishPrefabs[dish] != null && DishStack != null && DishStack.HasSlot(dish))
                 return DishStack.GetSlotCenter(dish);
-            return orderView != null && dish >= 0 && dish < orderView.Items.Count && orderView.Items[dish] != null
-                ? orderView.Items[dish].TargetPosition : transform.position;
+            return orderView != null && dish >= 0 && dish < slotItems.Count && CardItem(dish) != null
+                ? CardItem(dish).TargetPosition : transform.position;
         }
 
         // EN: World scale an ingredient has once stacked on the dish slot (Vector3.one when there is no stack).
@@ -170,6 +165,21 @@ namespace FoodPop
             StartCoroutine(AssembleDish(dish));
         }
 
+        // EN: The tray slot currently serving the given card dish.
+        // VI: Ô khay đang phục vụ món trên thẻ đã cho.
+        public int SlotOfCardDish(int cardDish) => slotItems.IndexOf(cardDish);
+
+        // EN: Makes two slots serve each other's card dish: swaps their dish pictures and card mapping, keeps the plates and landed ingredients in place, and moves the landed base mark on the card from the dish the slot served before to the dish it serves now.
+        // VI: Cho hai ô phục vụ món trên thẻ của nhau: đổi hình món và ánh xạ sang thẻ, giữ nguyên đĩa cùng nguyên liệu đã đáp, và chuyển dấu đế đã đáp trên thẻ từ món ô này phục vụ trước đó sang món ô đang phục vụ.
+        public void SwapDishes(int slot, int other, FoodType landedBase)
+        {
+            (dishPrefabs[slot], dishPrefabs[other]) = (dishPrefabs[other], dishPrefabs[slot]);
+            (slotItems[slot], slotItems[other]) = (slotItems[other], slotItems[slot]);
+            if (DishStack != null && DishStack.HasSlot(slot) && DishStack.HasSlot(other))
+                DishStack.SwapDishes(slot, other);
+            orderView.MoveIngredientMark(slotItems[other], slotItems[slot], landedBase);
+        }
+
         // EN: Cancels only this customer's animations and returns every owned sprite and dish picture, including those between merge and flight stages.
         // VI: Hủy hoạt cảnh của riêng khách này và trả mọi sprite và hình món đang sở hữu, kể cả những thứ ở giữa giai đoạn ghép và bay.
         public void ResetOrder()
@@ -185,13 +195,29 @@ namespace FoodPop
             ownedFlyers.Clear();
             foreach (FinalFoodView view in new List<FinalFoodView>(ownedDishes.Keys))
                 ReturnDish(view);
-            incomingDishes.Clear();
+            incomingFlights.Clear();
             completingDishes.Clear();
             deliveredDishes.Clear();
             dishPrefabs.Clear();
+            slotItems.Clear();
             orderView = null;
             if (tray != null)
                 tray.SetSlotCount(0);
+        }
+
+        // EN: Resolves the shared animation configuration for this tray.
+        // VI: Lấy cấu hình hoạt cảnh dùng chung cho khay này.
+        private IngameConfig Config => IngameConfig.Instance;
+
+        // EN: Returns this instance's ingredient stack without searching another customer's tray.
+        // VI: Trả về chồng nguyên liệu của instance này, không tìm sang khay khách khác.
+        private TrayDishStack DishStack => tray != null ? tray.DishStack : null;
+
+        // EN: Counts one more ingredient flight heading to the slot.
+        // VI: Đếm thêm một nguyên liệu đang bay tới ô.
+        private void AddIncomingFlight(int dish)
+        {
+            incomingFlights[dish] = incomingFlights.TryGetValue(dish, out int count) ? count + 1 : 1;
         }
 
         // EN: Takes a flyer sprite from the pool (creating one only when the pool is empty) and applies the sprite and sorting.
@@ -221,6 +247,10 @@ namespace FoodPop
                 flyerRoot = new GameObject($"ServeFlyers - {name}").transform;
             return flyerRoot;
         }
+
+        // EN: The order card dish a tray slot currently serves (slots can swap dishes, see SwapDishes).
+        // VI: Món trên thẻ order mà ô khay đang phục vụ (các ô có thể đổi món cho nhau, xem SwapDishes).
+        private OrderItemView CardItem(int slot) => orderView.Items[slotItems[slot]];
 
         // EN: Moves the flyer along a parabolic arc to where it will rest on the dish's stack (re-aimed every frame, so a base landing first lifts the target), shrinking to the stacked size; falls back to the order card when the lane has no tray.
         // VI: Cho nguyên liệu bay theo vòng cung parabol tới chỗ nó sẽ nằm trên chồng của món (tính lại mỗi frame, nên đế đáp trước sẽ nâng điểm đến), thu nhỏ về cỡ lớp; dùng thẻ order khi làn không có khay.
@@ -266,7 +296,7 @@ namespace FoodPop
                 scale = tray.GetPieceWorldScale(flight.dish, flight.type);
                 return;
             }
-            position = orderView.Items[flight.dish].TargetPosition;
+            position = CardItem(flight.dish).TargetPosition;
             scale = flight.startScale * Config.ingredientFlight.serveEndScale;
         }
 
@@ -283,8 +313,8 @@ namespace FoodPop
         private void DeliverIngredient(ServeFlight flight)
         {
             IngameSoundManager.Instance?.PlayServe();
-            orderView.Items[flight.dish].PlayIngredientArrived();
-            orderView.MarkIngredientArrived(flight.dish, flight.type);
+            CardItem(flight.dish).PlayIngredientArrived();
+            orderView.MarkIngredientArrived(slotItems[flight.dish], flight.type);
             DishSlotView building = BuildingSlot(flight.dish);
             if (building != null)
             {
@@ -299,8 +329,18 @@ namespace FoodPop
             }
             else
                 ReturnFlyer(flight.flyer);
-            incomingDishes.Remove(flight.dish);
+            RemoveIncomingFlight(flight.dish);
             ingredientDelivered?.Invoke(flight.dish);
+        }
+
+        // EN: Counts one ingredient flight to the slot as landed; the slot stops receiving once none are left.
+        // VI: Ghi nhận một nguyên liệu bay tới ô đã đáp; ô thôi nhận khi không còn cái nào đang bay.
+        private void RemoveIncomingFlight(int dish)
+        {
+            if (incomingFlights[dish] > 1)
+                incomingFlights[dish]--;
+            else
+                incomingFlights.Remove(dish);
         }
 
         // EN: Hides a flyer, moves it back under the flyer container (it may have been lying on a tray slot) and keeps it for reuse.
@@ -341,7 +381,7 @@ namespace FoodPop
                 yield return MergeStack(DishStack, dish, dishPrefabs[dish]);
                 yield return FlyDishToOrder(dish);
             }
-            orderView.MarkDishDone(dish);
+            orderView.MarkDishDone(slotItems[dish]);
             completingDishes.Remove(dish);
             deliveredDishes.Add(dish);
             dishDelivered?.Invoke(dish);
@@ -410,8 +450,8 @@ namespace FoodPop
                 target.localScale = restScale;
         }
 
-        // EN: Flies the finished dish to its order slot with a scale swell mid-flight, settles at the exact card size and pops the card dish on landing.
-        // VI: Cho món hoàn chỉnh bay tới ô order và phóng to giữa đường, thu về đúng cỡ ảnh trên thẻ rồi làm món trên thẻ nảy khi đáp xuống.
+        // EN: Flies the finished dish to its order slot with a scale swell mid-flight, settles at the exact card size and pops the card dish on landing; the emptied tray slot hides its plate and dashed outline.
+        // VI: Cho món hoàn chỉnh bay tới ô order và phóng to giữa đường, thu về đúng cỡ ảnh trên thẻ rồi làm món trên thẻ nảy khi đáp xuống; ô khay vừa trống ẩn đĩa và viền nét đứt.
         private IEnumerator FlyDishToOrder(int dish)
         {
             if (Config.dishOrderFlight.dishFlyDelay > 0f)
@@ -420,9 +460,10 @@ namespace FoodPop
             FinalFoodView flyer = DishStack.TakeFinishedDish(dish);
             tray?.GetSlotView(dish)?.StopTwinkle();
             tray?.GetSlotView(dish)?.HidePlate();
+            tray?.GetSlotView(dish)?.SetOutlineVisible(false);
             if (flyer == null)
                 yield break;
-            OrderItemView target = orderView.Items[dish];
+            OrderItemView target = CardItem(dish);
             Transform flyerTransform = flyer.transform;
             Vector3 start = flyerTransform.position;
             Vector3 startScale = flyerTransform.lossyScale;

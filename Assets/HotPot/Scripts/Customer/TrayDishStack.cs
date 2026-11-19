@@ -61,16 +61,6 @@ public class TrayDishStack : MonoBehaviour
 
 	private readonly List<SlotStack> stacks = new List<SlotStack>();
 
-	// EN: Shared tray-stack tuning from the IngameConfig singleton (Resources asset); no per-component reference.
-	// VI: Thông số xếp chồng trên khay lấy từ singleton IngameConfig (asset trong Resources); không cần tham chiếu riêng trên component.
-	private IngameConfig.TrayStackSettings Settings => IngameConfig.Instance.trayStack;
-	private float stackStepRatio => Settings.stackStepRatio;
-	private float foodScale => Settings.foodScale;
-
-	// EN: Returns the first sorting order for ingredient layers.
-	// VI: Trả về thứ tự vẽ đầu tiên cho các lớp nguyên liệu.
-	private int BaseSortingOrder => (tray != null) ? tray.StackSortingOrder : 0;
-
 	// EN: Resolves the companion tray component on the same object.
 	// VI: Gán component khay đi cùng trên cùng đối tượng.
 	private void OnValidate()
@@ -112,6 +102,19 @@ public class TrayDishStack : MonoBehaviour
 		}
 		for (int i = 0; i < stacks.Count; i++)
 			tray.GetSlotView(i)?.BeginDish(stacks[i].dish, foodScale, SortingLayer, GetDishSortingOrder(i));
+		RefreshStates();
+	}
+
+	// EN: Swaps the dish picture and recipe of two slots while their plates and stacked ingredients stay put: the first slot keeps its revealed layers on the new picture, the second (still empty) slot starts the other picture fresh.
+	// VI: Đổi hình món và công thức của hai ô trong khi đĩa và nguyên liệu đã xếp giữ nguyên: ô thứ nhất giữ các lớp đã hiện trên hình mới, ô thứ hai (còn trống) dựng hình món kia từ đầu.
+	public void SwapDishes(int index, int other)
+	{
+		SlotStack first = stacks[index];
+		SlotStack second = stacks[other];
+		(first.dish, second.dish) = (second.dish, first.dish);
+		(first.recipe, second.recipe) = (second.recipe, first.recipe);
+		tray.GetSlotView(index)?.ChangeDish(first.dish, foodScale, SortingLayer, GetDishSortingOrder(index));
+		tray.GetSlotView(other)?.BeginDish(second.dish, foodScale, SortingLayer, GetDishSortingOrder(other));
 		RefreshStates();
 	}
 
@@ -256,6 +259,16 @@ public class TrayDishStack : MonoBehaviour
 	{
 		return index >= 0 && index < stacks.Count && stacks[index].settle != null;
 	}
+
+	// EN: Shared tray-stack tuning from the IngameConfig singleton (Resources asset); no per-component reference.
+	// VI: Thông số xếp chồng trên khay lấy từ singleton IngameConfig (asset trong Resources); không cần tham chiếu riêng trên component.
+	private IngameConfig.TrayStackSettings Settings => IngameConfig.Instance.trayStack;
+	private float stackStepRatio => Settings.stackStepRatio;
+	private float foodScale => Settings.foodScale;
+
+	// EN: Returns the first sorting order for ingredient layers.
+	// VI: Trả về thứ tự vẽ đầu tiên cho các lớp nguyên liệu.
+	private int BaseSortingOrder => (tray != null) ? tray.StackSortingOrder : 0;
 
 	// EN: Stops a running settle animation; optionally snaps the layers to their final state.
 	// VI: Dừng hiệu ứng xếp lại đang chạy; tùy chọn đặt ngay các lớp về trạng thái cuối.
