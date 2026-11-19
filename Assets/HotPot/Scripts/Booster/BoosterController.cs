@@ -313,14 +313,15 @@ namespace FoodPop
             SetBoosterRootVisible(true);
         }
 
-        // EN: Cancels Pickup before replay or disable, including a camera still sliding back after selection ended, and restores poses, camera and the original input lock.
-        // VI: Hủy Pickup trước khi chơi lại hoặc vô hiệu hóa, kể cả khi camera còn đang trượt về sau khi kết thúc chọn, rồi trả tư thế, camera và khóa input ban đầu.
+        // EN: Cancels Pickup before replay or disable, including a camera still sliding back after selection ended, hides the prompt and bottom banner bar, and restores poses, camera and the original input lock.
+        // VI: Hủy Pickup trước khi chơi lại hoặc vô hiệu hóa, kể cả khi camera còn đang trượt về sau khi kết thúc chọn, ẩn thông báo và thanh banner dưới đáy, rồi trả tư thế, camera và khóa input ban đầu.
         public void CancelPickupForReplay()
         {
             if (!pickupOwnsInput && pickupSelecting == null && !pickupCameraMoved) return;
             StopAllCoroutines();
-            if (pickupSelecting != null) pickupSelecting.ShowPrompt(false);
+            if (pickupSelecting != null) pickupSelecting.Prompt.Show(false);
             pickupSelecting = null;
+            SetPickupBanner(false);
             RestorePickupPoses();
             Camera cam = inputCamera != null ? inputCamera : Camera.main;
             if (pickupCameraMoved && cam != null)
@@ -364,7 +365,7 @@ namespace FoodPop
             }
             PickupHandBooster settings = pickupSelecting;
             pickupSelecting = null;
-            settings.ShowPrompt(false);
+            settings.Prompt.Show(false);
             StartCoroutine(RunLocked(Pickup(settings, column, row), pickupInputWasLocked));
             return true;
         }
@@ -545,8 +546,8 @@ namespace FoodPop
             return board.CanPickupGroup(dish, freeSlots);
         }
 
-        // EN: Saves the previous input lock before entering selection and highlighting available groups.
-        // VI: Lưu khóa input trước khi vào chế độ chọn và làm sáng các nhóm lấy được.
+        // EN: Saves the previous input lock, shows the prompt and the bottom banner bar, slides the camera and highlights available groups.
+        // VI: Lưu khóa input trước đó, hiện thông báo và thanh banner dưới đáy, trượt camera và làm sáng các nhóm lấy được.
         private void BeginPickupSelection(PickupHandBooster settings)
         {
             SetBusy(true);
@@ -555,7 +556,8 @@ namespace FoodPop
             board.InputLocked = true;
             pickupSelecting = settings;
             SetBoosterRootVisible(false);
-            settings.ShowPrompt(true);
+            settings.Prompt.Show(true);
+            SetPickupBanner(true);
             MovePickupCamera(settings);
             pickupTargets.Clear();
             RefreshPickupTargets(true);
@@ -579,7 +581,7 @@ namespace FoodPop
             RefreshPickupTargets(false);
             if (!TryGetPointerDown(out Vector2 worldPoint))
                 return;
-            if (pickupSelecting.CancelContains(worldPoint))
+            if (pickupSelecting.Prompt.CancelContains(worldPoint))
             {
                 CancelPickupSelection();
                 return;
@@ -626,11 +628,11 @@ namespace FoodPop
                         dish.Selection.SetSelectable(pickupTargets.Contains(dish));
         }
 
-        // EN: Cancels selection and restores the input state saved before Pickup started.
-        // VI: Hủy lựa chọn và khôi phục trạng thái input đã lưu trước khi bắt đầu Pickup.
+        // EN: Cancels selection (the prompt plays its cancel-button feedback and hides itself afterwards) and restores the input state saved before Pickup started.
+        // VI: Hủy lựa chọn (thông báo phát phản hồi nút hủy rồi tự ẩn sau đó) và khôi phục trạng thái input đã lưu trước khi bắt đầu Pickup.
         private void CancelPickupSelection()
         {
-            pickupSelecting.ShowPrompt(false);
+            pickupSelecting.Prompt.PlayCancelAndHide();
             pickupSelecting = null;
             pickupTargets.Clear();
             RestorePickupCamera();
@@ -694,8 +696,8 @@ namespace FoodPop
             pickupPoses.Clear();
         }
 
-        // EN: Hides every row past maxVisibleRows, then slides the camera down just enough to show min(maxVisibleRows, rows the board has) rows above the prompt; never moves it up. Remembers the old Y so it can slide back. Dishes below the screen turn on by themselves (the board hides/shows them by the camera's bottom edge).
-        // VI: Ẩn mọi hàng sau maxVisibleRows, rồi trượt camera xuống vừa đủ để thấy min(maxVisibleRows, số hàng board đang có) hàng phía trên thông báo; không bao giờ đẩy camera lên. Ghi nhớ Y cũ để trượt về. Đĩa dưới màn hình tự bật lại (board bật/tắt đĩa theo mép dưới camera).
+        // EN: Hides every row past maxVisibleRows, then slides the camera down just enough to show min(maxVisibleRows, rows the board has) rows above the top edge of the bottom banner bar (the screen bottom when there is none) plus boardBottomPadding; the banner is anchored to the screen bottom, so it keeps that gap while the camera moves, and the prompt sits at the top of the screen, so it is not measured. Never moves the camera up. Remembers the old Y so it can slide back. Dishes below the screen turn on by themselves (the board hides/shows them by the camera's bottom edge).
+        // VI: Ẩn mọi hàng sau maxVisibleRows, rồi trượt camera xuống vừa đủ để thấy min(maxVisibleRows, số hàng board đang có) hàng phía trên mép trên của thanh banner dưới đáy (mép dưới màn hình nếu không có banner) cộng boardBottomPadding; banner bám mép dưới màn hình nên giữ nguyên khoảng cách khi camera di chuyển, còn thông báo nằm phía trên màn hình nên không cần đo. Không bao giờ đẩy camera lên. Ghi nhớ Y cũ để trượt về. Đĩa dưới màn hình tự bật lại (board bật/tắt đĩa theo mép dưới camera).
         private void MovePickupCamera(PickupHandBooster settings)
         {
             int boardRows = GetBoardMaxRows();
@@ -704,10 +706,9 @@ namespace FoodPop
             Camera cam = inputCamera != null ? inputCamera : Camera.main;
             if (cam == null || pickupVisibleRows <= 0)
                 return;
-            float cameraBottom = GetCameraBottomY(cam);
+            float bannerTop = GetBannerTopY(settings, GetCameraBottomY(cam));
             float lowestRowBottom = GetRowBottomY(pickupVisibleRows - 1);
-            float coveredHeight = GetPromptCoveredHeight(settings, cameraBottom);
-            float shift = cameraBottom + coveredHeight + settings.boardBottomPadding - lowestRowBottom;
+            float shift = bannerTop + settings.boardBottomPadding - lowestRowBottom;
             if (shift <= 0f)
                 return;
             pickupCameraRestY = cam.transform.position.y;
@@ -720,17 +721,34 @@ namespace FoodPop
         private Coroutine RestorePickupCamera()
         {
             pickupVisibleRows = int.MaxValue;
+            SetPickupBanner(false);
             Camera cam = inputCamera != null ? inputCamera : Camera.main;
             if (!pickupCameraMoved || cam == null)
             {
                 board.MaxVisibleRows = int.MaxValue;
                 return null;
             }
-            PickupHandBooster settings = null;
+            PickupHandBooster settings = FindPickupSettings();
+            return StartCoroutine(SlideBackThenShowRows(StartCameraMove(cam, pickupCameraRestY, settings != null ? settings.cameraMoveDuration : 0.35f)));
+        }
+
+        // EN: Shows or hides the PickupHand bottom banner bar (when one is assigned).
+        // VI: Hiện hoặc ẩn thanh banner dưới đáy của PickupHand (khi đã gán).
+        private void SetPickupBanner(bool visible)
+        {
+            PickupHandBooster settings = FindPickupSettings();
+            if (settings != null && settings.BottomBanner != null)
+                settings.BottomBanner.SetActive(visible);
+        }
+
+        // EN: The PickupHand booster among the managed buttons, or null.
+        // VI: Booster PickupHand trong các nút được quản lý, hoặc null.
+        private PickupHandBooster FindPickupSettings()
+        {
             foreach (Booster booster in boosters)
                 if (booster is PickupHandBooster pickup)
-                    settings = pickup;
-            return StartCoroutine(SlideBackThenShowRows(StartCameraMove(cam, pickupCameraRestY, settings != null ? settings.cameraMoveDuration : 0.35f)));
+                    return pickup;
+            return null;
         }
 
         // EN: Waits for the camera to finish sliding back, then clears the moved-camera flag and lifts the board's row limit, so the extra rows never flash in while the camera is still low.
@@ -772,24 +790,24 @@ namespace FoodPop
             return board.GetColumnTransform(column).TransformPoint(board.GetRowLocalPosition(row)).y - halfPlate;
         }
 
-        // EN: Height (world units) of the screen bottom covered by the prompt: from the camera bottom to the top of the prompt's renderers.
-        // VI: Chiều cao (đơn vị world) phần đáy màn hình bị thông báo che: từ mép dưới camera tới đỉnh các renderer của thông báo.
-        private static float GetPromptCoveredHeight(PickupHandBooster settings, float cameraBottom)
-        {
-            if (settings.PromptRoot == null)
-                return 0f;
-            float top = cameraBottom;
-            foreach (Renderer renderer in settings.PromptRoot.GetComponentsInChildren<Renderer>())
-                if (renderer.enabled)
-                    top = Mathf.Max(top, renderer.bounds.max.y);
-            return top - cameraBottom;
-        }
-
         // EN: World Y of the bottom edge of the camera view.
         // VI: Toạ độ Y world của mép dưới khung camera.
         private static float GetCameraBottomY(Camera cam)
         {
             return cam.ViewportToWorldPoint(new Vector3(0.5f, 0f, Mathf.Abs(cam.transform.position.z))).y;
+        }
+
+        // EN: World Y of the top edge of the shown bottom banner bar (highest of its enabled renderers); the camera bottom when there is no banner.
+        // VI: Toạ độ Y world của mép trên thanh banner dưới đáy đang hiện (cao nhất trong các renderer đang bật); là mép dưới camera khi không có banner.
+        private static float GetBannerTopY(PickupHandBooster settings, float cameraBottom)
+        {
+            float top = cameraBottom;
+            if (settings.BottomBanner == null)
+                return top;
+            foreach (Renderer renderer in settings.BottomBanner.GetComponentsInChildren<Renderer>())
+                if (renderer.enabled)
+                    top = Mathf.Max(top, renderer.bounds.max.y);
+            return top;
         }
 
         // EN: Stops any running camera slide and starts a new one to targetY.

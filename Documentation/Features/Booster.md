@@ -7,6 +7,7 @@
 | `Booster/Booster.cs` | Nút booster (số lượt, khóa, collider) |
 | `Booster/BoosterType.cs` | Định danh hành động |
 | `Booster/PickupHandBooster.cs`, `AutoCompleteBooster.cs`, `CleanBrushBooster.cs`, `ShuffleBooster.cs` | Cài đặt riêng |
+| `Booster/PickupPrompt.cs` (trên object `BoosterController/PickupPrompt`) | Thông báo chọn đĩa của PickupHand: tự quản lý chữ (`PickupPrompt` trong BoosterConfig), nút hủy và vùng chạm (`Show`, `CancelContains`). Bấm nút hủy → `PlayCancelAndHide`: rung + tiếng click (theo cài đặt) và nút co `cancelPressedScale` (0.94) rồi bật về OutBack (0.05 s + 0.16 s, thời gian độc lập) giống nút đóng popup (`UIButtonScaleEffect`), xong mới ẩn prompt; `PickupHandBooster` chỉ giữ tham chiếu `prompt` |
 | `Booster/BoosterUnlockIntro.cs` | Giới thiệu booster mở khóa |
 | `Booster/FoodHoldingStorage.cs` | Tủ giữ món (hiện/ẩn, ô chứa, nảy ô, trả món); đã gộp `FoodHoldingTray` vào đây |
 | `Config/BoosterConfig.cs` → `Config/BoosterConfig.asset` | Giá, mở khóa, tên, mô tả, thông báo ngắn |
@@ -54,7 +55,7 @@
 
 ## PickupHand
 - Điều kiện: có ít nhất một cột ≥ 2 hàng; có nhóm đĩa lộ trong `maxVisibleRows` không đóng băng và thỏa sức chứa `DishPickPlan` ([ConveyorChef.md](ConveyorChef.md#sức-chứa-khi-lấy-đĩa-dishpickplan)).
-- Xử lý: khóa board, ẩn nút booster, hiện `PickupPrompt` + nút hủy (`cancelCollider`), kéo camera xuống nếu cần (SafeAreaCamera giữ size theo Y gốc; đổi bố cục camera thì gọi `RefreshFramingOrigin()`). Chạm nhóm không hợp lệ → nháy cả nhóm + thông báo từ `GetPickupGroupRejection`. Chạm hợp lệ → nhấc cả nhóm, mở nắp, `board.TryPickDishAt(column, row, settings.Consume)`; thất bại thì trả tư thế/scale/sorting.
+- Xử lý: khóa board, ẩn nút booster, hiện thông báo `PickupPrompt` (component `PickupPrompt.Show(true)`, chữ + nút hủy, vùng chạm `cancelCollider`), bật thanh `BottomBannerBar` (field `bottomBanner`, chỗ dành cho quảng cáo banner, bám mép dưới màn hình) rồi kéo camera xuống nếu cần để `maxVisibleRows` (6) hàng đầu nằm trên **mép trên của banner** cộng `boardBottomPadding` (không có banner thì tính theo mép dưới màn hình; prompt đã chuyển lên phía trên màn hình nên không còn được đo, 19/11/2026). Banner ẩn khi camera bắt đầu trượt về (`RestorePickupCamera`) và khi replay (`CancelPickupForReplay`) (SafeAreaCamera giữ size theo Y gốc; đổi bố cục camera thì gọi `RefreshFramingOrigin()`). Chạm nhóm không hợp lệ → nháy cả nhóm + thông báo từ `GetPickupGroupRejection`. Chạm hợp lệ → nhấc cả nhóm, mở nắp, `board.TryPickDishAt(column, row, settings.Consume)`; thất bại thì trả tư thế/scale/sorting.
 - Hủy/replay/disable (`CancelPickupForReplay`, chạy qua `CancelForReplay` từ `OnDisable` và `LevelController.LoadLevel`) trả đĩa, camera và khóa input về trạng thái trước Pickup; `pickupCameraMoved` giữ tới khi camera trượt về xong nên replay giữa lúc trượt vẫn đưa camera về Y gốc.
 - Chẩn đoán: `FoodBoardManager.logPickFailures` (log `[FoodBoardManager] Không pick được:`), `DishPickBatch.LastFailure`; xem [FoodBoardManager.md](FoodBoardManager.md).
 

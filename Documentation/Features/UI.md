@@ -28,7 +28,7 @@ Sprite UI: `Art/Sprites/UI/LevelResult/`. Script trong `Assets/HotPot/Scripts/UI
 
 ## Camera và HUD
 - **SafeAreaCamera** (`Scripts/UI/SafeAreaCamera.cs`): từ `defaultOrthographicSize` 11.7, nếu `cameraBounds` (tâm 0,0, 10.797363 × 23.4) vừa thì phóng to cho vùng 1 lấp kín chiều ngang nhưng không nhỏ hơn size chuẩn quá `maxZoomInPercent` (5% → 11.115); nếu không, `secondaryBounds` (x −5.2, y −11.7, 10.4 × 23.4) vừa thì giữ 11.7; cả hai không vừa thì tăng size để chứa vùng 2. Không dịch camera. Chạy cả Edit Mode.
-- `ScreenTopAnchor` / `ScreenBottomAnchor` bám mép trên/dưới vùng an toàn (`targetCamera`, `topOffset`), cập nhật trong `LateUpdate`.
+- `ScreenTopAnchor` / `ScreenBottomAnchor` bám mép trên/dưới vùng an toàn (`targetCamera`, `topOffset`), cập nhật trong `LateUpdate`; `ScreenBottomAnchor` còn đặt vị trí ngay trong `OnEnable`, để object vừa bật (như `BottomBannerBar` của Pickup) đo được đúng vị trí trong cùng frame.
 - TopPanel: `UICoin` (cache `PlayerDataManager` trong `OnEnable`, `DefaultExecutionOrder(100)`, nghe Coin), `UICustomer` (`CustomerManager.RemainingCustomersChanged`), `UILevel` (`LevelController.LevelLoaded`, hiện `levelNumber`). Không polling, không truy cập runtime ở Edit Mode.
 
 ## Luồng trạng thái màn (`LevelController`)

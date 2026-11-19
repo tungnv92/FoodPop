@@ -14,6 +14,13 @@ namespace FoodPop
         [Tooltip("Tính mép dưới theo vùng an toàn của thiết bị (tránh thanh điều hướng/tai thỏ) thay vì mép màn hình thật.")]
         [SerializeField] private bool useSafeArea = true;
 
+        // EN: Anchors at once when the object turns on, so code that measures it right after SetActive(true) sees its real position.
+        // VI: Đặt vị trí ngay khi object được bật, để code đo object ngay sau SetActive(true) thấy đúng vị trí thật.
+        private void OnEnable()
+        {
+            Anchor();
+        }
+
         // EN: Re-anchors after cameras and layouts have updated this frame.
         // VI: Đặt lại vị trí sau khi camera và bố cục đã cập nhật trong frame.
         private void LateUpdate()
