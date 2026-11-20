@@ -105,7 +105,7 @@ namespace FoodPop
         private void ReturnHome()
         {
             if (customerManager.HasCompletedOrder)
-                ProfileManager.instance.GameFeatureContext.HeartManager.UseHeart();
+                ProfileManager.instance.Features.Get<IHeart>()?.UseHeart();
             levelController.BackHome();
             playerData.ResetStatePlaying();
             SceneManager.LoadScene("Home");
@@ -122,7 +122,7 @@ namespace FoodPop
         {
             if (customerManager.HasCompletedOrder)
             {
-                ProfileManager.instance.GameFeatureContext.HeartManager.UseHeart();
+                ProfileManager.instance.Features.Get<IHeart>()?.UseHeart();
                 playerData.Save();
             }
             levelController.ReplayLevel();

@@ -7,10 +7,10 @@ using static UnityEngine.Rendering.STP;
 
 public class PopupMoreLives : Popup
 {
+    PlayerDataManager PlayerDataManager => ProfileManager.instance.PlayerDataManager;
     [SerializeField] UIAnimator _openAnim;
     [SerializeField] UIAnimator _closeAnim;
     [SerializeField] TMP_Text _priceTmp;
-    PlayerDataManager PlayerDataManager => ProfileManager.instance.PlayerDataManager;
     int price;
     public override void Open(object args = null)
     {
@@ -52,10 +52,12 @@ public class PopupMoreLives : Popup
         //SDKBridge.ShowReward(() => OnClaimAdsSuccess(), null);
     }
 
+    // EN: After a rewarded ad, adds one heart through IHeart (skipped without the HeartSystem package), records the ad through optional IRecordTracking and closes.
+    // VI: Sau khi xem quảng cáo thưởng, cộng một mạng qua IHeart (bỏ qua khi không có package HeartSystem), ghi nhận quảng cáo qua IRecordTracking tùy chọn và đóng popup.
     private void OnClaimAdsSuccess()
     {
-        ProfileManager.instance.GameFeatureContext.HeartManager.AddHeart();
-        ProfileManager.instance.GameFeatureContext.RecordManager.RecordAdsReward();
+        ProfileManager.instance.Features.Get<IHeart>()?.AddHeart();
+        ProfileManager.instance.Features.Get<IRecordTracking>()?.RecordAdsReward();
         //SDKBridge.TrackAdsReward_Complete(GamePlacement.MoreLives.ToString(), ButtonPlacement.BtnMoreHeart.ToString(), PlayerDataManager.GetCurrentLevel(), new List<ResourceGame>() {});
         Close();
     }

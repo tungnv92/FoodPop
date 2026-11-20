@@ -7,12 +7,18 @@ using UnityEngine;
 /// </summary>
 public abstract class Panel : MonoBehaviour
 {
-    [SerializeField] protected Canvas canvas;
-
     public RectTransform RectTransform { get; private set; }
+
+    [SerializeField] protected Canvas canvas;
     [SerializeField] protected CoinDisplay _coinDisplay;
-    [SerializeField] protected LifeDisplay _lifeDisplay;
+    [Tooltip("Object hiển thị mạng (Life Display). Trỏ vào RectTransform chứ không trỏ vào script, để UI vẫn chạy khi không có package HeartSystem.")]
+    [SerializeField] protected RectTransform _lifeDisplay;
     public RewardAnimator RewardAnimator;
+
+    protected virtual void Awake()
+    {
+        RectTransform = GetComponent<RectTransform>();
+    }
 
     protected virtual void OnValidate()
     {
@@ -20,11 +26,6 @@ public abstract class Panel : MonoBehaviour
         {
             canvas = GetComponent<Canvas>();
         }
-    }
-
-    protected virtual void Awake()
-    {
-        RectTransform = GetComponent<RectTransform>();
     }
 
     /// <summary>
@@ -41,6 +42,8 @@ public abstract class Panel : MonoBehaviour
         _coinDisplay.gameObject.SetActive(active);
     }
 
+    // EN: Shows or hides the lives widget object.
+    // VI: Hiện hoặc ẩn object hiển thị mạng.
     public void SetActiveLife(bool active)
     {
         _lifeDisplay.gameObject.SetActive(active);

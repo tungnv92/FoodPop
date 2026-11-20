@@ -11,12 +11,13 @@ public class PopupLoseEvent : Popup
     [SerializeField] private GameObject _quitButton;
     [SerializeField] private GameObject _retryButton;
     [Space]
+    [Tooltip("Ô cảnh báo mất chuỗi thắng (WinStreak đã gỡ, luôn ẩn).")]
     [SerializeField] private GameObject _loseStreakObj;
     [SerializeField] private GameObject _loseLavaObj;
     [SerializeField] private GameObject _loseTowerObj;
-    [SerializeField] private Image _loseStreakImage;
-    [SerializeField] private Sprite[] _loseStreakSprites;
     LoseType _reason;
+    // EN: Opens the legacy confirmation popup with every feature-warning slot hidden.
+    // VI: Mở popup xác nhận cũ với toàn bộ ô cảnh báo tính năng được ẩn.
     public override void Open(object args = null)
     {
         base.Open(args);
@@ -26,17 +27,9 @@ public class PopupLoseEvent : Popup
         _retryButton.SetActive(_reason == LoseType.Replay);
         UIManager.Ins.GetPanel().SetActiveLife(true);
 
-        GameFeatureContext context = ProfileManager.instance.GameFeatureContext;
-        bool canLoseStreak = context.WinStreakManager.IsCanLoseStreak();
-        bool canFailLavaQuest = context.LavaQuestManager.CanFailProgress;
-        bool canLoseTower = context.TowerRiseManager.ShouldWarningWhenLose();
-        _loseLavaObj.SetActive(canFailLavaQuest);
-        _loseStreakObj.SetActive(canLoseStreak);
-        _loseTowerObj.SetActive(canLoseTower);
-        if (canLoseStreak)
-        {
-            _loseStreakImage.sprite = _loseStreakSprites[context.WinStreakManager.WinStreakTier];
-        }
+        _loseLavaObj.SetActive(false);
+        _loseStreakObj.SetActive(false);
+        _loseTowerObj.SetActive(false);
     }
 
     public override void Close()
@@ -52,6 +45,8 @@ public class PopupLoseEvent : Popup
         UIManager.Ins.GetPanel().SetActiveLife(false);
     }
 
+    // EN: Confirms quitting: closes the popup and spends a heart through IHeart (skipped without the HeartSystem package).
+    // VI: Xác nhận thoát: đóng popup và trừ một mạng qua IHeart (bỏ qua khi không có package HeartSystem).
     public void QuitButton()
     {
         //SDKBridge.ShowInter(GamePlacement.PauseSetting, InterPlacement.BackHome, GameplayManager.Ins.currentLevel, successCallback: () =>
@@ -60,7 +55,6 @@ public class PopupLoseEvent : Popup
         //    _closeAnim.Play(() =>
         //    {
         //        Close();
-        //        ProfileManager.instance.GameFeatureContext.HeartManager.UseHeart();
         //        GameplayManager.Ins.OnQuitLevelBackHome();
         //    });
         //});
@@ -68,7 +62,7 @@ public class PopupLoseEvent : Popup
         _closeAnim.Play(() =>
         {
             Close();
-            ProfileManager.instance.GameFeatureContext.HeartManager.UseHeart();
+            ProfileManager.instance.Features.Get<IHeart>()?.UseHeart();
         });
     }
 

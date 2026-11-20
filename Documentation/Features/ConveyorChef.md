@@ -26,10 +26,10 @@
 - Món đã sơ chế, đáp lại đĩa nguồn phải nằm `Serve Delay After Landing` giây (field CustomerManager; scene 0,3 s) rồi mới bay lên order.
 
 ## Đầu bếp Spine
-- Skeleton `Assets/Spines/Chef/Chef_SkeletonData.asset` (JSON/atlas/texture cùng thư mục), 19 animation. Reference sơ chế: `Assets/HotPot/Animations/Chef/Chef_*.asset`; reference nghỉ và Win: `Assets/Spines/Chef/ReferenceAssets/`.
+- Skeleton `Assets/Spines/Chef/Chef_SkeletonData.asset` (JSON/atlas/texture cùng thư mục), 22 animation. Reference sơ chế: `Assets/HotPot/Animations/Chef/Chef_*.asset`; reference nghỉ và Win: `Assets/Spines/Chef/ReferenceAssets/`.
 - `HotPotDemo.unity` gán 25 dòng ánh xạ FoodType → AnimationReferenceAsset trên `ChefAnims`. Tham chiếu thiếu hoặc khác bộ Spine → lỗi cấu hình.
 - **Thời gian sơ chế = `Animation.Duration` của clip** (không có field thời gian riêng), nên đổi clip là đổi nhịp gameplay. Gọi lặp giữ động tác hiện tại; mix = 0.
-- Ánh xạ: Salmon → `Slice_Salmon`; Tuna và loại chưa có action riêng → `Slice_Tuna`; PickledGinger → `Cut_Ginger`; Seaweed → `Cut_Seaweed`; Avocado → `Cut_Avocado`; Scallop → `Slice_Scallop`; Octopus → `Slice_Octopus` (đều 1,7667 s); Wasabi → `Grating_Wasabi`; SushiRice → `RiceBall` (1,8333 s); TeaLeaves → `PourTea`; Edamame → `Boil_Bean` (2 s); ChickenThigh → `Grill_chicken_thigh`; ChickenWing → `Grill_chicken_wing`; ChickenBreast → `Grill_chicken_breast`; ChickenBites → `Grill_chicken_skewer`; Tamagoyaki → `Friend_Egg` (cập nhật 19/11/2026). Có animation mới: tạo reference trong `Animations/Chef/` rồi thay dòng nguyên liệu trên `ChefAnims`.
+- Ánh xạ: Salmon → `Slice_Salmon`; Tuna và loại chưa có action riêng → `Slice_Tuna`; PickledGinger → `Cut_Ginger`; Seaweed → `Cut_Seaweed`; Avocado → `Cut_Avocado`; Scallop → `Slice_Scallop`; Octopus → `Slice_Octopus`; CrabStick → `Slice_CrabStick` (đều 1,7667 s); Wasabi → `Grating_Wasabi`; SushiRice → `RiceBall` (1,8333 s); TeaLeaves → `PourTea`; Edamame → `Boil_Bean` (2 s); ChickenThigh → `Grill_chicken_thigh`; ChickenWing → `Grill_chicken_wing`; ChickenBreast → `Grill_chicken_breast`; ChickenBites → `Grill_chicken_skewer`; Tamagoyaki → `Friend_Egg`; Shrimp → `Boil_Shrimp`; Unagi → `Grill_Eel` (2 s; cập nhật 20/11/2026). Có animation mới: tạo reference trong `Animations/Chef/` rồi thay dòng nguyên liệu trên `ChefAnims`.
 - Nghỉ: Idle1 lặp ngay, sau 1,5 giây (cấu hình) chuyển sang lặp Idle2 (mỗi clip 1,6667 s).
 
 ## Nhận món trực tiếp từ board
@@ -55,3 +55,8 @@ Sau khi `DishPickBatch.TryFill` giữ đủ slot và chốt chi phí, `ChefManag
 Bản mô phỏng web của băng/đầu bếp: [LevelStudioWeb.md](LevelStudioWeb.md#đồng-bộ-với-unity).
 
 **Kiểm chứng:** Setup slot, giữ đĩa nguồn và vòng tiến độ đã kiểm tra trên object tạm; DishPickPlan/đi thẳng PASS 197 kiểm tra tích hợp + 192 biên sức chứa (probe ở `output/FlexiblePick`); PlayWin/reset đã Play Mode (bản ẩn đĩa tức thì). Chưa Play Mode: hoạt cảnh nhận món trực tiếp, bản thu nhỏ đĩa khi thắng.
+## Cập nhật animation thanh cua — 20/11/2026
+
+- Bộ Spine hiện có 22 animation. So với HEAD có thêm Boil_Shrimp, Grill_Eel và Slice_CrabStick; Shrimp/Unagi đã được gán sẵn trong working tree trước lần cập nhật này.
+- Thêm `Assets/HotPot/Animations/Chef/Chef_Slice_CrabStick.asset` cùng `.meta`, dùng chung Chef_SkeletonData; đổi riêng CrabStick (FoodType 5) từ Slice_Tuna sang Slice_CrabStick trong HotPotDemo và scene đang mở. Giữ nguyên 24 mapping khác, kể cả Shrimp/Unagi.
+- Unity Edit Mode đã xác nhận GetPreparationAnimationName(CrabStick) trả Slice_CrabStick và GetPreparationDuration trả 1,7667 giây. Chưa kiểm tra trọn lượt sơ chế trong Play Mode; không thay đổi script runtime hoặc lưu các chỉnh sửa scene ngoài mapping này.

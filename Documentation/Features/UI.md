@@ -2,6 +2,13 @@
 
 Gồm HUD, popup (Pause, Win, Lose, Revive, WarningQuit, BuyBooster, BoosterIntro), luồng trạng thái màn, âm thanh UI và hướng dẫn màn 1–2. Booster và túi giữ món: [Booster.md](Booster.md).
 
+## Kết nối Internet bắt buộc
+- Lớp phủ core độc lập với hai UIManager: `Assets/Packages/Common/Network/InternetConnection.cs` + `Assets/Packages/Common/Prefabs/Resources/InternetConnection.prefab`. Canvas sorting order 32760, chặn raycast toàn màn hình, không có nút đóng; không đăng ký vào UIRef và không đóng popup đang mở.
+- Hiện Checking Internet connection… khi xác thực; thất bại hiện Internet connection required / Please reconnect to continue playing và Try again. Nút bị khóa trong lúc request chạy. Nội dung theo tiếng Anh hiện có của game.
+- Giữ tốc độ gameplay trước khi chặn; trước đó đã pause thì reconnect vẫn pause. Đồng hồ, request và kiểm tra kết nối dùng thời gian thực, không phụ thuộc timeScale.
+- Load, chuỗi Home và Start của LevelController đợi `ProfileManager.IsReady`; nút Play cũng kiểm tra điều kiện này. Bật ProfileManager.TimeManager.cheatTime bỏ chặn mạng để test. Chi tiết đồng hồ local và chu kỳ xác thực xem [FeatureModules.md](FeatureModules.md).
+- Kiểm chứng 20/11: Play Mode xác thực HTTPS và pause/reconnect qua sự kiện về từ nền đã qua; đã xem ảnh popup Checking và render trạng thái lỗi. Chưa ngắt mạng thật trên Android hoặc bấm tay luồng Load → Home.
+
 ## Kiến trúc
 - `UIManager` (`Scripts/UI/UIManager.cs`) nằm trên object `UiManager` có sẵn trong scene; `Instance` không tự tạo manager. Không đặt popup sẵn trong scene.
 - `Config/UI/UIRef.asset` (`uiCanvasRefList`) là danh sách prefab duy nhất; manager tạo instance khi gọi lần đầu dưới `uiCanvasParentTrans` rồi cache theo Type. Mở một popup thì đóng popup khác.
@@ -47,6 +54,7 @@ Playing → ReviveOffered → CanvasRevive → Reviving → Playing
 
 ## Popup
 ### CanvasWin
+- Không còn bước thu xu chờ trong chuỗi Home; thưởng màn được cộng trực tiếp ở CanvasWin theo luồng dưới đây.
 - Mở: ẩn title (`Spine_Win`), UICoin, glow (`fx_glow`), Reward, nút; Curtain (`Assets/Spines/Curtain`, `curtainAnimation`) chạy Close (unscaled); khi Close **Complete** thì giữ rèm thêm `curtainHoldDelay` (0.5 s, unscaled) rồi nền đen `blackBackground` fade từ 0 lên alpha thiết kế trong `blackFadeDuration` (0.3 s, unscaled); fade xong mới chạy Win title Spine (`Assets/Spines/win`, Start 1.33 s → Idle lặp, unscaled); Glow hiện khi Idle bắt đầu (`TrackEntry.Start`): fade alpha 0 → alpha thiết kế và scale 0.8 → 1 (OutBack) trong `glowRevealDuration` (0.3 s, unscaled). Sau `titleClaimDelay` (2 s từ Win Start) hiện UICoin, Reward và `buttonsRoot` scale 0.8 → 1 (OutBack, `claimRevealDuration` 0.3 s, nút trễ 0.08 s); xong tween mới cho bấm. Curtain là con đầu của nhóm nội dung (nằm sau).
 - Next = `IngameConfig.winReward.coin` (100), Watch = `winReward.watchAdsCoin` (200) (Watch tạm gọi thẳng `OnWatchAdsSuccess`, chưa có SDK). Chọn một lần; khóa nút, ẩn Reward, `CoinAttraction` bay về UICoin; `OnAddCoin(..., "win_reward")` cộng và lưu ngay lúc bấm (thoát game khi xu đang bay không mất thưởng); sự kiện Coin chạy trước, rồi `UICoin.AnimateReward(số dư cũ, ...)` đếm từ số dư cũ lên số dư đã lưu sau `coinCountDelay` (0.4 s). Hẹn giờ unscaled `coinAttraction.duration + lifetime.constantMax` (không dựa vào `onLastParticleFinish`) rồi, nếu chơi tiếp (có màn kế tiếp và level hiện tại < `winReward.levelBackHome`, tạm đặt 100), ẩn hết nền đen, title, glow, ví, thưởng và nút, chỉ để lại Curtain đang đóng, gọi `NextLevel()` nạp màn mới phía sau rèm (`LoadLevel(next, behindCurtain: true)` không gọi `HideAll` và giữ timeScale = 0), rồi phát Curtain "Open" (unscaled) để lộ màn mới; Open xong WinPopup tự `Close()` (không phát âm đóng) rồi gọi `LevelController.StartNextLevel()` trả lại timeScale, game mới bắt đầu chạy. Không chơi tiếp (màn cuối hoặc từ level `levelBackHome`): nhận thưởng nhưng popup đứng yên, chưa có luồng về Home.
 - Hiệu ứng xu dùng nested prefab `Packages/CoinAttraction/Prefabs/CoinAttraction.prefab`: bung → rơi nhẹ → tăng tốc hút về ví, lật sheet đã duyệt và nảy/lóe khi xu đến, tất cả unscaled. Chỉnh RectTransform của instance `CoinAttraction` để đặt điểm phát (offset lúc tách 0,-327); emitter constraint tắt. Thông số, sprite, API, demo, generator và export nằm trong [CoinAttraction.md](CoinAttraction.md).

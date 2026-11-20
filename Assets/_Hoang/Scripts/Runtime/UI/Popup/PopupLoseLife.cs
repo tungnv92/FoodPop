@@ -22,6 +22,8 @@ public class PopupLoseLife : Popup
     [SerializeField] private GameObject _loseLifeObj;
 
     LoseType _reason;
+    // EN: Opens the lose-life popup; the lose-heart hint shows only when a heart would actually be spent (IHeart present and lives not unlimited).
+    // VI: Mở popup mất mạng; gợi ý mất mạng chỉ hiện khi thật sự bị trừ mạng (có IHeart và không đang vô hạn).
     public override void Open(object args = null)
     {
         base.Open(args);
@@ -31,8 +33,8 @@ public class PopupLoseLife : Popup
         _retryButton.SetActive(_reason == LoseType.Replay);
         UIManager.Ins.GetPanel().SetActiveLife(true);
 
-        GameFeatureContext context = ProfileManager.instance.GameFeatureContext;
-        bool canLoseHeart = !context.HeartManager.IsUnlimitedLives();
+        IHeart heart = ProfileManager.instance.Features.Get<IHeart>();
+        bool canLoseHeart = heart != null && !heart.IsUnlimitedLives();
 
         _loseLifeObj.SetActive(canLoseHeart);
     }
@@ -50,56 +52,24 @@ public class PopupLoseLife : Popup
         UIManager.Ins.GetPanel().SetActiveLife(false);
     }
 
+    // EN: Confirms quitting by closing the popup and spending a heart without a feature-warning popup.
+    // VI: Xác nhận thoát bằng cách đóng popup và trừ mạng, không mở popup cảnh báo tính năng.
     public void QuitButton()
     {
-        GameFeatureContext context = ProfileManager.instance.GameFeatureContext;
-        bool canLoseStreak = context.WinStreakManager.IsCanLoseStreak();
-        bool canFailLavaQuest = context.LavaQuestManager.CanFailProgress;
-        bool canLoseTower = context.TowerRiseManager.ShouldWarningWhenLose();
-
-        if (canLoseStreak || canFailLavaQuest || canLoseTower)
+        _closeAnim.Play(() =>
         {
-            UIManager.Ins.OpenPopup(PopupId.LoseEvent, (int)_reason);
-            CloseButton();
-        }
-        else
-        {
-            _closeAnim.Play(() =>
-            {
-                Close();
-                ProfileManager.instance.GameFeatureContext.HeartManager.UseHeart();
-                //GameplayManager.Ins.OnQuitLevelBackHome();
-            });
-
-            //SDKBridge.ShowInter(GamePlacement.PauseSetting, InterPlacement.BackHome, GameplayManager.Ins.currentLevel, successCallback: () =>
-            //{
-            //    AudioManager.Ins.PlaySound(SoundType.PopupHide);
-            //    _closeAnim.Play(() =>
-            //    {
-            //        Close();
-            //        ProfileManager.instance.GameFeatureContext.HeartManager.UseHeart();
-            //        GameplayManager.Ins.OnQuitLevelBackHome();
-            //    });
-            //});          
-        }
+            Close();
+            ProfileManager.instance.Features.Get<IHeart>()?.UseHeart();
+            //GameplayManager.Ins.OnQuitLevelBackHome();
+        });
     }
 
+    // EN: Closes Pause and opens Lose directly, then closes this popup without checking feature warnings.
+    // VI: Đóng Pause và mở thẳng Lose rồi đóng popup hiện tại, không kiểm tra cảnh báo tính năng.
     public void RetryButton()
     {
-        GameFeatureContext context = ProfileManager.instance.GameFeatureContext;
-        bool canLoseStreak = context.WinStreakManager.IsCanLoseStreak();
-        bool canFailLavaQuest = context.LavaQuestManager.CanFailProgress;
-        bool canLoseTower = context.TowerRiseManager.ShouldWarningWhenLose();
-
-        if (canLoseStreak || canFailLavaQuest || canLoseTower)
-        {
-            UIManager.Ins.OpenPopup(PopupId.LoseEvent, (int)_reason);
-        }
-        else
-        {
-            UIManager.Ins.ClosePopup(PopupId.Pause);
-            UIManager.Ins.OpenPopup(PopupId.Lose, (int)_reason);
-        }
+        UIManager.Ins.ClosePopup(PopupId.Pause);
+        UIManager.Ins.OpenPopup(PopupId.Lose, (int)_reason);
         CloseButton();
     }
     #endregion

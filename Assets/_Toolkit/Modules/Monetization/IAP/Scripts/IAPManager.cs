@@ -1,6 +1,5 @@
 //using Firebase.Analytics;
 using GamePackages;
-using HomeFeatures.Profile;
 using Longvm.RewardAnimator;
 //using SDK;
 using SharedModules.ED;
@@ -22,22 +21,7 @@ namespace MonetToolkit
 {
     public class IAPManager : SingletonMonoBehaviour<IAPManager>
     {
-        public bool isLogEvent = true;
         const string Key = "IAP";
-
-        [SerializeField] bool purchaseButtonClicked;
-        [SerializeField] bool isTestWithoutStoreSetup;
-        [SerializeField] GameObject loading;
-        [SerializeField, ExposedScriptableObject] ProductConfigContainer container;
-        [SerializeField] IAPData data;
-        //[SerializeField] AdsManager _adsManager;
-        public IAPData Data => data;
-        [SerializeField] IAPConfig config;
-        public IAPConfig Config => config;
-        bool isSuggestStarterPack;
-
-        public bool GameSceneEntered;
-        bool isFirstBackHome;
         //Data gameData => DataManager.Ins.Data;
 
 #if UNITY_EDITOR
@@ -45,6 +29,27 @@ namespace MonetToolkit
 #else
         const string environment = "production";
 #endif
+        //[SerializeField] AdsManager _adsManager;
+        public IAPData Data => data;
+        public IAPConfig Config => config;
+        bool isHome => LoadSceneManager.Ins.CurrentSceneId == SceneId.Home;
+        bool isGame => LoadSceneManager.Ins.CurrentSceneId == SceneId.Game;
+
+        public bool IsPurchasing { get; private set; }
+        PlayerDataManager PlayerDataManager => ProfileManager.instance.PlayerDataManager;
+
+        public bool isLogEvent = true;
+
+        [SerializeField] bool purchaseButtonClicked;
+        [SerializeField] bool isTestWithoutStoreSetup;
+        [SerializeField] GameObject loading;
+        [SerializeField, ExposedScriptableObject] ProductConfigContainer container;
+        [SerializeField] IAPData data;
+        [SerializeField] IAPConfig config;
+
+        public bool GameSceneEntered;
+        bool isSuggestStarterPack;
+        bool isFirstBackHome;
 
         bool unityServicesInitialized;
         bool initialized;
@@ -53,12 +58,8 @@ namespace MonetToolkit
         StoreController storeController;
         //IExtensionProvider extensions;
         RewardAnimator rewardAnimator;
-        bool isHome => LoadSceneManager.Ins.CurrentSceneId == SceneId.Home;
-        bool isGame => LoadSceneManager.Ins.CurrentSceneId == SceneId.Game;
-
-        public bool IsPurchasing { get; private set; }
         private string purchasingProductId;
-        PlayerDataManager PlayerDataManager => ProfileManager.instance.PlayerDataManager;
+
         async void Start()
         {
             await InitializeUnityServices();
@@ -69,6 +70,121 @@ namespace MonetToolkit
             LoadData();
             Observer.OnNewday += OnNewDay;
             StartCoroutine(InitializeCoroutine());
+        }
+
+        public void SetRewardAnimator(RewardAnimator rewardAnimator)
+        {
+            this.rewardAnimator = rewardAnimator;
+        }
+
+        public string GetLocalizedPriceString(string productId)
+        {
+            if (!initialized || storeController == null) return "---";
+            Product product = storeController.GetProductById(productId);
+            return product != null ? product.metadata.localizedPriceString : "---";
+        }
+
+        // EN: Coordinates OnPurchaseClick using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối OnPurchaseClick qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        public void OnPurchaseClick(string productId, LocationType locationType)
+        {
+            //if (!NetworkManager.Ins.IsInternetAvailable())
+            //{
+            //    UIManager.Ins.OpenPopup(PopupId.NoInternet);
+            //    return;
+            //}
+            if (isTestWithoutStoreSetup)
+            {
+                purchaseButtonClicked = true;
+                StartCoroutine(HandlePurchaseComplete(productId));
+                return;
+            }
+            if (!initialized || storeController == null) return;
+            if (purchaseButtonClicked) return;
+
+            EnableBlocker(true);
+            purchaseButtonClicked = true;
+            storeController.PurchaseProduct(productId);
+            IsPurchasing = true;
+            this.locationType = locationType;
+            //SDKBridge.TrackEventIAPClick(ProfileManager.instance.PlayerDataManager.GetCurrentLevel(), locationType.ToString(), productId);
+
+        }
+
+        public void OnPurchaseFailed(FailedOrder order)
+        {
+            Debug.LogError($"Purchase failed. Product: {purchasingProductId}. Reason: {order.FailureReason.ToString()}");
+            IsPurchasing = false;
+            purchaseButtonClicked = false;
+            EnableBlocker(false);
+            UIManager.Ins.OpenPopup(PopupId.PurchaseFail);
+        }
+
+        public void OnNewDay()
+        {
+            //data.StarterPackSuggested = false;
+            data.IsSuggestedRemoveAds = false;
+            data.IsFirstInterShownToday = false;
+        }
+
+        public void EnableBlocker(bool enable) => loading.SetActive(enable);
+
+        public bool RemoveAdsPurchased() => data.RemoveAdsPurchased;
+
+        // EN: Coordinates StarterPackEnabled using encapsulated player and feature APIs instead of accessing live save models.
+        // VI: Điều phối StarterPackEnabled qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        public bool StarterPackEnabled()
+        {
+            return ProfileManager.instance.PlayerDataManager.GetCurrentLevel() >= config.StarterPackOfferLevel;
+        }
+
+        public bool StarterPackPurchased()
+        {
+            return data.StarterPackPurchased;
+        }
+
+        public bool CheckSuggestStarterPack()
+        {
+            if (!StarterPackEnabled() || !isFirstBackHome || data.StarterPackPurchased || !isSuggestStarterPack)
+            {
+                return false;
+            }
+
+            if (!GameSceneEntered) return false;
+            isFirstBackHome = false;
+            isSuggestStarterPack = false;
+
+            if (data.IsFirstOfferStarterPack)
+            {
+                data.IsFirstOfferStarterPack = false;
+                data.StarterPackFirstOffer = new SerializableDateTime(DateTime.Now);
+            }
+            SaveData();
+            UIManager.Ins.OpenPopup(PopupId.StarterPack);
+            UIManager.Ins.EnableBlocker(false);
+            return true;
+        }
+
+        public bool CheckSuggestRemoveAds()
+        {
+            if (RemoveAdsPurchased()) return false;
+            if (data.IsSuggestedRemoveAds) return false;
+            if (!data.IsFirstInterShownToday) return false;
+
+            UIManager.Ins.OpenPopup(PopupId.RemoveAds);
+
+            data.IsSuggestedRemoveAds = true;
+            SaveData();
+            return true;
+        }
+
+        public void OnLoseLevel()
+        {
+            if (data.RevivePackTriggerCountdown > 0)
+            {
+                data.RevivePackTriggerCountdown--;
+                SaveData();
+            }
         }
 
         async Task InitializeUnityServices()
@@ -85,232 +201,8 @@ namespace MonetToolkit
             }
         }
 
-        #region Initialization
-
-        IEnumerator InitializeCoroutine()
-        {
-            yield return new WaitUntil(() => unityServicesInitialized);
-            Debug.Log("IAP Initializing...");
-            storeController = UnityIAPServices.StoreController();
-            RegisterCallbacks();
-            var connect = storeController.Connect();
-            yield return new WaitUntil(() => connect.IsCompleted);
-            if (connect.IsFaulted)
-            {
-                Debug.LogError("IAP Connect Failed");
-                yield break;
-            }
-            initialized = true;
-            FetchProducts();
-        }
-
-        void RegisterCallbacks()
-        {
-            storeController.OnStoreDisconnected += OnStoreDisconnected;
-            storeController.OnProductsFetched += OnProductsFetched;
-            storeController.OnProductsFetchFailed += OnProductsFetchFailed;
-            storeController.OnPurchasesFetched += OnPurchasesFetched;
-            storeController.OnPurchasesFetchFailed += OnPurchasesFetchFailed;
-            storeController.OnPurchasePending += OnPurchasePending;
-            storeController.OnPurchaseFailed += OnPurchaseFailed;
-        }
-        void FetchProducts()
-        {
-            var products = new List<ProductDefinition>();
-            AddProducts(products);
-            storeController.FetchProducts(products);
-            Debug.Log("FetchProducts: " + products.Count);
-        }
-
-        void AddProducts(List<ProductDefinition> products)
-        {
-            foreach (var product in container.Products)
-            {
-                products.Add(new ProductDefinition(product.Id, product.ProductType));
-            }
-        }
-
-        #endregion
-
-        #region LOAD & SAVE DATA
-        public void LoadData()
-        {
-            try
-            {
-                if (dataLoaded) return;
-
-                if (PlayerPrefs.HasKey(Key))
-                {
-                    string json = PlayerPrefs.GetString(Key);
-                    data = JsonUtility.FromJson<IAPData>(json);
-                } else
-                {
-                    data = new()
-                    {
-                        StarterPackFirstOffer = new SerializableDateTime(GameManager.Ins.Now.Date + TimeSpan.FromDays(100))
-                    };
-                    SaveData();
-                }
-
-                dataLoaded = true;
-                isSuggestStarterPack = true;
-                isFirstBackHome = true;
-                GameSceneEntered = false;
-            }
-            catch (Exception e)
-            {
-                Debug.LogError(e);
-                data = new()
-                {
-                    StarterPackFirstOffer = new SerializableDateTime(GameManager.Ins.Now.Date + TimeSpan.FromDays(100))
-                };
-                SaveData();
-            }
-        }
-
-        [Button]
-        public void SaveData()
-        {
-            try
-            {
-                if (!dataLoaded) return;
-                PlayerPrefs.SetString(Key, JsonUtility.ToJson(data));
-                PlayerPrefs.Save();
-            } catch { }
-        }
-        #endregion
-
-        #region Callbacks
-        void OnProductsFetched(List<Product> products)
-        {
-            Debug.Log("Products Fetched");
-            storeController.FetchPurchases();
-        }
-
-        void OnPurchasesFetched(Orders orders)
-        {
-            Debug.Log("OnPurchasesFetched");
-            foreach (var order in orders.ConfirmedOrders)
-            {
-                foreach (var product in order.Info.PurchasedProductInfo)
-                {
-                    string productId = product.productId;
-                    Debug.Log("Restored: " + productId);
-                    // 🔥 tránh restore lại nhiều lần
-                    if (IsAlreadyOwnedByLocal(productId))
-                        continue;
-                    if (!IsValidateReceipt(order.Info.Receipt))
-                        return;
-                    if (productId == ProductId.RemoveAds ||
-                        //productId == ProductId.RemoveAds_5 ||
-                        //productId == ProductId.RemoveAds_3 ||
-                        productId == ProductId.RemoveAdsPack)
-                    {
-                        Debug.Log("[IAP] Restore Pack: " + productId);
-                        //AdsManager.Ins.RemoveAds();
-                        data.RemoveAdsPurchased = true;
-                        SaveData();
-                    }
-                    SaveOwnerNoncomsume(productId);
-                }
-            }
-        }
-        bool IsAlreadyOwnedByLocal(string productId)
-        {
-            return PlayerPrefs.GetInt("IsOwned_" + productId, 0) == 1;
-        }
-
-        void SaveOwnerNoncomsume(string productId)
-        {
-            PlayerPrefs.SetInt("IsOwned_" + productId, 1);
-            PlayerPrefs.Save();
-        }
-        public void OnStoreDisconnected(StoreConnectionFailureDescription des)
-        {
-            string errorMessage = $"IAP failed to initialize. Reason: {des.message}";
-            Debug.LogError(errorMessage);
-        }
-
-        void OnProductsFetchFailed(ProductFetchFailed failure)
-        {
-            Debug.LogError("Products Fetch Failed: " + failure.FailureReason);
-        }
-
-        void OnPurchasesFetchFailed(PurchasesFetchFailureDescription failure)
-        {
-            Debug.LogError("Restore Failed: " + failure.Message);
-        }
-
-        #endregion
-        void OnPurchasePending(PendingOrder order)
-        {
-            if (order.Info.PurchasedProductInfo.Count == 0)
-            {
-                Debug.LogError("No product info");
-                return;
-            }
-
-            IsPurchasing = false;
-            EnableBlocker(false);
-
-            string productId = order.Info.PurchasedProductInfo[0].productId;
-            Product product = storeController.GetProductById(productId);
-
-            if (product == null)
-            {
-                Debug.LogError("Product not found: " + productId);
-                return;
-            }
-
-            if (IsValidateReceipt(order.Info.Receipt))
-            {
-                storeController.ConfirmPurchase(order);
-                OnPurchaseConfirmed(productId);
-#if UNITY_IOS
-            bool usingStoreKit2 =
-                !string.IsNullOrEmpty(order.Info.Apple?.jwsRepresentation);
-
-            if (usingStoreKit2 && SDKBridge.IsFirebaseReady())
-            {
-                TrackFirebasePurchase(product, order);
-            }
-#endif
-            }
-
-        }
-        private void TrackFirebasePurchase(Product product, PendingOrder order)
-        {
-            //try
-            //{
-            //    FirebaseAnalytics.LogEvent(
-            //        FirebaseAnalytics.EventPurchase,
-            //        new Parameter(FirebaseAnalytics.ParameterTransactionID,
-            //            order.Info.TransactionID),
-
-            //        new Parameter(FirebaseAnalytics.ParameterCurrency,
-            //            product.metadata.isoCurrencyCode),
-
-            //        new Parameter(FirebaseAnalytics.ParameterValue,
-            //            (double)product.metadata.localizedPrice),
-
-            //        new Parameter(FirebaseAnalytics.ParameterItemID,
-            //            product.definition.id),
-
-            //        new Parameter(FirebaseAnalytics.ParameterItemName,
-            //            product.metadata.localizedTitle),
-
-            //        new Parameter(FirebaseAnalytics.ParameterQuantity,
-            //            1)
-            //    );
-
-            //    Debug.Log($"Firebase Purchase Logged: {product.definition.id}");
-            //} catch (Exception e)
-            //{
-            //    Debug.LogException(e);
-            //}
-        }
-        // EN: Coordinates OnPurchaseConfirmed using encapsulated player and feature APIs instead of accessing live save models.
-        // VI: Điều phối OnPurchaseConfirmed qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+        // EN: Completes a confirmed purchase and records it through optional IRecordTracking without a concrete tracking-package dependency.
+        // VI: Hoàn tất mua hàng đã xác nhận và ghi qua IRecordTracking tùy chọn, không phụ thuộc kiểu cụ thể của package thống kê.
         void OnPurchaseConfirmed(string productID)
         {
             Debug.LogError("Product confirm: " + productID);
@@ -326,8 +218,9 @@ namespace MonetToolkit
             else if (isHome) placement = "home_" + placement;
 
             StartCoroutine(HandlePurchaseComplete(productID));
-            ProfileManager.instance.GameFeatureContext.RecordManager.RecordIAP();
-            int count = ProfileManager.instance.GameFeatureContext.RecordManager.GetIAPCount();
+            IRecordTracking tracking = ProfileManager.instance.Features.Get<IRecordTracking>();
+            tracking?.RecordIAP();
+            int count = tracking?.GetIAPCount() ?? 0;
             string packName = "";
             //SDKBridge.TrackEventIAPPurchased(ProfileManager.instance.PlayerDataManager.GetCurrentLevel(), placement, productID, packName, count == 1, count);
             //if (isLogEvent)
@@ -336,50 +229,6 @@ namespace MonetToolkit
             //    SDKBridge.TrackAppflyerPurchaseComfirmed(productID);
             //}
         }
-
-        public void OnPurchaseFailed(FailedOrder order)
-        {
-            Debug.LogError($"Purchase failed. Product: {purchasingProductId}. Reason: {order.FailureReason.ToString()}");
-            IsPurchasing = false;
-            purchaseButtonClicked = false;
-            EnableBlocker(false);
-            UIManager.Ins.OpenPopup(PopupId.PurchaseFail);
-        }
-
-        #region Receipt Validation
-
-        bool IsValidateReceipt(string receipt)
-        {
-            return true;
-#if UNITY_EDITOR
-            return true;
-#elif UNITY_ANDROID
-            //var validator = new CrossPlatformValidator(GooglePlayTangle.Data(), null, Application.identifier);
-            //try
-            //{
-            //    var receipts = validator.Validate(receipt);
-            //    return true;
-            //} catch (IAPSecurityException e)
-            //{
-            //    Debug.LogError($"Validation failed: {e}");
-            //    return false;
-            //}
-#elif UNITY_IOS
-        var validator = new CrossPlatformValidator(null, AppleTangle.Data(), Application.identifier);
-        try
-        {
-            var receipts = validator.Validate(receipt);
-            return true;
-        }
-        catch (IAPSecurityException e)
-        {
-            Debug.LogError($"Validation failed: {e}");
-            return false;
-        }
-#endif
-        }
-
-        #endregion
 
         // EN: Coordinates HandlePurchaseComplete using encapsulated player and feature APIs instead of accessing live save models.
         // VI: Điều phối HandlePurchaseComplete qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
@@ -425,10 +274,6 @@ namespace MonetToolkit
             purchaseButtonClicked = false;
         }
 
-        public void SetRewardAnimator(RewardAnimator rewardAnimator)
-        {
-            this.rewardAnimator = rewardAnimator;
-        }
         void CollectRewards(RewardConfig[] rewardConfigs)
         {
             for (int i = 0; i < rewardConfigs.Length; i++)
@@ -513,103 +358,270 @@ namespace MonetToolkit
             rewardAnimator.Play();
         }
 
-        public string GetLocalizedPriceString(string productId)
+        void OnPurchasePending(PendingOrder order)
         {
-            if (!initialized || storeController == null) return "---";
-            Product product = storeController.GetProductById(productId);
-            return product != null ? product.metadata.localizedPriceString : "---";
-        }
-
-        // EN: Coordinates OnPurchaseClick using encapsulated player and feature APIs instead of accessing live save models.
-        // VI: Điều phối OnPurchaseClick qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
-        public void OnPurchaseClick(string productId, LocationType locationType)
-        {
-            //if (!NetworkManager.Ins.IsInternetAvailable())
-            //{
-            //    UIManager.Ins.OpenPopup(PopupId.NoInternet);
-            //    return;
-            //}
-            if (isTestWithoutStoreSetup)
+            if (order.Info.PurchasedProductInfo.Count == 0)
             {
-                purchaseButtonClicked = true;
-                StartCoroutine(HandlePurchaseComplete(productId));
+                Debug.LogError("No product info");
                 return;
             }
-            if (!initialized || storeController == null) return;
-            if (purchaseButtonClicked) return;
 
-            EnableBlocker(true);
-            purchaseButtonClicked = true;
-            storeController.PurchaseProduct(productId);
-            IsPurchasing = true;
-            this.locationType = locationType;
-            //SDKBridge.TrackEventIAPClick(ProfileManager.instance.PlayerDataManager.GetCurrentLevel(), locationType.ToString(), productId);
+            IsPurchasing = false;
+            EnableBlocker(false);
 
-        }
+            string productId = order.Info.PurchasedProductInfo[0].productId;
+            Product product = storeController.GetProductById(productId);
 
-        public void OnNewDay()
-        {
-            //data.StarterPackSuggested = false;
-            data.IsSuggestedRemoveAds = false;
-            data.IsFirstInterShownToday = false;
-        }
-        public void EnableBlocker(bool enable) => loading.SetActive(enable);
-
-        public bool RemoveAdsPurchased() => data.RemoveAdsPurchased;
-
-        // EN: Coordinates StarterPackEnabled using encapsulated player and feature APIs instead of accessing live save models.
-        // VI: Điều phối StarterPackEnabled qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
-        public bool StarterPackEnabled()
-        {
-            return ProfileManager.instance.PlayerDataManager.GetCurrentLevel() >= config.StarterPackOfferLevel;
-        }
-
-        public bool StarterPackPurchased()
-        {
-            return data.StarterPackPurchased;
-        }
-        public bool CheckSuggestStarterPack()
-        {
-            if (!StarterPackEnabled() || !isFirstBackHome || data.StarterPackPurchased || !isSuggestStarterPack)
+            if (product == null)
             {
-                return false;
+                Debug.LogError("Product not found: " + productId);
+                return;
             }
 
-            if (!GameSceneEntered) return false;
-            isFirstBackHome = false;
-            isSuggestStarterPack = false;
-
-            if (data.IsFirstOfferStarterPack)
+            if (IsValidateReceipt(order.Info.Receipt))
             {
-                data.IsFirstOfferStarterPack = false;
-                data.StarterPackFirstOffer = new SerializableDateTime(DateTime.Now);
+                storeController.ConfirmPurchase(order);
+                OnPurchaseConfirmed(productId);
+#if UNITY_IOS
+            bool usingStoreKit2 =
+                !string.IsNullOrEmpty(order.Info.Apple?.jwsRepresentation);
+
+            if (usingStoreKit2 && SDKBridge.IsFirebaseReady())
+            {
+                TrackFirebasePurchase(product, order);
             }
-            SaveData();
-            UIManager.Ins.OpenPopup(PopupId.StarterPack);
-            UIManager.Ins.EnableBlocker(false);
-            return true;
+#endif
+            }
+
         }
 
-        public bool CheckSuggestRemoveAds()
+        private void TrackFirebasePurchase(Product product, PendingOrder order)
         {
-            if (RemoveAdsPurchased()) return false;
-            if (data.IsSuggestedRemoveAds) return false;
-            if (!data.IsFirstInterShownToday) return false;
+            //try
+            //{
+            //    FirebaseAnalytics.LogEvent(
+            //        FirebaseAnalytics.EventPurchase,
+            //        new Parameter(FirebaseAnalytics.ParameterTransactionID,
+            //            order.Info.TransactionID),
 
-            UIManager.Ins.OpenPopup(PopupId.RemoveAds);
+            //        new Parameter(FirebaseAnalytics.ParameterCurrency,
+            //            product.metadata.isoCurrencyCode),
 
-            data.IsSuggestedRemoveAds = true;
-            SaveData();
-            return true;
+            //        new Parameter(FirebaseAnalytics.ParameterValue,
+            //            (double)product.metadata.localizedPrice),
+
+            //        new Parameter(FirebaseAnalytics.ParameterItemID,
+            //            product.definition.id),
+
+            //        new Parameter(FirebaseAnalytics.ParameterItemName,
+            //            product.metadata.localizedTitle),
+
+            //        new Parameter(FirebaseAnalytics.ParameterQuantity,
+            //            1)
+            //    );
+
+            //    Debug.Log($"Firebase Purchase Logged: {product.definition.id}");
+            //} catch (Exception e)
+            //{
+            //    Debug.LogException(e);
+            //}
         }
 
-        public void OnLoseLevel()
+        #region LOAD & SAVE DATA
+        public void LoadData()
         {
-            if (data.RevivePackTriggerCountdown > 0)
+            try
             {
-                data.RevivePackTriggerCountdown--;
+                if (dataLoaded) return;
+
+                if (PlayerPrefs.HasKey(Key))
+                {
+                    string json = PlayerPrefs.GetString(Key);
+                    data = JsonUtility.FromJson<IAPData>(json);
+                } else
+                {
+                    data = new()
+                    {
+                        StarterPackFirstOffer = new SerializableDateTime(GameManager.Ins.Now.Date + TimeSpan.FromDays(100))
+                    };
+                    SaveData();
+                }
+
+                dataLoaded = true;
+                isSuggestStarterPack = true;
+                isFirstBackHome = true;
+                GameSceneEntered = false;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e);
+                data = new()
+                {
+                    StarterPackFirstOffer = new SerializableDateTime(GameManager.Ins.Now.Date + TimeSpan.FromDays(100))
+                };
                 SaveData();
             }
         }
+
+        [Button]
+        public void SaveData()
+        {
+            try
+            {
+                if (!dataLoaded) return;
+                PlayerPrefs.SetString(Key, JsonUtility.ToJson(data));
+                PlayerPrefs.Save();
+            } catch { }
+        }
+        #endregion
+
+        #region Initialization
+
+        IEnumerator InitializeCoroutine()
+        {
+            yield return new WaitUntil(() => unityServicesInitialized);
+            Debug.Log("IAP Initializing...");
+            storeController = UnityIAPServices.StoreController();
+            RegisterCallbacks();
+            var connect = storeController.Connect();
+            yield return new WaitUntil(() => connect.IsCompleted);
+            if (connect.IsFaulted)
+            {
+                Debug.LogError("IAP Connect Failed");
+                yield break;
+            }
+            initialized = true;
+            FetchProducts();
+        }
+
+        void RegisterCallbacks()
+        {
+            storeController.OnStoreDisconnected += OnStoreDisconnected;
+            storeController.OnProductsFetched += OnProductsFetched;
+            storeController.OnProductsFetchFailed += OnProductsFetchFailed;
+            storeController.OnPurchasesFetched += OnPurchasesFetched;
+            storeController.OnPurchasesFetchFailed += OnPurchasesFetchFailed;
+            storeController.OnPurchasePending += OnPurchasePending;
+            storeController.OnPurchaseFailed += OnPurchaseFailed;
+        }
+        void FetchProducts()
+        {
+            var products = new List<ProductDefinition>();
+            AddProducts(products);
+            storeController.FetchProducts(products);
+            Debug.Log("FetchProducts: " + products.Count);
+        }
+
+        void AddProducts(List<ProductDefinition> products)
+        {
+            foreach (var product in container.Products)
+            {
+                products.Add(new ProductDefinition(product.Id, product.ProductType));
+            }
+        }
+
+        #endregion
+
+        #region Callbacks
+
+        public void OnStoreDisconnected(StoreConnectionFailureDescription des)
+        {
+            string errorMessage = $"IAP failed to initialize. Reason: {des.message}";
+            Debug.LogError(errorMessage);
+        }
+
+        void OnProductsFetched(List<Product> products)
+        {
+            Debug.Log("Products Fetched");
+            storeController.FetchPurchases();
+        }
+
+        void OnProductsFetchFailed(ProductFetchFailed failure)
+        {
+            Debug.LogError("Products Fetch Failed: " + failure.FailureReason);
+        }
+
+        void OnPurchasesFetched(Orders orders)
+        {
+            Debug.Log("OnPurchasesFetched");
+            foreach (var order in orders.ConfirmedOrders)
+            {
+                foreach (var product in order.Info.PurchasedProductInfo)
+                {
+                    string productId = product.productId;
+                    Debug.Log("Restored: " + productId);
+                    // 🔥 tránh restore lại nhiều lần
+                    if (IsAlreadyOwnedByLocal(productId))
+                        continue;
+                    if (!IsValidateReceipt(order.Info.Receipt))
+                        return;
+                    if (productId == ProductId.RemoveAds ||
+                        //productId == ProductId.RemoveAds_5 ||
+                        //productId == ProductId.RemoveAds_3 ||
+                        productId == ProductId.RemoveAdsPack)
+                    {
+                        Debug.Log("[IAP] Restore Pack: " + productId);
+                        //AdsManager.Ins.RemoveAds();
+                        data.RemoveAdsPurchased = true;
+                        SaveData();
+                    }
+                    SaveOwnerNoncomsume(productId);
+                }
+            }
+        }
+
+        void OnPurchasesFetchFailed(PurchasesFetchFailureDescription failure)
+        {
+            Debug.LogError("Restore Failed: " + failure.Message);
+        }
+
+        bool IsAlreadyOwnedByLocal(string productId)
+        {
+            return PlayerPrefs.GetInt("IsOwned_" + productId, 0) == 1;
+        }
+
+        void SaveOwnerNoncomsume(string productId)
+        {
+            PlayerPrefs.SetInt("IsOwned_" + productId, 1);
+            PlayerPrefs.Save();
+        }
+
+        #endregion
+
+        #region Receipt Validation
+
+        bool IsValidateReceipt(string receipt)
+        {
+            return true;
+#if UNITY_EDITOR
+            return true;
+#elif UNITY_ANDROID
+            //var validator = new CrossPlatformValidator(GooglePlayTangle.Data(), null, Application.identifier);
+            //try
+            //{
+            //    var receipts = validator.Validate(receipt);
+            //    return true;
+            //} catch (IAPSecurityException e)
+            //{
+            //    Debug.LogError($"Validation failed: {e}");
+            //    return false;
+            //}
+#elif UNITY_IOS
+        var validator = new CrossPlatformValidator(null, AppleTangle.Data(), Application.identifier);
+        try
+        {
+            var receipts = validator.Validate(receipt);
+            return true;
+        }
+        catch (IAPSecurityException e)
+        {
+            Debug.LogError($"Validation failed: {e}");
+            return false;
+        }
+#endif
+        }
+
+        #endregion
+
     }
 }

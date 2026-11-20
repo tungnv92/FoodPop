@@ -918,95 +918,17 @@ MonoBehaviour:
     isFirstAppOpen: 0
     currentLevel: 0
     isPlaying: 0
-    isRemoveAds: 0
-    isBoughtStarterPack: 0
-    isInitSaleStarterPack: 0
-    isSetupProfile: 0
+    shopData:
+      isRemoveAds: 0
+      isBoughtStarterPack: 0
+      isInitSaleStarterPack: 0
     isFirstHomeOpenInDay: 0
-    playerName: 
-    avatar_id: 0
-    frame_avatar_id: 0
-    isSoundOn: 0
-    isMusicOn: 0
-    isVibrateOn: 0
+    userSettingData:
+      isSoundOn: 0
+      isMusicOn: 0
+      isVibrateOn: 0
     l_ResourceGame: []
-    PendingCoinAmount: 0
-    DailyGiftData:
-      <day>k__BackingField: 1
-      <isEnableClaim>k__BackingField: 1
-      <isSuggested>k__BackingField: 0
-      l_ClaimedChecker: 00000000000000
-    DailyRewardData:
-      totalAdsClaimed: 0
-      totalFreeClaimed: 0
-      isSuggested: 0
-    RecordTrackingData:
-      level: 1
-      retryCount: 0
-      winstreak: 0
-      user_retention: 0
-      first_open_time: 
-      last_time_play: 2026-11-02 14:12:20
-      iap_count: 0
-      win_streak: 0
-      booster_spend_count: 0
-      booster_earn_count: 0
-      ads_reward_count: 0
-      ads_inter_count: 0
-      value_coins_earn_count: 0
-      value_coins_spend_count: 0
-      booster_spend_level: 0
-      coin_spend_level: 0
-      ads_count_level: 0
-    HeartData:
-      isInit: 1
-      currentHeartAmount: 5
-      maxHeart: 5
-      timeToNewHeart: 0
-      unlimitedLivesExpireTime: 0
-      sLastTimeOnline: 
-    WinStreakData:
-      keyAmount: 0
-      pendingKeyAmount: 0
-      numberWinsteak: 0
-      winstreak: 0
-      treasureExpire: 
-      currentRoundId: 
-      currentRound: 0
-      isShownFirstTut: 0
-      isShownFirstInfo: 0
-      isCompleted: 0
-      claimedMilestoneIndexes: 
-    LavaQuestData:
-      winStreak: 0
-      isCompeting: 0
-      playersLeftAmount: 100
-      expire: 
-      rejoinExpire: 
-      isCompeteFromLastJourney: 0
-      isQuitLevelLastSession: 0
-      isShowedInfo: 0
-      isDoneTutorial: 0
-      eventDate: 
-      attemptId: 
-      attemptDate: 
-      attemptStartTime: 
-      attemptEndTime: 
-      attemptStatus: 0
-      currentMilestone: 0
-      lastFailTime: 
-      retryAvailableAt: 
-      targetFinalParticipants: 10
-      activeBotCount: 99
-      failedBotCount: 0
-      completedBotCount: 0
-      isCompleted: 0
-      isFailed: 0
-      rewardGranted: 0
-      rewardTransactionId: 
-      lastProcessedGameplayResultId: 
-      completedEventDate: 
-      bots: []
+    features: []
     MissionControlData:
       currentCycleId: 
       expire: 
@@ -1037,6 +959,7 @@ MonoBehaviour:
       isDoneTutorial: 0
       isClaimedGrandReward: 0
       ticketAmount: 0
+      currentSpinBoardIndex: 0
       currentSpinSetCount: 0
       totalSpinCount: 0
       firstTryWinsWithoutTier3: 0
@@ -1046,49 +969,19 @@ MonoBehaviour:
       pendingDroppedTicketsEarned: 0
       ownedCardIds: 
       claimedCollectionIds: 
+      claimedSpinSlots:
+      setDrawsWithoutNewCard: 000000000000000000000000000000000000000000000000
   TimeManager:
     sLastOnlineTime: 
     isInitialized: 0
-  GameFeatureContext:
-    DailyGiftManager:
-      DailyGiftGlobalConfig: {fileID: 0}
-    DailyRewardManager:
-      DailyRewardGlobalConfig: {fileID: 0}
-    WinStreakManager:
-      WinStreakGlobalConfig: {fileID: 0}
-      isCheatBetweenDays: 0
-      claimAmountCheat: 0
-    HeartManager:
-      masterPass_Max_Heart: 8
-      timeRefillOnHeart: 30
-      refillGoldCost: 900
-    LavaQuestManager:
-      LavaQuestConfig: {fileID: 0}
-    MissionControlManager:
-      MissionControlConfig: {fileID: 0}
-      isCheatBetweenFridayAndMonday: 0
-    TowerRiseManager:
-      TowerRiseConfig: {fileID: 0}
-      currentMilestone: 0
-      currentStepinMilestone: 0
-      isWin: 0
-      isFail: 0
-      failAnimFromStep: 0
-      lastCompletedMilestoneIndex: -1
-      pendingIntroduceScroll: 0
-      isClaimingRewards: 0
-    CardCollectionManager:
-      CardCollectionConfig: {fileID: 0}
-      isCheatForceActive: 0
-  DailyGiftRewardConfig: {fileID: 11400000, guid: eebc7db2521728b48a3deff2f119c7ee, type: 2}
-  DailyRewardGlobalConfig: {fileID: 11400000, guid: 315c4ac04a3e0f64f8097f6675becc3f, type: 2}
-  WinStreakGlobalConfig: {fileID: 11400000, guid: 607eecc0952ba3b47b35debfc6272f8d, type: 2}
-  LavaQuestConfig: {fileID: 11400000, guid: ff2ea3d4ac7f1ff4baf5b266b80b2d83, type: 2}
-  MissionControlConfig: {fileID: 11400000, guid: 323cdf83256bfe0448c48009b9a282bc, type: 2}
-  TowerRiseConfig: {fileID: 11400000, guid: a7c3e1f82b4d5a6479b0c8d3e5f1a2b4, type: 2}
-  CardCollectionConfig: {fileID: 11400000, guid: 379c9497d919d56439c2fec5ce8ce180, type: 2}
-  AvatarConfig: {fileID: 11400000, guid: d563700d72823154e8120752a0c8b815, type: 2}
-  FrameConfig: {fileID: 11400000, guid: c43ef8a83b3627b43b90d055fcff0e8b, type: 2}
+  featureRegistry:
+    modules:
+    - {fileID: 11400000, guid: fd3d75de213c86d4b83c6cf8d71b8817, type: 2}
+    - {fileID: 11400000, guid: 16412f3798028ed48b6268213fde02e5, type: 2}
+    - {fileID: 11400000, guid: 2014e7abcf664f842a5012704456fc04, type: 2}
+    - {fileID: 11400000, guid: 4feda59ef9389894489df7dbf1cffc47, type: 2}
+    - {fileID: 11400000, guid: f7d48ba3e6efdce4e982f7e460232f6b, type: 2}
+    - {fileID: 11400000, guid: 15e03929b24f6a5439fb7f3635cd5c75, type: 2}
   RemoteConfigBase:
     level_showinter_win: 15
     level_showinter_lose: 26
@@ -1120,10 +1013,6 @@ MonoBehaviour:
     booster_3_unlock: 10
     booster_4_unlock: 13
     latest_version: 1.6.0
-  IsCheatLevel: 0
-  IsActiveBot: 0
-  MaxLevel: 100
-  RewardIconMapping: {fileID: 11400000, guid: b919832f4f5203845b09e8896365d368, type: 2}
 --- !u!4 &1198583503
 Transform:
   m_ObjectHideFlags: 0
@@ -1137,7 +1026,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2012913058}
   - {fileID: 143140718}
   - {fileID: 533575483}
   m_Father: {fileID: 0}
@@ -1292,53 +1180,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2012913057
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2012913058}
-  - component: {fileID: 2012913059}
-  m_Layer: 0
-  m_Name: Awaiter
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2012913058
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2012913057}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1198583503}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2012913059
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2012913057}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 25b580cc8ffd4fb4290a2bf3fa6c8594, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GamePackages.AwaiterActionManager
-  data:
-    awaiterActions: []
-    sLastTimeOnline: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
