@@ -86,10 +86,15 @@ Assets/Packages/
 9. Bổ sung comment EN/VI, sắp thứ tự thành viên theo AGENTS.md, cập nhật tài liệu này.
 
 ## DailyGift (đã chuyển)
+- Mẫu chuẩn của popup (cấu trúc prefab, sprite, nạp config, trạng thái ô, quy ước và việc còn cần sửa): [DailyLoginPopup.md](DailyLoginPopup.md).
 - `Packages/DailyGift/Runtime/` (`DailyGiftFeature`, `DailyGiftData`, `DailyGiftModule`, config); UI ở `Packages/DailyGift/UI/`; asset `Packages/DailyGift/Configs/DailyGiftModule.asset` (`id = daily_gift`, config `DailyGiftRewardConfig`).
-- `DailyGiftFeature` cài `IFeatureNewDay`; popup `PopupId.DailyLogin` do UI chủ động mở; `HomePanel` không còn tham chiếu `ButtonDailyLogin`.
+- `DailyGiftFeature` cài `IFeatureNewDay`; `HomePanel` không còn tham chiếu `ButtonDailyLogin`.
+- Từ 2026-11-23 `PopupDailyLogin` kế thừa `FoodPop.UICanvasPrime` (không còn `Popup`/`PopupId.DailyLogin` của hệ UI _Hoang). Prefab chuyển từ `Prefabs/Resources/` sang `Prefabs/PopupDailyLogin.prefab` (giữ GUID), gốc có `Canvas` Overlay order 30000, `CanvasScaler` 1080×1920, `GraphicRaycaster`, `CanvasGroup`, `card = Box`; mở/đóng bằng `AnimateOpen`/`CloseWithAnimation` thay cho `UIAnimator`. Scene Home có object `UIManager (FoodPop)` dùng `HotPot/Config/UI/UIRef_Home.asset` (chỉ chứa PopupDailyLogin); `ButtonDailyLogin.OpenPopup` gọi `FoodPop.UIManager.Instance.OpenUI<PopupDailyLogin>()`. Nút Claim và Close có `FoodPop.UIButtonScaleEffect` (co 0.94 khi nhấn, nhún khi click, unscaled) như nút WinPopup. Home không có `IngameSoundManager` nên popup chỉ rung khi bấm (không gọi `PlayClickFeedback`); hiệu ứng thưởng vẫn lấy `RewardAnimator` từ `UIManager.Ins.GetPanel()` của hệ Home. `PopupId.DailyLogin` còn trong enum nhưng không dùng.
 - `ButtonDailyLogin`, `PopupDailyLogin` dùng `DailyGiftFeature.Instance`. Nút DailyGift ẩn khi config tắt; không còn hiển thị khóa/level mở.
 - Đã xóa `Legacy/DailyGiftManager.cs` khi gỡ lớp ContextData cũ; runtime chỉ dùng DailyGiftFeature.
+- Giao diện, sprite, cách nạp icon/số lượng từ config, trạng thái ô và Day 7: xem [DailyLoginPopup.md](DailyLoginPopup.md) (mẫu chuẩn; từ 2026-11-23 icon cả 7 ngày lấy từ `resourceIcons`, đã bỏ `giftIcon`).
+- `PopupDailyLogin.OnClaimReward` cộng và lưu thưởng ngay khi nhận (`GrantReward`), `RewardAnimator` chỉ còn hiển thị; trước đây thưởng chỉ được cộng trong callback hiệu ứng và mất nếu không có animator.
+- Kiểm chứng: đã render prefab trong Editor (ảnh xem trước, giả lập Day 1 đã nhận, Day 2 hôm nay) và biên dịch thành công; sau khi chuyển sang UICanvasPrime đã biên dịch không lỗi, kiểm tra base class, 7 ô ngày, Claim/Comeback vẫn gán đúng và `UIRef_Home` trỏ đúng prefab. Chưa chạy Play Mode ở scene Home, chưa mở popup và nhận quà thật.
 - Xóa folder `DailyGift`: compile sạch; nút Daily Login trên prefab Home sẽ báo *Missing Script* (cảnh báo) và cần gỡ tay; `PopupId.DailyLogin` vẫn nằm trong enum chung.
 
 ## DailyReward (đã chuyển)
@@ -110,6 +115,7 @@ Assets/Packages/
 - LavaQuest đã chuyển sang module; CardCollection hiện đã tạm gỡ.
 
 ## Heart (đã chuyển)
+- Popup hết mạng: `FoodPop.PopupMoreLife` (UICanvasPrime), mở qua `FoodPop.UIManager` từ `LifeDisplay.OpenBuy` và `PlayButton.OnClick`; giá `HeartConfig.refillGoldCost`. Chi tiết: [MoreLifePopup.md](MoreLifePopup.md).
 - Package `Packages/HeartSystem/`: `Runtime/` (`HeartFeature`, `HeartData`, `HeartConfig`, `HeartModule`), `UI/LifeDisplay.cs`, `Prefabs/UI/Life Display.prefab`, `Configs/` (`HeartModule.asset` `id = heart`, `HeartConfig.asset`: Master Pass 8 mạng, 30 phút/mạng, hồi đầy 900 coin — lấy từ giá trị cũ trong `Load.unity`). Mạng tối đa mặc định là hằng số `HeartFeature.DefaultMaxHeart = 5`.
 - **Hợp đồng:** `Packages/FeatureModules/Runtime/IHeart.cs` (`IsEnoughHeartToPlay`, `UseHeart`, `AddHeart`, `FillFullHeart`, `AddUnlimitedLiveTime`, `IsUnlimitedLives`, `IsMaxHeart`, `GetRemainHeart`, `GetHeartDisplay`). Mọi nơi ngoài package dùng `Features.Get<IHeart>()`: `ProfileManager.Start` (thua do app bị tắt giữa màn), `PlayerDataManager.AddUnlimitedLiveTime` / `TryBuyFullHearts`, `LevelController`, `CanvasLose`, `CanvasPause`, `PlayButton`, `PopupLoseLife`, `PopupLoseEvent`, `PopupMoreLives`. Khi không có package: chơi không giới hạn (`IsEnoughHeartToPlay` = true), không trừ/cộng mạng, phần thưởng mạng vô hạn bị bỏ qua, không mua hồi mạng được, `remaining_heart` tracking = -1.
 - `Panel._lifeDisplay` / `HomePanel.LifeDisplay` là `RectTransform` của object Life Display (không trỏ vào script `LifeDisplay`). Life Display trong `Home.unity` đã được **unpack** khỏi prefab (`Prefabs/UI/Life Display.prefab` giữ làm mẫu, sửa prefab không tự cập nhật vào Home). Xóa package thì object vẫn còn (chỉ báo Missing Script và mất sprite của package), nên `Panel.SetActiveLife`, `HomePanel.ResetCoinLife` và popup DailyReward (MissionControl/TowerRise đã gỡ) đặt lại cha cho nó vẫn chạy. Đã gán lại trong `Home.unity` và lưu.

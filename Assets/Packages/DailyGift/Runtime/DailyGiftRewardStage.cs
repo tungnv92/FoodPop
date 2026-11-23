@@ -1,4 +1,3 @@
-using Sirenix.OdinInspector;
 using System.Collections.Generic;
 using UnityEngine;
 namespace GamePackages
@@ -9,7 +8,5 @@ namespace GamePackages
     {
         public int dayID;
         public List<ResourceGame> gifts;
-        [PreviewField(60), HideLabel]
-        public Sprite giftIcon;
     }
 }

@@ -32,14 +32,14 @@ public class LifeDisplay : MonoBehaviour
         txtHeartValue.text = heart.Item1;
         txtHeartTime.text = heart.Item2;
     }
-    // EN: Opens the buy-lives popup unless lives are unlimited or full.
-    // VI: Mở popup mua mạng trừ khi đang vô hạn hoặc đã đầy.
+    // EN: Opens the buy-lives popup through the scene's FoodPop.UIManager unless lives are unlimited or full.
+    // VI: Mở popup mua mạng qua FoodPop.UIManager của scene trừ khi đang vô hạn hoặc đã đầy.
     public void OpenBuy()
     {
         isUnlimitedLives = Heart.IsUnlimitedLives();
         isMaxHeart = Heart.IsMaxHeart();
         if (isUnlimitedLives || isMaxHeart) return;
-        UIManager.Ins.OpenPopup(PopupId.MoreLife);
+        FoodPop.UIManager.Instance.OpenUI<FoodPop.PopupMoreLife>();
     }
 
 }

@@ -732,7 +732,7 @@ Transform:
   m_GameObject: {fileID: 51131852}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.58500004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4023,7 +4023,7 @@ Transform:
   m_GameObject: {fileID: 391803565}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 10.3, z: 0}
+  m_LocalPosition: {x: 0, y: 9.715, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4668,7 +4668,7 @@ MonoBehaviour:
   TimeManager:
     cheatTime: 0
     sLastOnlineTime: 
-    lastRewardDate:
+    lastRewardDate: 
     localUtcOffsetMinutes: 0
     hasLocalUtcOffset: 0
   featureRegistry:
@@ -4689,26 +4689,7 @@ MonoBehaviour:
     level_unlock_treasure: 18
     level_unlock_busquest: 6
     level_unlock_missoncontrol: 36
-    can_suggest_daily_login: 0
-    can_suggest_daily_reward: 0
-    coin_default: 1000
-    coin_win_normal: 20
-    coin_win_hard: 50
-    coin_win_superhard: 80
-    revive_price: 900
-    refill_life_price: 900
-    boosters_default: 1
-    booster_1_price: 500
-    booster_2_price: 1500
-    booster_3_price: 1900
-    booster_4_price: 2700
-    level_enable_multicoin: 10
     back_home_on_win_level: 10
-    first_super_hard: 50
-    booster_1_unlock: 4
-    booster_2_unlock: 7
-    booster_3_unlock: 10
-    booster_4_unlock: 13
     latest_version: 1.6.0
 --- !u!4 &490769249
 Transform:
@@ -12885,7 +12866,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 11.7
+  orthographic size: 11.115
   m_Depth: 100
   m_CullingMask:
     serializedVersion: 2

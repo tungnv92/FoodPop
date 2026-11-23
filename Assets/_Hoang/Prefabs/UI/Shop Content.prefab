@@ -835,7 +835,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5661100932260792067}
-  - component: {fileID: 4460329795811303435}
   - component: {fileID: 620089264662532201}
   m_Layer: 0
   m_Name: Shop Content
@@ -872,20 +871,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &4460329795811303435
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5910624464284054068}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_HorizontalFit: 0
-  m_VerticalFit: 1
 --- !u!114 &620089264662532201
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1506,22 +1491,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2712919925262969277}
     m_Modifications:
-    - target: {fileID: 4227572591295877462, guid: 1d874c4ce5c4cd442a94e5629ae836cb, type: 3}
-      propertyPath: _startColor.m_Mode
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 4227572591295877462, guid: 1d874c4ce5c4cd442a94e5629ae836cb, type: 3}
-      propertyPath: _startColor.m_ColorMin.b
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4227572591295877462, guid: 1d874c4ce5c4cd442a94e5629ae836cb, type: 3}
-      propertyPath: _startColor.m_ColorMin.g
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4227572591295877462, guid: 1d874c4ce5c4cd442a94e5629ae836cb, type: 3}
-      propertyPath: _startColor.m_ColorMin.r
-      value: 0.9733331
-      objectReference: {fileID: 0}
     - target: {fileID: 657045176747556541, guid: 90d3b6023328bc14699ff1415d35b581, type: 3}
       propertyPath: m_Name
       value: Blink
@@ -1621,6 +1590,22 @@ PrefabInstance:
     - target: {fileID: 5963323215824738295, guid: 90d3b6023328bc14699ff1415d35b581, type: 3}
       propertyPath: m_ConstrainProportionsScale
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4227572591295877462, guid: 1d874c4ce5c4cd442a94e5629ae836cb, type: 3}
+      propertyPath: _startColor.m_Mode
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4227572591295877462, guid: 1d874c4ce5c4cd442a94e5629ae836cb, type: 3}
+      propertyPath: _startColor.m_ColorMin.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4227572591295877462, guid: 1d874c4ce5c4cd442a94e5629ae836cb, type: 3}
+      propertyPath: _startColor.m_ColorMin.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4227572591295877462, guid: 1d874c4ce5c4cd442a94e5629ae836cb, type: 3}
+      propertyPath: _startColor.m_ColorMin.r
+      value: 0.9733331
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

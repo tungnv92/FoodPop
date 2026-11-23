@@ -35,9 +35,11 @@ namespace HomeFeatures.DailyLogin
             //countdown_text.gameObject.SetActive(!canCollect);
         }
 
+        // EN: Opens the daily login popup through the scene's FoodPop.UIManager.
+        // VI: Mở popup đăng nhập hằng ngày qua FoodPop.UIManager của scene.
         public void OpenPopup()
         {
-            var popup = UIManager.Ins.OpenPopup<PopupDailyLogin>(PopupId.DailyLogin, this);
+            FoodPop.UIManager.Instance.OpenUI<PopupDailyLogin>();
         }
 
         #region UI Events
