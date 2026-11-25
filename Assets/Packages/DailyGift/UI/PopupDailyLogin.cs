@@ -1,5 +1,4 @@
 using GamePackages;
-using Longvm.RewardAnimator;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,7 +19,6 @@ namespace HomeFeatures.DailyLogin
         DailyGiftRewardConfig DailyGiftRewardConfig => DailyGift.Config;
         int currentDayID = 1;
         bool initialized;
-        RewardAnimator rewardAnimator;
 
         // EN: Caches the player profile used for haptics and rewards while the popup is visible.
         // VI: Cache hồ sơ người chơi dùng cho rung và phần thưởng khi popup đang hiện.
@@ -61,12 +59,11 @@ namespace HomeFeatures.DailyLogin
             CloseWithAnimation();
         }
 
-        // EN: Caches the Home reward animator and binds each day slot to its reward stage on first open.
-        // VI: Cache bộ hiệu ứng thưởng của Home và gán mỗi ô ngày với mốc thưởng của nó ở lần mở đầu tiên.
+        // EN: Binds each day slot to its reward stage on first open.
+        // VI: Gán mỗi ô ngày với mốc thưởng của nó ở lần mở đầu tiên.
         void InitData()
         {
             if (initialized) return;
-            rewardAnimator = UIManager.Ins.GetPanel().RewardAnimator;
             for (int i = 0; i < days.Length; i++)
                 days[i].Init(i + 1, DailyGiftRewardConfig.GetRewardStage(i), this);
             initialized = true;
@@ -105,19 +102,14 @@ namespace HomeFeatures.DailyLogin
             }
         }
 
-        // EN: Marks today's gift as claimed and grants every reward immediately (so closing or quitting during the animation cannot lose it), then plays the reward animation for display only.
-        // VI: Đánh dấu đã nhận quà hôm nay và cộng ngay mọi phần thưởng (đóng hoặc thoát game giữa hiệu ứng không bị mất), rồi phát hiệu ứng thưởng chỉ để hiển thị.
+        // EN: Marks today's gift as claimed and grants every reward immediately.
+        // VI: Đánh dấu đã nhận quà hôm nay và cộng ngay mọi phần thưởng.
         void OnClaimReward()
         {
             DailyGift.OnClaimComplete();
             List<ResourceGame> gifts = DailyGiftRewardConfig.GetRewardsByDay(currentDayID);
             foreach (ResourceGame gift in gifts)
                 GrantReward(gift.type, gift.value);
-            rewardAnimator.Init();
-            foreach (ResourceGame gift in gifts)
-                rewardAnimator.Add((int)gift.type, gift.value);
-            rewardAnimator.Play();
-            rewardAnimator.OnComplete(null);
             UpdateButtonStatus();
         }
 

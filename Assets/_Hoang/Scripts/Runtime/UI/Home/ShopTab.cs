@@ -1,11 +1,9 @@
 using DG.Tweening;
-using MonetToolkit;
 using UnityEngine;
 
 public class ShopTab : HomeTab
 {
     [SerializeField] RectTransform _contentTf;
-    [SerializeField] Shop _shop;
     public override void Start()
     {
         float ratio = Screen.height * 1f / Screen.width;

@@ -11,6 +11,9 @@ namespace GamePackages
         // EN: Reads remove-ads ownership.
         // VI: Đọc quyền sở hữu gói gỡ quảng cáo.
         public bool HasRemoveAds => Data.shopData.isRemoveAds;
+        // EN: Whether the starter pack has been bought.
+        // VI: Người chơi đã mua gói khởi đầu hay chưa.
+        public bool HasStarterPack => Data.shopData.isBoughtStarterPack;
         // EN: Reads the saved vibration preference used by gameplay haptics.
         // VI: Đọc cài đặt rung đã lưu dùng cho phản hồi gameplay.
         public bool isVibrateOn => Data.userSettingData.isVibrateOn;
@@ -225,16 +228,16 @@ namespace GamePackages
         {
             Data.shopData.isRemoveAds = true;
             //SDKBridge.HideBanner();
-            //Observer.OnBoughtRemoveAdsAction?.Invoke();
             SaveStateChange();
+            Observer.OnBoughtRemoveAdsAction?.Invoke();
         }
         // EN: Persists starter-pack ownership and notifies state listeners.
         // VI: Lưu quyền sở hữu gói khởi đầu và thông báo listener trạng thái.
         public void OnBoughtStarterPack()
         {
             Data.shopData.isBoughtStarterPack = true;
-            //Observer.OnBoughtStarterPackAction?.Invoke();
             SaveStateChange();
+            Observer.OnBoughtStarterPackAction?.Invoke();
         }
         public void OnBoughtRevivePack()
         {

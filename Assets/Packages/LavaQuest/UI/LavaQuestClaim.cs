@@ -1,7 +1,5 @@
-using AssetKits.ParticleImage;
 using DG.Tweening;
 using GamePackages;
-using Longvm.RewardAnimator;
 //using SDK;
 //using Spine.Unity;
 using System;
@@ -17,9 +15,6 @@ public class LavaQuestClaim : Popup
     public TextMeshProUGUI description;
     public List<LavaQuestFakeUser> fakeUsers;
     //public SkeletonGraphic rewardAnim;
-
-    [Header("VFX:")]
-    public ParticleImagePlayer coinAnim;
 
     private LavaQuestFeature Manager => LavaQuestFeature.Instance;
 
@@ -97,56 +92,32 @@ public class LavaQuestClaim : Popup
         });
     }
 
-    // EN: Coordinates ButtonClaim using encapsulated player and feature APIs instead of accessing live save models.
-    // VI: Điều phối ButtonClaim qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
-    // EN: Coordinates ButtonClaim using encapsulated player and feature APIs instead of accessing live save models.
-    // VI: Điều phối ButtonClaim qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
+    // EN: Grants the LavaQuest gold immediately (no reward fly animation), notifies the claim listener and closes the claim and LavaQuest popups.
+    // VI: Cộng vàng LavaQuest ngay (không có hiệu ứng bay thưởng), báo listener nhận thưởng và đóng popup nhận thưởng cùng popup LavaQuest.
     public void ButtonClaim()
     {
-        UIManager.Ins.EnableBlocker(true);
         if (buttonClaimObj != null) buttonClaimObj.SetActive(false);
         int goldAmountClaim = Manager != null ? Manager.GetGoldAmountClaim() : 1000;
-
-        coinAnim.gameObject.SetActive(true);
-        coinAnim.Init(goldAmountClaim);
-        coinAnim.OnReceiveReward(() =>
+        if (Manager != null)
         {
-            if (Manager != null)
-            {
-                Manager.GrantReward();
-            }
-            else
-            {
-                ProfileManager.instance.PlayerDataManager.OnAddCoin(goldAmountClaim, "lava_quest");
-                ProfileManager.instance.SaveData();
-            }
-        });
-        coinAnim.OnComplete(() =>
+            Manager.GrantReward();
+        }
+        else
         {
-            UIManager.Ins.EnableBlocker(false);
-            int currentLevel = ProfileManager.instance.PlayerDataManager.IsInitialized ? ProfileManager.instance.PlayerDataManager.GetCurrentLevel() : 1;
-            //if (ABIAnalyticsManager.Instance != null)
-            //{
-            //    ABIAnalyticsManager.Instance.LavaQuestComplete(currentLevel, goldAmountClaim);
-            //}
-            OnClaim?.Invoke();
-            OnClaim = null;
+            ProfileManager.instance.PlayerDataManager.OnAddCoin(goldAmountClaim, "lava_quest");
+            ProfileManager.instance.SaveData();
+        }
+        OnClaim?.Invoke();
+        OnClaim = null;
 
-            Close();
-            if (LavaQuest.Instance != null)
-            {
-                LavaQuest.Instance.ButtonClose();
-            }
-            else if (UIManager.Ins != null)
-            {
-                UIManager.Ins.ClosePopup(PopupId.LavaQuest);
-            }
-        });
-        coinAnim.Play();
-
-        //if (AudioManager.Ins != null)
-        //{
-        //    AudioManager.Ins.PlaySound(SoundType.CoinShow);
-        //}
+        Close();
+        if (LavaQuest.Instance != null)
+        {
+            LavaQuest.Instance.ButtonClose();
+        }
+        else if (UIManager.Ins != null)
+        {
+            UIManager.Ins.ClosePopup(PopupId.LavaQuest);
+        }
     }
 }

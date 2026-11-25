@@ -15,7 +15,7 @@ Kiểm chứng: đã biên dịch không lỗi, render prefab trong Editor, ch�
 | `DailyGiftFeature` | Dữ liệu ngày hiện tại, đã nhận, còn nhận được hôm nay. |
 
 Luồng mở: `Open()` → `InitData()` (lần đầu: `days[i].Init(i+1, config.GetRewardStage(i))`) → `UpdateButtonStatus()` → `LoadData()` (đặt trạng thái từng ô) → `AnimateOpen()`.
-Luồng nhận: `ClaimButton()` → làm tối ô hôm nay → `OnClaimReward()` (đánh dấu đã nhận, **cộng và lưu thưởng ngay** qua `GrantReward`, rồi mới chạy `RewardAnimator` chỉ để hiển thị) → `CloseWithAnimation()`.
+Luồng nhận: `ClaimButton()` → làm tối ô hôm nay → `OnClaimReward()` (đánh dấu đã nhận, **cộng và lưu thưởng ngay** qua `GrantReward`; không có hiệu ứng bay thưởng) → `CloseWithAnimation()`.
 
 ## 2. Cấu trúc prefab
 
@@ -111,4 +111,4 @@ Còn lại:
 - Tên file lẫn hoa thường và dấu cách (`Day 2.png` cạnh `day 1.png`); không bắt buộc, đổi tên cần giữ `.meta`.
 - `live ic.png` (92×77) là icon dùng chung trong `HotPot/Art/Sprites/UI/Home`, chưa thêm viền vì ảnh hưởng UI Home khác.
 - `Day 7/Rewards/Reward n/Amount` đặt ở (41, −125) so với icon 120×120 — kiểm tra lại vị trí số khi chạy thật.
-- `RewardAnimator` vẫn lấy từ hệ UI Home cũ (`UIManager.Ins.GetPanel()`); khi bỏ hệ cũ cần nguồn hiệu ứng thưởng khác.
+- Đã bỏ hẳn `RewardAnimator` (2026-11-23): nhận quà chỉ cộng và lưu, không có hiệu ứng bay thưởng.

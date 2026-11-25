@@ -1,4 +1,3 @@
-using Longvm.RewardAnimator;
 using UnityEngine;
 
 /// <summary>
@@ -13,7 +12,6 @@ public abstract class Panel : MonoBehaviour
     [SerializeField] protected CoinDisplay _coinDisplay;
     [Tooltip("Object hiển thị mạng (Life Display). Trỏ vào RectTransform chứ không trỏ vào script, để UI vẫn chạy khi không có package HeartSystem.")]
     [SerializeField] protected RectTransform _lifeDisplay;
-    public RewardAnimator RewardAnimator;
 
     protected virtual void Awake()
     {

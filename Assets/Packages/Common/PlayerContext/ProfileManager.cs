@@ -3,6 +3,9 @@ using System.Collections;
 using UnityEngine;
 namespace GamePackages
 {
+    // Runs before every other script (EventSystem is -1000) so profile data and features exist before any Awake/OnEnable/Start reads them.
+    // Chạy trước mọi script khác (EventSystem là -1000) để dữ liệu hồ sơ và tính năng đã có trước khi Awake/OnEnable/Start khác đọc tới.
+    [DefaultExecutionOrder(-10000)]
     public class ProfileManager : Singleton<ProfileManager>
     {
         /// <summary>

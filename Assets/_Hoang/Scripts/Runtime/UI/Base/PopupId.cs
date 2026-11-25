@@ -25,8 +25,6 @@ public enum PopupId
     NewTrap,
 
     AdsCaution,
-    PurchaseFail,
-    PurchaseSuccess,
     NoInternet,
     StarterPack,
     RemoveAds,

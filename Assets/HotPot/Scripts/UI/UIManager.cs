@@ -240,13 +240,13 @@ namespace FoodPop
             if (shortMessage != null) shortMessage.Show(message);
         }
 
-        // EN: Closes all scene popups, releases only the shop-owned time pause and dismisses transient feedback.
-        // VI: Đóng mọi popup scene, nhả riêng tạm dừng do cửa hàng giữ và bỏ phản hồi ngắn tạm.
+        // EN: Closes all scene popups except base screens (IsScreen), releases only the shop-owned time pause and dismisses transient feedback.
+        // VI: Đóng mọi popup scene trừ màn nền (IsScreen), nhả riêng tạm dừng do cửa hàng giữ và bỏ phản hồi ngắn tạm.
         public void HideAll()
         {
             InitCanvasData();
             foreach (UICanvasPrime canvas in new List<UICanvasPrime>(uiCanvasList.Values))
-                if (canvas != null && canvas.IsOpening()) canvas.Close();
+                if (canvas != null && !canvas.IsScreen && canvas.IsOpening()) canvas.Close();
             ReleaseBuyPause();
             if (shortMessage != null) shortMessage.HideImmediate();
             activePopup = null;
@@ -276,14 +276,19 @@ namespace FoodPop
             root.transform.SetParent(transform, false);
         }
 
-        // EN: Registers UIRef prefab references once without creating scene instances.
-        // VI: Đăng ký tham chiếu prefab UIRef một lần, không tạo instance trong scene.
+        // EN: Registers UIRef prefab references once, and adopts canvases already placed under this manager in the scene (such as the Home screen) so they are reused instead of instantiated.
+        // VI: Đăng ký tham chiếu prefab UIRef một lần, và nhận các canvas đã đặt sẵn dưới manager trong scene (như màn Home) để dùng lại thay vì tạo mới.
         private void InitCanvasData()
         {
             if (initialized) return;
             initialized = true;
             foreach (UICanvasPrime prefab in uiRefSO.uiCanvasRefList)
                 uiCanvasReferenceDict.Add(prefab.GetType(), prefab);
+            foreach (UICanvasPrime canvas in GetComponentsInChildren<UICanvasPrime>(true))
+            {
+                canvas.Owner = this;
+                uiCanvasList[canvas.GetType()] = canvas;
+            }
         }
 
         // EN: Validates a scene reference and closes other popups before activating the requested one.

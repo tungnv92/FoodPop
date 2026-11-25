@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using MonetToolkit;
 using GamePackages;
 using System.Diagnostics.Tracing;
 
@@ -36,7 +35,6 @@ public class Load : MonoBehaviour
 
         yield return null;
         // Init
-        //IAPManager.Ins.Init();
         //AudioManager.Ins.Init();
         VibrationManager.Ins.Init();
         // Load scene

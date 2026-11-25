@@ -12,8 +12,10 @@ public class DailyRewardButton : MonoBehaviour
         bool canCollect = DailyReward.IsGoodToClaim();
         notiGo.SetActive(canCollect);
     }
+    // EN: Opens the Daily reward popup through FoodPop.UIManager.
+    // VI: Mở popup quà hằng ngày qua FoodPop.UIManager.
     public void OnClick()
     {
-        UIManager.Ins.OpenPopup(PopupId.DailyReward);
+        FoodPop.UIManager.Instance.OpenUI<PopupDailyReward>();
     }
 }

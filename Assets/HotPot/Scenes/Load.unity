@@ -922,58 +922,18 @@ MonoBehaviour:
       isRemoveAds: 0
       isBoughtStarterPack: 0
       isInitSaleStarterPack: 0
-    isFirstHomeOpenInDay: 0
     userSettingData:
       isSoundOn: 0
       isMusicOn: 0
       isVibrateOn: 0
     l_ResourceGame: []
     features: []
-    MissionControlData:
-      currentCycleId: 
-      expire: 
-      isClaimedGrandChest: 0
-      isShowedInfo: 0
-      isDoneTutorial: 0
-      claimedStageIds: 
-      questCounts: []
-      questClaimeds: []
-    TowerRiseData:
-      currentMilestone: 0
-      lastMilestone: 0
-      totalMilestone: 0
-      isStarted: 0
-      isEventFinishedPending: 0
-      isDoneTutorial: 0
-      isShowedInfo: 0
-      isQuitLevelLastSession: 0
-      expire: 
-      claimedIndexes: 
-      finishedPendingClaimMilestoneIndexes: 
-      unclaimedRewardInfos: []
-    CardCollectionData:
-      isUnlocked: 0
-      unlockTimeIso: 
-      expireTimeIso: 
-      isShowedInfo: 0
-      isDoneTutorial: 0
-      isClaimedGrandReward: 0
-      ticketAmount: 0
-      currentSpinBoardIndex: 0
-      currentSpinSetCount: 0
-      totalSpinCount: 0
-      firstTryWinsWithoutTier3: 0
-      firstTryWinsWithoutTier4: 0
-      pendingDroppedCardId: -1
-      pendingDroppedCardWasDuplicate: 0
-      pendingDroppedTicketsEarned: 0
-      ownedCardIds: 
-      claimedCollectionIds: 
-      claimedSpinSlots:
-      setDrawsWithoutNewCard: 000000000000000000000000000000000000000000000000
   TimeManager:
+    cheatTime: 0
     sLastOnlineTime: 
-    isInitialized: 0
+    lastRewardDate: 
+    localUtcOffsetMinutes: 0
+    hasLocalUtcOffset: 0
   featureRegistry:
     modules:
     - {fileID: 11400000, guid: fd3d75de213c86d4b83c6cf8d71b8817, type: 2}
@@ -992,26 +952,7 @@ MonoBehaviour:
     level_unlock_treasure: 18
     level_unlock_busquest: 6
     level_unlock_missoncontrol: 36
-    can_suggest_daily_login: 0
-    can_suggest_daily_reward: 0
-    coin_default: 1000
-    coin_win_normal: 20
-    coin_win_hard: 50
-    coin_win_superhard: 80
-    revive_price: 900
-    refill_life_price: 900
-    boosters_default: 1
-    booster_1_price: 500
-    booster_2_price: 1500
-    booster_3_price: 1900
-    booster_4_price: 2700
-    level_enable_multicoin: 10
     back_home_on_win_level: 10
-    first_super_hard: 50
-    booster_1_unlock: 4
-    booster_2_unlock: 7
-    booster_3_unlock: 10
-    booster_4_unlock: 13
     latest_version: 1.6.0
 --- !u!4 &1198583503
 Transform:
@@ -1180,6 +1121,63 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &5884902356318095336
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 642124078052479680, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 642124078052479680, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 642124078052479680, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 642124078052479680, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 642124078052479680, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 642124078052479680, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 642124078052479680, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 642124078052479680, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 642124078052479680, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 642124078052479680, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1710385857132058832, guid: 9e26613e566b7a249b042897556401a7, type: 3}
+      propertyPath: m_Name
+      value: IAP Manager
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 9e26613e566b7a249b042897556401a7, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1189,3 +1187,4 @@ SceneRoots:
   - {fileID: 1439574219}
   - {fileID: 1198583503}
   - {fileID: 526951205}
+  - {fileID: 5884902356318095336}

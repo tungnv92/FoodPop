@@ -1,128 +1,128 @@
-using DG.Tweening;
-using GamePackages;
-using Longvm.RewardAnimator;
-using Longvm.UIAnimator;
 using System.Collections.Generic;
+using GamePackages;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
-public class PopupDailyReward : Popup
+// EN: Daily reward popup opened by FoodPop.UIManager: shows the free stage and the ad stages, grants a stage's reward immediately on claim and refreshes after every claim.
+// VI: Popup quà hằng ngày do FoodPop.UIManager mở: hiện stage miễn phí và các stage quảng cáo, cộng thưởng của stage ngay khi nhận và làm mới sau mỗi lượt nhận.
+[DisallowMultipleComponent]
+public sealed class PopupDailyReward : FoodPop.UICanvasPrime
 {
-    DailyRewardFeature DailyReward => DailyRewardFeature.Instance;
-    PlayerDataManager PlayerDataManager => ProfileManager.instance.PlayerDataManager;
-    [SerializeField] UIAnimator _openAnim;
-    [SerializeField] UIAnimator _closeAnim;
-    [SerializeField] RectTransform _freeTag;
-    [SerializeField] RectTransform _topRectTf;
-    [SerializeField] private UIDailyRewardInfo _FreeDailyRewardInfo;
-    [SerializeField] private List<UIDailyRewardInfo> l_AdsDailyRewardInfo;
-    RewardAnimator rewardAnimator;
-    // EN: Moves the coin/life displays onto the popup, plays the open animation, listens for claims and fills every stage.
-    // VI: Đưa hiển thị coin/mạng lên popup, chạy hiệu ứng mở, lắng nghe lượt nhận và hiển thị mọi stage.
-    public override void Open(object args = null)
+    [Tooltip("Ô phần thưởng miễn phí.")]
+    [FormerlySerializedAs("_FreeDailyRewardInfo")]
+    [SerializeField] private UIDailyRewardInfo freeRewardInfo;
+    [Tooltip("Các ô phần thưởng xem quảng cáo, theo thứ tự stage 1, 2, 3...")]
+    [FormerlySerializedAs("l_AdsDailyRewardInfo")]
+    [SerializeField] private List<UIDailyRewardInfo> adsRewardInfos;
+    [Tooltip("Nút đóng popup.")]
+    [SerializeField] private Button closeButton;
+
+    private DailyRewardFeature dailyReward;
+
+    // EN: Caches managers and the feature, binds the close button and listens for claims while the popup is active.
+    // VI: Cache manager và tính năng, nối nút đóng và lắng nghe lượt nhận khi popup đang bật.
+    private void OnEnable()
     {
-        base.Open(args);
-        UIManager.Ins.GetPanel<HomePanel>().CoinDisplay.transform.SetParent(_topRectTf);
-        UIManager.Ins.GetPanel<HomePanel>().LifeDisplay.transform.SetParent(_topRectTf);
-        _openAnim.Init();
-        _openAnim.Play(() =>
-        {
-            //if (DailyRewardManager.Ins.CurrentRewardIndex == 0)
-            //{
-            //    _freeTag.DOShakeRotation(0.35f, Vector3.forward * 10, 10, 0);
-            //}
-        });
-        DailyReward.onClaimedAction += ReloadData;
-        InitData();
+        if (!Application.isPlaying) return;
+        CacheFeedbackManagers();
+        dailyReward = DailyRewardFeature.Instance;
+        closeButton.onClick.AddListener(OnClickClose);
+        dailyReward.onClaimedAction += ReloadData;
     }
 
+    // EN: Removes the listeners added in OnEnable.
+    // VI: Gỡ các listener đã thêm trong OnEnable.
+    private void OnDisable()
+    {
+        if (!Application.isPlaying) return;
+        closeButton.onClick.RemoveListener(OnClickClose);
+        dailyReward.onClaimedAction -= ReloadData;
+    }
+
+    // EN: Activates the popup, fills every stage from the feature's configs and plays the shared open animation.
+    // VI: Bật popup, hiển thị mọi stage theo config của tính năng và chạy hiệu ứng mở dùng chung.
+    public override void Open()
+    {
+        base.Open();
+        InitData();
+        AnimateOpen();
+    }
+
+    // EN: Claims the free stage.
+    // VI: Nhận stage miễn phí.
     public void OnFreeClaim(DailyRewardConfig config)
     {
         OnClaimReward(config);
     }
 
-    // EN: Initiates an ad-based daily reward claim for the specified configuration.
-    // VI: Bắt đầu nhận phần thưởng hàng ngày qua quảng cáo cho cấu hình chỉ định.
+    // EN: Claims an ad stage; temporarily treats the ad as watched until the ads SDK is wired.
+    // VI: Nhận một stage quảng cáo; tạm coi như đã xem quảng cáo cho tới khi nối SDK quảng cáo.
     public void OnAdsClaim(DailyRewardConfig config)
     {
-        //SDKBridge.TrackAdsReward_Click(GamePlacement.DailyReward.ToString(), ButtonPlacement.BtnClaimDailyReward.ToString(), PlayerDataManager.GetCurrentLevel());
-        //SDKBridge.ShowReward(() => OnClaimAdsSuccess(config), null);
+        OnClaimAdsSuccess(config);
     }
 
     // EN: Fills the free stage and every ad stage from the feature's configs.
     // VI: Hiển thị stage miễn phí và mọi stage quảng cáo theo config của tính năng.
-    void InitData()
+    private void InitData()
     {
-        _FreeDailyRewardInfo.SetupStage(DailyReward.GetConfig(0), this);
-        for (int i = 0; i < l_AdsDailyRewardInfo.Count; i++)
+        freeRewardInfo.SetupStage(dailyReward.GetConfig(0), this);
+        for (int i = 0; i < adsRewardInfos.Count; i++)
         {
-            l_AdsDailyRewardInfo[i].SetupStage(DailyReward.GetConfig(i + 1), this);
-
+            adsRewardInfos[i].SetupStage(dailyReward.GetConfig(i + 1), this);
         }
     }
+
     // EN: Refreshes the free stage (its reward changes after each claim) and the state of every ad stage.
     // VI: Làm mới stage miễn phí (phần thưởng đổi sau mỗi lần nhận) và trạng thái mọi stage quảng cáo.
-    void ReloadData()
+    private void ReloadData()
     {
-        _FreeDailyRewardInfo.SetupStage(DailyReward.GetConfig(0), this);
-        for (int i = 0; i < l_AdsDailyRewardInfo.Count; i++)
+        freeRewardInfo.SetupStage(dailyReward.GetConfig(0), this);
+        for (int i = 0; i < adsRewardInfos.Count; i++)
         {
-            l_AdsDailyRewardInfo[i].OnReloadStage();
+            adsRewardInfos[i].OnReloadStage();
         }
     }
 
-    // EN: Grants the daily reward and records ad completion through optional IRecordTracking after a rewarded ad finishes.
-    // VI: Trao phần thưởng hàng ngày và ghi nhận hoàn tất quảng cáo qua IRecordTracking tùy chọn sau khi xem xong quảng cáo nhận thưởng.
+    // EN: Grants the stage reward and records the ad completion through optional IRecordTracking after a rewarded ad finishes.
+    // VI: Cộng thưởng của stage và ghi nhận hoàn tất quảng cáo qua IRecordTracking tùy chọn sau khi xem xong quảng cáo nhận thưởng.
     private void OnClaimAdsSuccess(DailyRewardConfig config)
     {
         OnClaimReward(config);
         ProfileManager.instance.Features.Get<IRecordTracking>()?.RecordAdsReward();
-        //SDKBridge.TrackAdsReward_Complete(GamePlacement.DailyReward.ToString(), ButtonPlacement.BtnClaimDailyReward.ToString(), PlayerDataManager.GetCurrentLevel(), new List<ResourceGame>() { config.reward });
     }
 
-    // EN: Plays the reward animation that grants the stage's reward, then records the claim on the feature.
-    // VI: Chạy hiệu ứng thưởng để cộng phần thưởng của stage, rồi ghi nhận lượt nhận vào tính năng.
-    void OnClaimReward(DailyRewardConfig config)
+    // EN: Grants and saves the stage's reward immediately, then records the claim on the feature (which refreshes the popup).
+    // VI: Cộng và lưu thưởng của stage ngay, rồi ghi nhận lượt nhận vào tính năng (tính năng sẽ làm mới popup).
+    private void OnClaimReward(DailyRewardConfig config)
     {
-        int level = PlayerDataManager.GetCurrentLevel();
-        //string placement = GamePlacement.DailyReward.ToString();
-        string placement = "daily_reward";
+        PlayHaptic();
+        const string placement = "daily_reward";
         ResourceType type = config.reward.type;
         int value = config.reward.value;
-        if (rewardAnimator == null) rewardAnimator = UIManager.Ins.GetPanel().RewardAnimator;
-        rewardAnimator.Init();
-        rewardAnimator.Add((int)type, value, onReceiveReward: () =>
+        switch (type)
         {
-            switch (type)
-            {
-                case ResourceType.Coin:
-                    PlayerDataManager.OnAddCoin(value, placement);
-                    break;
-                case ResourceType.BoosterClean:
-                case ResourceType.BoosterPickup:
-                case ResourceType.BoosterShuffle:
-                case ResourceType.BoosterAutoComplete:
-                    PlayerDataManager.OnAddBooster(type, value, placement);
-                    break;
-                case ResourceType.UnlimitedLives:
-                    PlayerDataManager.AddUnlimitedLiveTime(value, placement);
-                    break;
-
-            }
-        });
-        rewardAnimator.Play();
-        DailyReward.OnClaimStage(config.stageID);
+            case ResourceType.Coin:
+                playerData.OnAddCoin(value, placement);
+                break;
+            case ResourceType.UnlimitedLives:
+                playerData.AddUnlimitedLiveTime(value, placement);
+                break;
+            default:
+                playerData.OnAddBooster(type, value, placement);
+                break;
+        }
+        PlayUISound(FoodPop.IngameSoundManager.Event.ItemBought);
+        dailyReward.OnClaimStage(config.stageID);
     }
 
-    #region UI Events
-    // EN: Closes the popup, returns the coin/life displays to Home and stops listening for claims.
-    // VI: Đóng popup, trả hiển thị coin/mạng về Home và ngừng lắng nghe lượt nhận.
-    public void CloseButton()
+    // EN: Closes the popup with the shared exit animation.
+    // VI: Đóng popup bằng hiệu ứng thoát dùng chung.
+    private void OnClickClose()
     {
-        _closeAnim.Play(Close);
-        UIManager.Ins.GetPanel<HomePanel>().ResetCoinLife();
-        DailyReward.onClaimedAction -= ReloadData;
+        if (closing) return;
+        PlayHaptic();
+        CloseWithAnimation();
     }
-
-    #endregion
 }

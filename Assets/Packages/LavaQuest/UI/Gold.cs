@@ -7,11 +7,10 @@ public class Gold : MonoBehaviour
     public Image icon;
     public TextMeshProUGUI txt;
 
+    // EN: Opens the shop directly at the Coin packs.
+    // VI: Mở cửa hàng thẳng vào phần gói Coin.
     public void ButtonAdd()
     {
-        if (UIManager.Ins != null)
-        {
-            UIManager.Ins.OpenPopup(PopupId.Shop);
-        }
+        FoodPop.PopupShop.ShowCoins();
     }
 }

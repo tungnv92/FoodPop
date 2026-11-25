@@ -1,6 +1,4 @@
 using GamePackages;
-using Longvm.RewardAnimator;
-using MonetToolkit;
 using System;
 using System.Collections;
 using UnityEngine;
@@ -64,14 +62,13 @@ public class HomePanel : Panel
         ApplySafeAreaToInner();
     }
 
-    // EN: Runs the existing Home IAP flow without automatic feature popup or tutorial sequences.
-    // VI: Chạy luồng IAP Home hiện có, không tự chạy chuỗi popup hoặc tutorial của feature.
+    // EN: Briefly blocks Home input while it settles; no automatic IAP, feature popup or tutorial sequence runs.
+    // VI: Chặn thao tác ở Home một lúc khi vừa vào; không tự chạy gợi ý IAP, chuỗi popup feature hay tutorial.
     public IEnumerator RunHomeSequence()
     {
         UIManager.Ins.EnableBlocker(true);
         yield return new WaitForSeconds(0.5f);
         //yield return CheckNewVersion();
-        yield return CheckSuggestIapPacks();
         UIManager.Ins.EnableBlocker(false);
     }
 
@@ -128,27 +125,6 @@ public class HomePanel : Panel
     //        }
     //        else yield break;
     //    }
-
-    IEnumerator CheckSuggestIapPacks()
-    {
-        UIManager.Ins.EnableBlocker(true);
-
-        if (IAPManager.Ins.CheckSuggestRemoveAds())
-        {
-            UIManager.Ins.EnableBlocker(false);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.RemoveAds));
-            yield return RewardAnimator.WaitUntilComplete;
-        }
-
-        if (IAPManager.Ins.CheckSuggestStarterPack())
-        {
-            UIManager.Ins.EnableBlocker(false);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.StarterPack));
-            yield return RewardAnimator.WaitUntilComplete;
-        }
-
-        UIManager.Ins.EnableBlocker(false);
-    }
 
     //bool CheckAppVersion()
     //{
