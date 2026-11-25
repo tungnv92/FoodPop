@@ -162,7 +162,7 @@ namespace FoodPop
         {
             if (!choicesReady || closing) return;
             PlayClickFeedback();
-            ProfileManager.instance.GameFeatureContext.HeartManager.UseHeart();
+            ProfileManager.instance.Features.Get<IHeart>()?.UseHeart();
             playerData.ResetStatePlaying();
             CloseWithAnimation(action);
         }

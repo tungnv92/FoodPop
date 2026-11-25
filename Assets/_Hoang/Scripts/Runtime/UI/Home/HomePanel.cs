@@ -1,7 +1,4 @@
 using GamePackages;
-using HomeFeatures.DailyLogin;
-using Longvm.RewardAnimator;
-using MonetToolkit;
 using System;
 using System.Collections;
 using UnityEngine;
@@ -10,6 +7,11 @@ using UnityEngine.UI;
 
 public class HomePanel : Panel
 {
+    private const float BASE_RATIO = 1920f / 1080f;
+    public CoinDisplay CoinDisplay => _coinDisplay;
+    public RectTransform LifeDisplay => _lifeDisplay;
+    public ShopTab Shop => _shop;
+
     [SerializeField] RectTransform _rectTf;
     [SerializeField] RectTransform _innerRectTf;
     [SerializeField] RectTransform _refTf;
@@ -18,26 +20,14 @@ public class HomePanel : Panel
     [SerializeField] RectTransform _mainSpineTf;
     [SerializeField] HorizontalLayoutGroup _topHorizontal;
     [SerializeField] RectTransform topRectTf;
-    [Space]
-    [SerializeField] ButtonDailyLogin _buttonDailyLogin;
-    [SerializeField] DailyRewardButton _buttonDailyReward;
-    [SerializeField] WinStreakHome _winStreakHome;
-    [SerializeField] LavaQuestButtonHome _lavaQuestButton;
-    [SerializeField] MissionControlButtonHome _missionControlButton;
-    [SerializeField] TowerRiseButtonHome _towerRiseButton;
-    [SerializeField] CardCollectionButtonHome _cardCollectionButton;
-    public CoinDisplay CoinDisplay => _coinDisplay;
-    public LifeDisplay LifeDisplay => _lifeDisplay;
-    public ShopTab Shop => _shop;
-    public WinStreakHome WinStreakHome => _winStreakHome;
 
-    private const float BASE_RATIO = 1920f / 1080f;
     private bool _isInnerResized;
 
-    // EN: Initializes the home panel, resizes the inner container to fit the screen aspect ratio, and starts the home sequence.
-    // VI: Khởi tạo panel màn hình chính, điều chỉnh kích thước khung chứa bên trong theo tỉ lệ màn hình và chạy chuỗi sự kiện mở đầu.
+    // EN: Waits for verified Internet and profile startup before resizing the home panel and starting its popup sequence.
+    // VI: Chờ Internet đã xác thực và hồ sơ khởi tạo xong trước khi chỉnh kích thước Home và chạy chuỗi popup.
     private IEnumerator Start()
     {
+        yield return new WaitUntil(() => ProfileManager.instance.IsReady);
         ResizeInnerContainer();
         yield return new WaitForEndOfFrame();
         //AudioManager.Ins.PlayMusic(0, MusicType.Home);
@@ -72,6 +62,27 @@ public class HomePanel : Panel
         ApplySafeAreaToInner();
     }
 
+    // EN: Briefly blocks Home input while it settles; no automatic IAP, feature popup or tutorial sequence runs.
+    // VI: Chặn thao tác ở Home một lúc khi vừa vào; không tự chạy gợi ý IAP, chuỗi popup feature hay tutorial.
+    public IEnumerator RunHomeSequence()
+    {
+        UIManager.Ins.EnableBlocker(true);
+        yield return new WaitForSeconds(0.5f);
+        //yield return CheckNewVersion();
+        UIManager.Ins.EnableBlocker(false);
+    }
+
+    public void SnapToPage(int id)
+    {
+        _scroller.SnapToPage(id);
+    }
+
+    public void ResetCoinLife()
+    {
+        _coinDisplay.transform.SetParent(topRectTf);
+        _lifeDisplay.transform.SetParent(topRectTf);
+    }
+
     // EN: Applies Screen.safeArea normalized bounds (following SafeArea.cs) to the inner container's sizeDelta and anchoredPosition.
     // VI: Áp dụng giới hạn chuẩn hóa của Screen.safeArea (theo phương pháp của SafeArea.cs) vào sizeDelta và anchoredPosition của khung chứa bên trong.
     private void ApplySafeAreaToInner()
@@ -100,86 +111,6 @@ public class HomePanel : Panel
         }
     }
 
-    public IEnumerator RunHomeSequence()
-    {
-        UIManager.Ins.EnableBlocker(true);
-        yield return new WaitForSeconds(0.5f);
-        //yield return CheckNewVersion();
-        yield return CollectRemainsCoin();
-        yield return CheckSuggestIapPacks();
-        yield return CheckEventsProgress();
-        yield return CheckSuggestLiveOps();
-        yield return CheckShowTutLiveOps();
-        UIManager.Ins.EnableBlocker(false);
-    }
-
-    // EN: Refreshes event home buttons and runs any pending win/lose or card-drop sequences upon returning to Home.
-    // VI: Cập nhật các nút sự kiện trên màn hình chính và chạy các chuỗi thắng/thua hoặc nhận thẻ đang chờ khi về Home.
-    IEnumerator CheckEventsProgress()
-    {
-        if (_missionControlButton == null)
-        {
-            _missionControlButton = GetComponentInChildren<MissionControlButtonHome>(true);
-        }
-
-        if (_missionControlButton != null)
-        {
-            _missionControlButton.RefreshState();
-        }
-
-        if (_winStreakHome == null)
-        {
-            _winStreakHome = GetComponentInChildren<WinStreakHome>(true);
-        }
-
-        if (_winStreakHome != null && _winStreakHome.HasPendingPoints())
-        {
-            yield return _winStreakHome.ClaimPendingPoint();
-        }
-
-        if (LavaQuestManager.Instance != null)
-        {
-            if (LavaQuestManager.Instance.ShouldShowWinFlow())
-            {
-                UIManager.Ins.EnableBlocker(false);
-                LavaQuestManager.Instance.ConsumeWinFlow();
-                LavaQuest.isWin = true;
-                UIManager.Ins.OpenPopup(PopupId.LavaQuest);
-                yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.LavaQuest) && !UIManager.Ins.IsPopupOpen(PopupId.LavaQuestClaim));
-                yield return RewardAnimator.WaitUntilComplete;
-            }
-            else if (LavaQuestManager.Instance.ShouldShowLoseFlow())
-            {
-                UIManager.Ins.EnableBlocker(false);
-                LavaQuestManager.Instance.ConsumeLoseFlow();
-                LavaQuest.isFail = true;
-                UIManager.Ins.OpenPopup(PopupId.LavaQuest);
-                yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.LavaQuest));
-                yield return RewardAnimator.WaitUntilComplete;
-            }
-        }
-
-        if (_towerRiseButton != null)
-        {
-            _towerRiseButton.RunAnim();
-            yield return new WaitUntil(() => !_towerRiseButton.IsRunningAnim);
-        }
-
-        if (_cardCollectionButton == null)
-        {
-            _cardCollectionButton = GetComponentInChildren<CardCollectionButtonHome>(true);
-        }
-
-        if (_cardCollectionButton != null)
-        {
-            _cardCollectionButton.RefreshState();
-            if (_cardCollectionButton.HasPendingCardDrop())
-            {
-                yield return _cardCollectionButton.PresentPendingCardDrop();
-            }
-        }
-    }
-
     //IEnumerator CheckNewVersion()
     //{
     //    bool needUpdate = CheckAppVersion();
@@ -194,124 +125,6 @@ public class HomePanel : Panel
     //        }
     //        else yield break;
     //    }
-
-    //    yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.RequireUpdate));
-    //}
-    // EN: Animates pending coins and claims them through a manager command that saves both balances together.
-    // VI: Chạy hiệu ứng xu chờ và nhận qua lệnh manager lưu cả hai số dư cùng lúc.
-    IEnumerator CollectRemainsCoin()
-    {
-        int pendingCoin = ProfileManager.instance.PlayerDataManager.PendingCoinAmount;
-        if (pendingCoin > 0)
-        {
-            bool animDone = false;
-            UIManager.Ins.EnableBlocker(true);
-            yield return new WaitForSeconds(1);
-            RewardAnimator.Init();
-            RewardAnimator.Add(0, pendingCoin, onReceiveReward: (() =>
-            {
-                ProfileManager.instance.PlayerDataManager.ClaimPendingCoins("ingame_win");
-            }), onAnimCompleted: () =>
-            {
-                animDone = true;
-            });
-            RewardAnimator.Play();
-
-            yield return new WaitUntil(() => animDone);
-            UIManager.Ins.EnableBlocker(false);
-        }
-    }
-
-    IEnumerator CheckSuggestIapPacks()
-    {
-        UIManager.Ins.EnableBlocker(true);
-
-        if (IAPManager.Ins.CheckSuggestRemoveAds())
-        {
-            UIManager.Ins.EnableBlocker(false);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.RemoveAds));
-            yield return RewardAnimator.WaitUntilComplete;
-        }
-
-        if (IAPManager.Ins.CheckSuggestStarterPack())
-        {
-            UIManager.Ins.EnableBlocker(false);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.StarterPack));
-            yield return RewardAnimator.WaitUntilComplete;
-        }
-
-        UIManager.Ins.EnableBlocker(false);
-    }
-
-    IEnumerator CheckSuggestLiveOps()
-    {
-        UIManager.Ins.EnableBlocker(true);
-        if (_buttonDailyLogin.CheckSuggest())
-        {
-            UIManager.Ins.EnableBlocker(false);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.DailyLogin));
-            yield return RewardAnimator.WaitUntilComplete;
-        }
-
-        if (_buttonDailyReward.CheckSuggest())
-        {
-            UIManager.Ins.EnableBlocker(false);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.DailyReward));
-            yield return RewardAnimator.WaitUntilComplete;
-        }
-
-        UIManager.Ins.EnableBlocker(false);
-    }
-
-    // EN: Coordinates CheckShowTutLiveOps using encapsulated player and feature APIs instead of accessing live save models.
-    // VI: Điều phối CheckShowTutLiveOps qua API người chơi và tính năng đã đóng gói thay vì truy cập model lưu đang dùng.
-    IEnumerator CheckShowTutLiveOps()
-    {
-        UIManager.Ins.EnableBlocker(true);
-        if (_winStreakHome.CheckShowTut())
-        {
-            _winStreakHome.ShowTut();
-            yield return new WaitUntil(() => WinStreakManager.Instance.HasShownTutorial);
-            yield return new WaitForSeconds(2);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.WinStreak));
-        }
-
-        if (_lavaQuestButton.CheckShowTut())
-        {
-            yield return new WaitUntil(() => LavaQuestManager.Ins.HasCompletedTutorial);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.LavaQuest));
-        }
-
-        if (_missionControlButton.CheckShowTut())
-        {
-            yield return new WaitUntil(() => MissionControlManager.Ins.HasCompletedTutorial);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.MissionControl));
-        }
-
-        if (_towerRiseButton != null && _towerRiseButton.CheckShowTut())
-        {
-            yield return new WaitUntil(() => TowerRiseManager.Ins.HasCompletedTutorial);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.TowerRiseIntroduce) && !UIManager.Ins.IsPopupOpen(PopupId.TowerRise));
-        }
-
-        if (_cardCollectionButton != null && _cardCollectionButton.CheckShowTut())
-        {
-            yield return new WaitUntil(() => CardCollectionManager.Ins.Data.isDoneTutorial);
-            yield return new WaitUntil(() => !UIManager.Ins.IsPopupOpen(PopupId.CardCollectionInfo) && !UIManager.Ins.IsPopupOpen(PopupId.CardCollection));
-        }
-
-        UIManager.Ins.EnableBlocker(false);
-    }
-    public void SnapToPage(int id)
-    {
-        _scroller.SnapToPage(id);
-    }
-
-    public void ResetCoinLife()
-    {
-        _coinDisplay.transform.SetParent(topRectTf);
-        _lifeDisplay.transform.SetParent(topRectTf);
-    }
 
     //bool CheckAppVersion()
     //{

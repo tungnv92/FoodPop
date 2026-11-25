@@ -4655,181 +4655,30 @@ MonoBehaviour:
     isFirstAppOpen: 0
     currentLevel: 0
     isPlaying: 0
-    isRemoveAds: 0
-    isBoughtStarterPack: 0
-    isInitSaleStarterPack: 0
-    isSetupProfile: 0
-    isFirstHomeOpenInDay: 0
-    playerName: 
-    avatar_id: 0
-    frame_avatar_id: 0
-    isSoundOn: 0
-    isMusicOn: 0
-    isVibrateOn: 0
-    isLoseStreakQuit: 0
+    shopData:
+      isRemoveAds: 0
+      isBoughtStarterPack: 0
+      isInitSaleStarterPack: 0
+    userSettingData:
+      isSoundOn: 0
+      isMusicOn: 0
+      isVibrateOn: 0
     l_ResourceGame: []
-    PendingCoinAmount: 0
-    DailyGiftData:
-      <day>k__BackingField: 1
-      <isEnableClaim>k__BackingField: 1
-      <isSuggested>k__BackingField: 0
-      l_ClaimedChecker: 00000000000000
-    DailyRewardData:
-      totalAdsClaimed: 0
-      totalFreeClaimed: 0
-      isSuggested: 0
-    RecordTrackingData:
-      level: 1
-      retryCount: 0
-      winstreak: 0
-      user_retention: 0
-      first_open_time: 
-      last_time_play: 2026-11-02 13:40:35
-      iap_count: 0
-      win_streak: 0
-      booster_spend_count: 0
-      booster_earn_count: 0
-      ads_reward_count: 0
-      ads_inter_count: 0
-      value_coins_earn_count: 0
-      value_coins_spend_count: 0
-      booster_spend_level: 0
-      coin_spend_level: 0
-      ads_count_level: 0
-    HeartData:
-      isInit: 1
-      currentHeartAmount: 5
-      maxHeart: 5
-      timeToNewHeart: 0
-      unlimitedLivesExpireTime: 0
-      sLastTimeOnline: 
-    WinStreakData:
-      keyAmount: 0
-      pendingKeyAmount: 0
-      numberWinsteak: 0
-      winstreak: 0
-      treasureExpire: 
-      currentRoundId: 
-      currentRound: 0
-      isShownFirstTut: 0
-      isShownFirstInfo: 0
-      isCompleted: 0
-      claimedMilestoneIndexes: 
-    LavaQuestData:
-      winStreak: 0
-      isCompeting: 0
-      playersLeftAmount: 100
-      expire: 
-      rejoinExpire: 
-      isCompeteFromLastJourney: 0
-      isQuitLevelLastSession: 0
-      isShowedInfo: 0
-      isDoneTutorial: 0
-      eventDate: 
-      attemptId: 
-      attemptDate: 
-      attemptStartTime: 
-      attemptEndTime: 
-      attemptStatus: 0
-      currentMilestone: 0
-      lastFailTime: 
-      retryAvailableAt: 
-      targetFinalParticipants: 10
-      activeBotCount: 99
-      failedBotCount: 0
-      completedBotCount: 0
-      isCompleted: 0
-      isFailed: 0
-      rewardGranted: 0
-      rewardTransactionId: 
-      lastProcessedGameplayResultId: 
-      completedEventDate: 
-      bots: []
-    MissionControlData:
-      currentCycleId: 
-      expire: 
-      isClaimedGrandChest: 0
-      isShowedInfo: 0
-      isDoneTutorial: 0
-      claimedStageIds: 
-      questCounts: []
-      questClaimeds: []
-    TowerRiseData:
-      currentMilestone: 0
-      lastMilestone: 0
-      totalMilestone: 0
-      isStarted: 0
-      isEventFinishedPending: 0
-      isDoneTutorial: 0
-      isShowedInfo: 0
-      isQuitLevelLastSession: 0
-      expire: 
-      claimedIndexes: 
-      finishedPendingClaimMilestoneIndexes: 
-      unclaimedRewardInfos: []
-    CardCollectionData:
-      isUnlocked: 0
-      unlockTimeIso: 
-      expireTimeIso: 
-      isShowedInfo: 0
-      isDoneTutorial: 0
-      isClaimedGrandReward: 0
-      ticketAmount: 0
-      currentSpinBoardIndex: 0
-      currentSpinSetCount: 0
-      totalSpinCount: 0
-      firstTryWinsWithoutTier3: 0
-      firstTryWinsWithoutTier4: 0
-      pendingDroppedCardId: -1
-      pendingDroppedCardWasDuplicate: 0
-      pendingDroppedTicketsEarned: 0
-      ownedCardIds: 
-      claimedCollectionIds: 
-      claimedSpinSlots: 
-      setDrawsWithoutNewCard: 000000000000000000000000000000000000000000000000
+    features: []
   TimeManager:
+    cheatTime: 0
     sLastOnlineTime: 
-    isInitialized: 0
-  GameFeatureContext:
-    DailyGiftManager:
-      DailyGiftGlobalConfig: {fileID: 0}
-    DailyRewardManager:
-      DailyRewardGlobalConfig: {fileID: 0}
-    WinStreakManager:
-      WinStreakGlobalConfig: {fileID: 0}
-      isCheatBetweenDays: 0
-      claimAmountCheat: 0
-    HeartManager:
-      masterPass_Max_Heart: 8
-      timeRefillOnHeart: 30
-      refillGoldCost: 900
-    LavaQuestManager:
-      LavaQuestConfig: {fileID: 0}
-    MissionControlManager:
-      MissionControlConfig: {fileID: 0}
-      isCheatBetweenFridayAndMonday: 0
-    TowerRiseManager:
-      TowerRiseConfig: {fileID: 0}
-      currentMilestone: 0
-      currentStepinMilestone: 0
-      isWin: 0
-      isFail: 0
-      failAnimFromStep: 0
-      lastCompletedMilestoneIndex: -1
-      pendingIntroduceScroll: 0
-      isClaimingRewards: 0
-    CardCollectionManager:
-      CardCollectionConfig: {fileID: 0}
-      isCheatForceActive: 0
-  DailyGiftRewardConfig: {fileID: 0}
-  DailyRewardGlobalConfig: {fileID: 0}
-  WinStreakGlobalConfig: {fileID: 0}
-  LavaQuestConfig: {fileID: 0}
-  MissionControlConfig: {fileID: 0}
-  TowerRiseConfig: {fileID: 0}
-  CardCollectionConfig: {fileID: 0}
-  AvatarConfig: {fileID: 0}
-  FrameConfig: {fileID: 0}
+    lastRewardDate: 
+    localUtcOffsetMinutes: 0
+    hasLocalUtcOffset: 0
+  featureRegistry:
+    modules:
+    - {fileID: 11400000, guid: fd3d75de213c86d4b83c6cf8d71b8817, type: 2}
+    - {fileID: 11400000, guid: 16412f3798028ed48b6268213fde02e5, type: 2}
+    - {fileID: 11400000, guid: 2014e7abcf664f842a5012704456fc04, type: 2}
+    - {fileID: 11400000, guid: 4feda59ef9389894489df7dbf1cffc47, type: 2}
+    - {fileID: 11400000, guid: 15e03929b24f6a5439fb7f3635cd5c75, type: 2}
+    - {fileID: 11400000, guid: f7d48ba3e6efdce4e982f7e460232f6b, type: 2}
   RemoteConfigBase:
     level_showinter_win: 15
     level_showinter_lose: 26
@@ -4840,31 +4689,8 @@ MonoBehaviour:
     level_unlock_treasure: 18
     level_unlock_busquest: 6
     level_unlock_missoncontrol: 36
-    can_suggest_daily_login: 0
-    can_suggest_daily_reward: 0
-    coin_default: 1000
-    coin_win_normal: 20
-    coin_win_hard: 50
-    coin_win_superhard: 80
-    revive_price: 900
-    refill_life_price: 900
-    boosters_default: 1
-    booster_1_price: 500
-    booster_2_price: 1500
-    booster_3_price: 1900
-    booster_4_price: 2700
-    level_enable_multicoin: 10
     back_home_on_win_level: 10
-    first_super_hard: 50
-    booster_1_unlock: 4
-    booster_2_unlock: 7
-    booster_3_unlock: 10
-    booster_4_unlock: 13
     latest_version: 1.6.0
-  IsCheatLevel: 0
-  IsActiveBot: 0
-  MaxLevel: 100
-  RewardIconMapping: {fileID: 0}
 --- !u!4 &490769249
 Transform:
   m_ObjectHideFlags: 0
@@ -8733,9 +8559,9 @@ MonoBehaviour:
   - foodType: 3
     animation: {fileID: 11400000, guid: f3d93b6e173bc7749bf39c84ef2fa4d4, type: 2}
   - foodType: 4
-    animation: {fileID: 11400000, guid: f3d93b6e173bc7749bf39c84ef2fa4d4, type: 2}
+    animation: {fileID: 11400000, guid: 78d0c89324bb8464bab2de3cde1fca24, type: 2}
   - foodType: 5
-    animation: {fileID: 11400000, guid: f3d93b6e173bc7749bf39c84ef2fa4d4, type: 2}
+    animation: {fileID: 11400000, guid: 00c22c65d569ebd43b84333a5d44aa48, type: 2}
   - foodType: 6
     animation: {fileID: 11400000, guid: ffc872aa0a85d9e4b9cf9516c35f07dd, type: 2}
   - foodType: 7
@@ -8743,7 +8569,7 @@ MonoBehaviour:
   - foodType: 9
     animation: {fileID: 11400000, guid: f3d93b6e173bc7749bf39c84ef2fa4d4, type: 2}
   - foodType: 10
-    animation: {fileID: 11400000, guid: f3d93b6e173bc7749bf39c84ef2fa4d4, type: 2}
+    animation: {fileID: 11400000, guid: faa6cb4b95d89824b829a8a02954b3b7, type: 2}
   - foodType: 12
     animation: {fileID: 11400000, guid: d4d5a3e5591da3b48a3ec183f6bc1dc6, type: 2}
   - foodType: 14

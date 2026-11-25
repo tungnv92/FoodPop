@@ -1,11 +1,23 @@
 using Sirenix.OdinInspector;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Serialization;
 namespace GamePackages
 {
+    // Runs before every other script (EventSystem is -1000) so profile data and features exist before any Awake/OnEnable/Start reads them.
+    // Chạy trước mọi script khác (EventSystem là -1000) để dữ liệu hồ sơ và tính năng đã có trước khi Awake/OnEnable/Start khác đọc tới.
+    [DefaultExecutionOrder(-10000)]
     public class ProfileManager : Singleton<ProfileManager>
     {
+        /// <summary>
+        /// Module features registered from FeatureModule assets.
+        /// </summary>
+        public FeatureRegistry Features => featureRegistry;
+        // EN: Exposes the persistent core Internet gate to startup and UI flows.
+        // VI: Cung cấp màn chặn Internet core xuyên scene cho luồng khởi tạo và UI.
+        public InternetConnection Connection { get; private set; }
+        // EN: Allows gameplay only after profile startup and an active verified connection, or cheat.
+        // VI: Chỉ cho gameplay chạy sau khởi tạo hồ sơ và có kết nối đã xác thực, hoặc cheat.
+        public bool IsReady => startupComplete && Connection.IsReady;
         /// <summary>
         ///  Save Manager, Save Game Data
         /// </summary>
@@ -23,68 +35,99 @@ namespace GamePackages
         /// </summary>
         public PlayerDataManager PlayerDataManager = new();
         /// <summary>
-        /// Game Feature
+        /// Feature modules (new system)
         /// </summary>
-        public GameFeatureContext GameFeatureContext;
-        //public SaleManager SaleManager = new();
-        public DailyGiftRewardConfig DailyGiftRewardConfig;
-        public DailyRewardGlobalConfig DailyRewardGlobalConfig;
-        [FormerlySerializedAs("TreasureGlobalConfig")]
-        public WinStreakGlobalConfig WinStreakGlobalConfig;
-        public WinStreakGlobalConfig TreasureGlobalConfig
-        {
-            get => WinStreakGlobalConfig;
-            set => WinStreakGlobalConfig = value;
-        }
-        public LavaQuestConfig LavaQuestConfig;
-        public MissionControlConfig MissionControlConfig;
-        public TowerRiseConfig TowerRiseConfig;
-        public CardCollectionConfig CardCollectionConfig;
-        [Header("Avatar & Frame Configs")]
-        public HomeFeatures.Profile.AvatarConfig AvatarConfig;
-        public FrameConfig FrameConfig;
-        //public ItemFeatureIntroConfig ItemFeatureConfig;
+        [SerializeField] private FeatureRegistry featureRegistry = new();
         public RemoteConfigBase RemoteConfigBase;
         public static bool isCheckingUpdate = false;
-        public bool IsCheatLevel;
-        public bool IsActiveBot;
-        public int MaxLevel = 100;
-        public RewardIconMapping RewardIconMapping;
+        private bool startupComplete;
+
+        // EN: Loads core data and creates the persistent Internet gate after registering the profile singleton.
+        // VI: Nạp dữ liệu core và tạo màn chặn Internet xuyên scene sau khi đăng ký singleton hồ sơ.
         protected override void Awake()
         {
             base.Awake();
-            LoadData();
+            if (!isAwakable) return;
+            InitializeProfile();
         }
-        private void Start()
+        // EN: Waits until time verification has handled the day, or cheat is enabled, then catches up features, applies the session and tracking, and saves before play.
+        // VI: Chờ xác thực giờ đã xử lý ngày hoặc bật cheat, rồi cập nhật bù tính năng, áp dụng phiên chơi và tracking, lưu trước khi cho chơi.
+        private IEnumerator Start()
         {
-            if (PlayerData.isFirstAppOpen)
-            {
-                PlayerData.isFirstAppOpen = false;
-                SaveData();
-
-                PlayerDataManager.AddUnlimitedLiveTime(30, "first_app_open");
-            }
-
-            //SaleManager.InitSale();
-            if (PlayerData.isPlaying)
-            {
-                PlayerData.isPlaying = false;
-                GameFeatureContext.HeartManager.UseHeart();
-                GameFeatureContext.WinStreakManager.OnLevelLose();
-                GameFeatureContext.LavaQuestManager.OnLevelLose();
-                SaveData();
-            }
-
+            yield return new WaitUntil(() => Connection.IsReady);
+            featureRegistry.UpdateFeatures();
+            ApplySessionChanges();
+            featureRegistry.TrackAppOpen();
+            SaveData();
+            startupComplete = true;
         }
 
-        public void Update()
+        // EN: Advances registered features only after startup and while the Internet gate permits play.
+        // VI: Chỉ cập nhật các tính năng đã đăng ký sau khởi tạo và khi màn chặn Internet cho phép chơi.
+        private void Update()
         {
-            TimeManager.UpdateTime();
-            GameFeatureContext.Update();
+            if (!IsReady) return;
+            TimeManager.CheckForNewDay();
+            featureRegistry.UpdateFeatures();
         }
-        // EN: Loads private player data and wires managers and features through internal initialization APIs.
-        // VI: Nạp dữ liệu người chơi riêng và gắn manager cùng tính năng qua API khởi tạo nội bộ.
-        void LoadData()
+
+        // EN: Saves the current profile and trusted clock when entering the background.
+        // VI: Lưu hồ sơ hiện tại và đồng hồ đáng tin khi ứng dụng vào nền.
+        private void OnApplicationPause(bool pause)
+        {
+            if (pause) SaveData();
+        }
+
+        // EN: Saves profile and trusted clock when the application quits.
+        // VI: Lưu hồ sơ và đồng hồ đáng tin khi ứng dụng thoát.
+        private void OnApplicationQuit()
+        {
+            SaveData();
+        }
+
+        // EN: Reads the saved current level directly from core player data.
+        // VI: Đọc level hiện tại đã lưu trực tiếp từ dữ liệu người chơi core.
+        public int GetCurrentLevel()
+        {
+            return PlayerData.currentLevel;
+        }
+        // EN: Changes the level through the player manager so progress is saved and announced.
+        // VI: Đổi level qua manager người chơi để lưu và thông báo tiến trình.
+        public void SetCurrentLevel(int level)
+        {
+            PlayerDataManager.SetCurrentLevel(level);
+        }
+        // EN: Saves core and module data together with the trusted clock.
+        // VI: Lưu dữ liệu core, module và đồng hồ đáng tin.
+        [Button]
+        public void SaveData()
+        {
+            SaveService.SaveData();
+            TimeManager.SaveData();
+        }
+        // EN: Deletes persisted player, feature and clock keys without resetting the active in-memory profile.
+        // VI: Xóa khóa lưu người chơi, tính năng và đồng hồ, không reset hồ sơ đang giữ trong bộ nhớ.
+        [Button]
+        public void DeleteSavedData()
+        {
+            TimeManager.ClearData();
+            PlayerPrefs.DeleteAll();
+        }
+
+        // EN: Coordinates core restoration, feature initialization and day subscription before starting Internet verification.
+        // VI: Điều phối khôi phục core, khởi tạo tính năng và đăng ký ngày mới trước khi bắt đầu xác thực Internet.
+        private void InitializeProfile()
+        {
+            RestoreCoreData();
+            featureRegistry.InitializeFeatures(new FeatureServices(SaveService, PlayerDataManager, TimeManager, RemoteConfigBase));
+            TimeManager.RegisterNewDayCallback("Newday", HandleNewDay);
+            Connection = Instantiate(Resources.Load<InternetConnection>("InternetConnection"), transform);
+            Connection.Initialize(TimeManager);
+        }
+
+        // EN: Restores core player and clock data, then binds the player service before any feature is created.
+        // VI: Khôi phục dữ liệu người chơi core và đồng hồ rồi gắn dịch vụ người chơi trước khi tạo tính năng.
+        private void RestoreCoreData()
         {
             SaveService ??= new SaveService();
             PlayerData = SaveService.Load();
@@ -92,131 +135,43 @@ namespace GamePackages
             TimeManager.LoadData();
             PlayerDataManager.SetSaveService(SaveService);
             PlayerDataManager.SetContext(PlayerData);
-            GameFeatureContext = new GameFeatureContext(this, PlayerData, SaveService);
-            TimeManager.AddDayCallback("Newday", OnNewDay);
-            TimeManager.CheckNewDayWhenLogin();
-            GameFeatureContext.DailyGiftManager.DailyGiftGlobalConfig = DailyGiftRewardConfig;
-            GameFeatureContext.DailyRewardManager.DailyRewardGlobalConfig = DailyRewardGlobalConfig;
-            GameFeatureContext.WinStreakManager.WinStreakGlobalConfig = WinStreakGlobalConfig;
-            GameFeatureContext.LavaQuestManager.LavaQuestConfig = LavaQuestConfig;
-            GameFeatureContext.TowerRiseManager.TowerRiseConfig = TowerRiseConfig;
         }
 
-        public Sprite GetAvatarSprite(int id)
-        {
-            if (AvatarConfig != null && AvatarConfig.AvatarSprites != null && id >= 0 && id < AvatarConfig.AvatarSprites.Length)
-                return AvatarConfig.AvatarSprites[id];
-            return null;
-        }
-
-        public Sprite GetFrameSprite(int id)
-        {
-            if (FrameConfig != null && FrameConfig.FrameSprites != null && id >= 0 && id < FrameConfig.FrameSprites.Length)
-                return FrameConfig.FrameSprites[id];
-            return null;
-        }
-
-        public Sprite GetRandomAvatarSprite()
-        {
-            if (AvatarConfig != null && AvatarConfig.AvatarSprites != null && AvatarConfig.AvatarSprites.Length > 0)
-                return AvatarConfig.AvatarSprites[UnityEngine.Random.Range(0, AvatarConfig.AvatarSprites.Length)];
-            return null;
-        }
-
-        public Sprite GetRandomFrameSprite()
-        {
-            if (FrameConfig != null && FrameConfig.FrameSprites != null && FrameConfig.FrameSprites.Length > 0)
-                return FrameConfig.FrameSprites[UnityEngine.Random.Range(0, FrameConfig.FrameSprites.Length)];
-            return null;
-        }
-
-        public void SetMaxLevel(int value)
-        {
-            value = 100;
-            if (value > 0 && value >= GetMaxLevel() && IsNewVer())
-            {
-                MaxLevel = value;
-                PlayerPrefs.SetInt("Max_Level", MaxLevel);
-            }
-        }
-
-        // EN: Checks whether the current application version matches the server version.
-        // VI: Kiểm tra phiên bản ứng dụng hiện tại có khớp với phiên bản máy chủ hay không.
-        public bool IsNewVer()
-        {
-            string currentVersion = Application.version;
-            //if (currentVersion.Equals(SDKBridge.serverVer)) return true;
-            return false;
-        }
-        public int GetMaxLevel()
-        {
-            //return PlayerPrefs.GetInt("Max_Level", MaxLevel);
-            return MaxLevel;
-        }
-        public int GetCurrentLevel()
-        {
-            //return PlayerPrefs.GetInt("Max_Level", MaxLevel);
-            return PlayerData.currentLevel;
-        }
-        // EN: Changes the level through the player manager so progress is saved and announced.
-        // VI: Đổi level qua manager người chơi để lưu và thông báo tiến trình.
-        public void JumpToTriggerLevel(int triggerLevel)
-        {
-            PlayerDataManager.SetCurrentLevel(triggerLevel);
-        }
-        void OnNewDay()
+        // EN: Resets core and all feature day state, then saves the complete profile before TimeManager persists the new-day boundary.
+        // VI: Reset trạng thái ngày của core và mọi tính năng rồi lưu toàn bộ hồ sơ trước khi TimeManager lưu mốc ngày mới.
+        private void HandleNewDay()
         {
             Debug.Log("OnNewDay");
-            PlayerData.OnNewDay();
-            GameFeatureContext.OnNewDay();
-            StartCoroutine(ITrackUserProperty());
+            featureRegistry.OnNewDay();
+            SaveService.SaveData();
         }
 
-        // EN: Waits briefly before triggering open-app tracking across game features.
-        // VI: Chờ một khoảng ngắn trước khi kích hoạt theo dõi mở ứng dụng cho các tính năng.
-        IEnumerator ITrackUserProperty()
+        // EN: Applies first-open rewards and interrupted-level recovery without committing the startup save.
+        // VI: Áp dụng quà lần đầu và xử lý màn bị bỏ dở, không tự ghi lần lưu khởi động.
+        private void ApplySessionChanges()
         {
-            yield return new WaitForSeconds(1);
-            //while (!SDKBridge.IsFirebaseReady())
-            //{
-            //    yield return new WaitForSeconds(0.5f);
-            //}
-            GameFeatureContext.OnTrackingOpenApp();
+            GrantFirstOpenGift();
+            RecoverInterruptedLevel();
         }
-        [Button]
-        public void SaveData()
+
+        // EN: Consumes the first-open flag and grants thirty minutes of unlimited lives before the shared startup save.
+        // VI: Tắt cờ lần mở đầu và cộng ba mươi phút mạng vô hạn trước lần lưu chung lúc khởi động.
+        private void GrantFirstOpenGift()
         {
-            SaveService.SaveData();
-            if (AwaiterActionManager.Instance) AwaiterActionManager.Instance.SaveData();
-            TimeManager.SaveData();
+            if (!PlayerData.isFirstAppOpen) return;
+            PlayerData.isFirstAppOpen = false;
+            Features.Get<IHeart>()?.AddUnlimitedLiveTime(30);
         }
-        void ReloadData()
+
+        // EN: Clears an abandoned level, spends a heart, resets its win streak and notifies features without increasing retries.
+        // VI: Xóa trạng thái màn bỏ dở, trừ mạng, reset chuỗi thắng và báo tính năng mà không tăng retry.
+        private void RecoverInterruptedLevel()
         {
-            GameFeatureContext.HeartManager.AsyncTime();
-           if(AwaiterActionManager.Instance) AwaiterActionManager.Instance.LoadData();
-        }
-        [Button]
-        public void ClearData()
-        {
-            TimeManager.ClearData();
-            PlayerPrefs.DeleteAll();
-        }
-        private void OnApplicationQuit()
-        {
-            SaveData();
-        }
-        private void OnApplicationPause(bool pause)
-        {
-            if (!pause)
-            {
-                Debug.Log("ReloadData");
-                ReloadData();
-            } else
-            {
-                Debug.Log("OnPause");
-                SaveData();
-            }
+            if (!PlayerData.isPlaying) return;
+            PlayerData.isPlaying = false;
+            Features.Get<IHeart>()?.UseHeart();
+            Features.Get<IRecordTracking>()?.ResetWinStreak();
+            featureRegistry.OnLevelLose(null);
         }
     }
-
 }

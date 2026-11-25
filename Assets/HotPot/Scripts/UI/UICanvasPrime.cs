@@ -16,6 +16,10 @@ namespace FoodPop
         // VI: Âm phát khi canvas mở; popup có âm riêng ghi đè thay vì phát chồng hai âm.
         protected virtual IngameSoundManager.Event OpenSound => IngameSoundManager.Event.PopupShow;
 
+        // EN: True for base screens (such as the Home screen) that stay visible under popups instead of being closed when another popup opens.
+        // VI: True cho màn nền (như màn Home) luôn hiện bên dưới popup, không bị đóng khi mở popup khác.
+        public virtual bool IsScreen => false;
+
         [Tooltip("Canvas của prefab giao diện.")]
         [SerializeField] private Canvas popupCanvas;
         [Tooltip("Nhóm hiển thị và tương tác của giao diện.")]

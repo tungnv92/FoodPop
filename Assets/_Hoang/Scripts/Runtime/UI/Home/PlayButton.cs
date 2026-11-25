@@ -20,19 +20,15 @@ public class PlayButton : MonoBehaviour
         //superHardButton.SetActive(isSuperHard);
         //levelTmp.color = levelTextColors[isHard ? 1 : (isSuperHard ? 2 : 0)];
     }
+    // EN: Starts a level only after the Internet gate and profile are ready and enough hearts are available; otherwise opens PopupMoreLife through FoodPop.UIManager.
+    // VI: Chỉ vào màn khi Internet và hồ sơ đã sẵn sàng, đồng thời có đủ mạng; hết mạng thì mở PopupMoreLife qua FoodPop.UIManager.
     public void OnClick()
     {
-        //if (!NetworkManager.Ins.IsInternetAvailable())
-        //{
-        //    UIManager.Ins.OpenPopup(PopupId.NoInternet);
-        //    return;
-        //}
-
-
-        if (ProfileManager.instance.GameFeatureContext.HeartManager.IsEnoughHeartToPlay())
+        if (!ProfileManager.instance.IsReady) return;
+        if (ProfileManager.instance.Features.Get<IHeart>()?.IsEnoughHeartToPlay() ?? true)
         {
             LoadSceneManager.Ins.LoadScene(SceneId.Game, () => { });
         }
-        else UIManager.Ins.OpenPopup(PopupId.MoreLife);
+        else FoodPop.UIManager.Instance.OpenUI<FoodPop.PopupMoreLife>();
     }
 }
