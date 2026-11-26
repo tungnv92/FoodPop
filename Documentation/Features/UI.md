@@ -3,7 +3,7 @@
 Gồm HUD, popup (Pause, Win, Lose, Revive, WarningQuit, BuyBooster, BoosterIntro), luồng trạng thái màn, âm thanh UI và hướng dẫn màn 1–2. Booster và túi giữ món: [Booster.md](Booster.md).
 
 ## Kết nối Internet bắt buộc
-- Lớp phủ core độc lập với hai UIManager: `Assets/Packages/Common/Network/InternetConnection.cs` + `Assets/Packages/Common/Prefabs/Resources/InternetConnection.prefab`. Canvas sorting order 32760, chặn raycast toàn màn hình, không có nút đóng; không đăng ký vào UIRef và không đóng popup đang mở.
+- Lớp phủ core độc lập với UIManager: `Assets/Packages/Common/Network/InternetConnection.cs` + `Assets/Packages/Common/Prefabs/Resources/InternetConnection.prefab`. Canvas sorting order 32760, chặn raycast toàn màn hình, không có nút đóng; không đăng ký vào UIRef và không đóng popup đang mở.
 - Hiện Checking Internet connection… khi xác thực; thất bại hiện Internet connection required / Please reconnect to continue playing và Try again. Nút bị khóa trong lúc request chạy. Nội dung theo tiếng Anh hiện có của game.
 - Giữ tốc độ gameplay trước khi chặn; trước đó đã pause thì reconnect vẫn pause. Đồng hồ, request và kiểm tra kết nối dùng thời gian thực, không phụ thuộc timeScale.
 - Load, chuỗi Home và Start của LevelController đợi `ProfileManager.IsReady`; nút Play cũng kiểm tra điều kiện này. Bật ProfileManager.TimeManager.cheatTime bỏ chặn mạng để test. Chi tiết đồng hồ local và chu kỳ xác thực xem [FeatureModules.md](FeatureModules.md).
@@ -107,3 +107,10 @@ Xem [Booster.md](Booster.md#mua-booster).
 - Nạp/chơi lại reset; level khác không tạo overlay. Không lưu cờ vào profile.
 
 **Kiểm chứng:** Play Mode đã PASS cho Pause/cài đặt, WarningQuit, BuyBooster, Revive (giá/Ads/reset), Win claim, Lose, hướng dẫn, âm thanh (9 sự kiện). **Chưa Play Mode:** chuỗi thắng mới (ẩn đĩa khi khách cuối nhận đủ món, chờ khách ra khỏi màn, Curtain → nền đen), hồi sinh OutOfTime (popup, thanh toán, +30 s), pre-win. Chưa kiểm tra rung trên thiết bị, chưa có nhạc nền, chưa có SDK Ads.
+
+## Dọn hệ UI legacy (26/11/2026)
+
+- `Assets/_Hoang` đã xóa sau khi chuyển các tài nguyên còn dùng; không còn manager UI toàn cục, PopupId hoặc UIAnimator cũ.
+- Sáu popup LavaQuest kế thừa `UICanvasPrime`, đăng ký trong cả UIRef Home và gameplay; tạo qua UIManager. Claim/Fail/Info mở chồng trên bản đồ. Cấu trúc và kiểm chứng: [FeatureModules.md](FeatureModules.md#hoàn-tất-chuyển-ui-lavaquest-26112026).
+- Script chuyển scene hiện ở `Assets/HotPot/Scripts/Scene/`: `Load.cs`, `LoadSceneManager.cs`, `SceneId.cs`, `SceneTransition.cs`, giữ GUID khi di chuyển.
+- Theo yêu cầu người dùng, không triển khai hoặc kiểm thử scene Load trong đợt này; file scene vẫn được giữ. Home và HotPotDemo đã kiểm tra không có Missing Script. Play Mode chỉ kiểm tra tạo sáu popup LavaQuest, chưa thử toàn bộ luồng UI/nhận thưởng.

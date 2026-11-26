@@ -748,13 +748,13 @@ MonoBehaviour:
   openDuration: 0.24
   closeDuration: 0.16
   titleLabel: {fileID: 2355692450431649873}
-  outOfSlot: {fileID: 6283065023276680198}
-  outOfTime: {fileID: 673749305252546728}
+  outOfSlotRoot: {fileID: 6283065023276680198}
+  outOfTimeRoot: {fileID: 673749305252546728}
   priceLabel: {fileID: 6393517276384899170}
   coinButton: {fileID: 5707723467646762022}
   watchButton: {fileID: 8669083569322676620}
   closeButton: {fileID: 3786702298016159704}
-  title: Out Of Slots!
+  outOfSlotTitle: Out Of Slots!
   outOfTimeTitle: Out Of Time!
 --- !u!1 &5315305364143985044
 GameObject:
@@ -1452,7 +1452,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0, b: 0, a: 0.9411765}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.98039216}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1

@@ -1,13 +1,10 @@
 using GamePackages;
-using Longvm.UIAnimator;
 using System;
 using TMPro;
 using UnityEngine;
 
-public class PopupLavaQuestIntroduce : Popup
+public class PopupLavaQuestIntroduce : FoodPop.UICanvasPrime
 {
-    [SerializeField] UIAnimator openAnim;
-    [SerializeField] UIAnimator closeAnim;
     public TMP_Text countDownText;
     public TMP_Text descriptionText;
     public GameObject buttonObject;
@@ -16,37 +13,6 @@ public class PopupLavaQuestIntroduce : Popup
     public GameObject buttonCloseObj;
 
     private LavaQuestFeature Manager => LavaQuestFeature.Instance;
-
-    public override void Open(object args = null)
-    {
-        base.Open(args);
-        if (openAnim != null) openAnim.InitAndPlay();
-    }
-
-    // EN: Plays the close animation if configured, closes the popup, and completes the LavaQuest tutorial.
-    // VI: Phát hiệu ứng đóng nếu được cấu hình, đóng popup và hoàn tất hướng dẫn LavaQuest.
-    public override void Close()
-    {
-        //if (AudioManager.Ins != null)
-        //{
-        //    AudioManager.Ins.PlaySound(SoundType.PopupHide);
-        //}
-        if (closeAnim != null)
-        {
-            closeAnim.Play(() =>
-            {
-                base.Close();
-                if (LavaQuestTutorial.Ins != null)
-                {
-                    LavaQuestTutorial.Ins.Done();
-                }
-            });
-        }
-        else
-        {
-            base.Close();
-        }
-    }
 
     private void Update()
     {
@@ -84,6 +50,22 @@ public class PopupLavaQuestIntroduce : Popup
         }
     }
 
+    // EN: Opens the introduce popup with the shared open animation.
+    // VI: Mở popup giới thiệu với hiệu ứng mở dùng chung.
+    public override void Open()
+    {
+        base.Open();
+        AnimateOpen();
+    }
+
+    // EN: Closes the popup and finishes the LavaQuest home tutorial if it is running.
+    // VI: Đóng popup và kết thúc hướng dẫn LavaQuest ở Home nếu đang chạy.
+    public override void Close()
+    {
+        base.Close();
+        if (LavaQuestTutorial.Ins != null) LavaQuestTutorial.Ins.Done();
+    }
+
     public void ButtonContinue()
     {
         Close();
@@ -93,10 +75,7 @@ public class PopupLavaQuestIntroduce : Popup
             return;
         }
 
-        if (UIManager.Ins != null)
-        {
-            UIManager.Ins.OpenPopup(PopupId.LavaQuestFinding);
-        }
+        FoodPop.UIManager.Instance.OpenUI<PopupLavaQuestFinding>();
     }
 
     // EN: Coordinates ButtonClose using encapsulated player and feature APIs instead of accessing live save models.

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public class LavaQuestClaim : Popup
+public class LavaQuestClaim : FoodPop.UICanvasPrime
 {
     public TextMeshProUGUI goldAmountText;
     public Action OnClaim;
@@ -20,9 +20,10 @@ public class LavaQuestClaim : Popup
 
     // EN: Opens the LavaQuest claim popup, triggers reward and gold animations, and refreshes the UI.
     // VI: Mở popup nhận thưởng LavaQuest, kích hoạt hiệu ứng phần thưởng và số vàng, đồng thời làm mới giao diện.
-    public override void Open(object args = null)
+    public override void Open()
     {
-        base.Open(args);
+        base.Open();
+        AnimateOpen();
         if (buttonClaimObj != null) buttonClaimObj.SetActive(false);
         PlayRewardAnim();
         RunAnimGoldAmount();
@@ -80,14 +81,14 @@ public class LavaQuestClaim : Popup
     public void RunAnimGoldAmount()
     {
         if (goldAmountText != null) goldAmountText.text = "0";
-        UIManager.Ins.EnableBlocker(true);
+        canvasGroup.interactable = false;
         int claimAmount = Manager != null ? Manager.GetGoldAmountClaim() : 1000;
         DOVirtual.Int(0, claimAmount, 1f, v =>
         {
             if (goldAmountText != null) goldAmountText.text = v.ToString();
         }).SetEase(Ease.OutSine).SetDelay(0.6f).OnComplete(() =>
         {
-            UIManager.Ins.EnableBlocker(false);
+            canvasGroup.interactable = true;
             if (buttonClaimObj != null) buttonClaimObj.SetActive(true);
         });
     }
@@ -115,9 +116,9 @@ public class LavaQuestClaim : Popup
         {
             LavaQuest.Instance.ButtonClose();
         }
-        else if (UIManager.Ins != null)
+        else
         {
-            UIManager.Ins.ClosePopup(PopupId.LavaQuest);
+            FoodPop.UIManager.Instance.CloseUI<LavaQuest>();
         }
     }
 }

@@ -56,3 +56,15 @@
 ## Cập nhật UI ngày 18/11/2026
 - CoinAttraction đã gom thành package độc lập và WinPopup dùng nested prefab mới; có nhịp rơi, glow Sprite riêng và điểm phát không bị Reward ghi đè. Trạng thái/kiểm chứng: [CoinFlipSprite.md](CoinFlipSprite.md); tài liệu hệ thống: [CoinAttraction.md](../Features/CoinAttraction.md).
 - Đã export bản thử `output/CoinFlight/CoinAttraction.unitypackage`; chưa import vào project khác hoặc build Android. Không commit chung các thay đổi gameplay đang có trong workspace.
+
+## Hoàn tất xóa Assets/_Hoang (26/11/2026)
+
+- Đã xóa toàn bộ thư mục legacy và meta sau khi quét không còn consumer bên ngoài. Unity compile sạch.
+- Sáu popup LavaQuest chuyển sang UICanvasPrime/UIManager, có Canvas/Scaler Expand 1080×1920/Raycaster/CanvasGroup và card Root; Claim/Fail/Info nằm trên bản đồ. Đăng ký đủ sáu loại trong UIRef_Home và UIRef gameplay; prefab ở Packages/LavaQuest/Prefabs, giữ GUID.
+- Sprite LavaQuest và avatar/frame chuyển vào đúng package; font PopUp dùng Fredoka của HotPot. BackGround.cs chuyển vào Packages/LavaQuest/UI. Shop dùng UIHome_Coin và hiệu ứng Blink/Explosion Yellow ở HotPot/Prefabs/UI/Effects.
+- UI/prefab UserProfile cũ đã bỏ, giữ Runtime/Configs/Sprites và IUserProfile. Script chuyển scene ở HotPot/Scripts/Scene, giữ GUID.
+- Đã gỡ một Missing Script trên nút Continue của LavaQuestTutorial và thêm phản hồi UIButtonScaleEffect.
+- Kiểm chứng: 209 prefab HotPot/Packages không Missing Script hoặc callback Button mất target; Home và HotPotDemo không Missing Script; không còn dependency tới _Hoang. Play Mode Home tạo được cả sáu popup qua UIManager với Canvas/ref/sorting hợp lệ. Đã thoát Play Mode sau kiểm tra.
+- Báo cáo: output/HoangMigration/Validation.txt và RuntimeFactory.txt. Chưa chạy toàn bộ điều hướng LavaQuest, tutorial, nhận thưởng hoặc giao dịch thật; tích hợp kết quả gameplay với LavaQuest vẫn là việc riêng đã ghi trong FeatureModules.
+- Người dùng chưa cần scene Load: không triển khai/kiểm thử thêm, chưa xóa file scene hiện có.
+- Đã cập nhật FeatureModules.md, UI.md, ShopPopups.md, PopupHome.md. Chưa commit; workspace còn nhiều thay đổi khác của người dùng.

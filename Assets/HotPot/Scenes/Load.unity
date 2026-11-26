@@ -405,7 +405,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 533575483}
-  - component: {fileID: 533575484}
   m_Layer: 0
   m_Name: Vibration
   m_TagString: Untagged
@@ -428,18 +427,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1198583503}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &533575484
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 533575482}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1a13a5bee139e61458319ec39f6657bb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::VibrationManager
 --- !u!1 &569883181
 GameObject:
   m_ObjectHideFlags: 0
@@ -893,7 +880,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1198583503}
   - component: {fileID: 1198583502}
-  - component: {fileID: 1198583504}
   m_Layer: 0
   m_Name: Game Profile
   m_TagString: Untagged
@@ -971,29 +957,6 @@ Transform:
   - {fileID: 533575483}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1198583504
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1198583501}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ae368d046e6ab54b95eb5e3bddc899d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  Config:
-    GameLatestVersion: 1.3.0
-    BackHomeAfterWinLevel: 0
-    LevelEnableMultiCoin: 10
-    BoosterInitAmount: 3
-    WinRewardAmount: 20
-    WinRewardAmountHard: 40
-    WinRewardAmountSuperHard: 60
-    RevivePrice: 1000
-    RefillLivesPrice: 1000
-    FirstSuperHard: 50
 --- !u!1 &1344684547
 GameObject:
   m_ObjectHideFlags: 0

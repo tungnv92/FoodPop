@@ -21,7 +21,7 @@ public class LavaQuestFakeUser : MonoBehaviour
     // Profile sprites through IUserProfile; null when the UserProfile package is absent (sprites stay empty).
     // Sprite hồ sơ qua IUserProfile; null khi không có package UserProfile (sprite để trống).
     private IUserProfile Profile => ProfileManager.instance.Features.Get<IUserProfile>();
-    private LavaQuest Quest => LavaQuest.Instance != null ? LavaQuest.Instance : (UIManager.Ins != null ? UIManager.Ins.GetPopup<LavaQuest>(PopupId.LavaQuest) : null);
+    private LavaQuest Quest => LavaQuest.Instance != null ? LavaQuest.Instance : FoodPop.UIManager.Instance.GetUICanvas<LavaQuest>();
 
     // EN: Shows the given frame and avatar sprites from IUserProfile (empty when the UserProfile package is absent).
     // VI: Hiển thị sprite khung và avatar theo chỉ số từ IUserProfile (để trống khi không có package UserProfile).

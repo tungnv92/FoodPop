@@ -13,7 +13,7 @@ using UnityEngine.UI;
 /// Main popup controller for the LavaQuest event.
 /// Displays progress across 7 milestones, remaining participants, and executes jump/fall animations.
 /// </summary>
-public class LavaQuest : Popup
+public class LavaQuest : FoodPop.UICanvasPrime
 {
     public static LavaQuest Instance { get; private set; }
 
@@ -54,12 +54,20 @@ public class LavaQuest : Popup
         Instance = this;
         EnsurePanels();
     }
+    private void Update()
+    {
+        if (countDownText != null && Manager != null)
+        {
+            countDownText.text = Manager.GetCountDownString();
+        }
+    }
 
     // EN: Opens the view using manager queries and commands instead of mutable save models.
     // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
-    public override void Open(object args = null)
+    public override void Open()
     {
-        base.Open(args);
+        base.Open();
+        AnimateOpen();
         Instance = this;
         isDoingAnim = false;
         if (blockObj != null) blockObj.SetActive(false);
@@ -115,41 +123,6 @@ public class LavaQuest : Popup
             OnClose = null;
         }
         base.Close();
-    }
-    private void Update()
-    {
-        if (countDownText != null && Manager != null)
-        {
-            countDownText.text = Manager.GetCountDownString();
-        }
-    }
-
-    private void EnsurePanels()
-    {
-        if (topRectTF == null) return;
-        if (winPanel == null)
-        {
-            var t = topRectTF.Find("win");
-            if (t != null) winPanel = t.gameObject;
-        }
-        if (losePanel == null)
-        {
-            var t = topRectTF.Find("lose");
-            if (t != null) losePanel = t.gameObject;
-        }
-        if (infoPanel == null)
-        {
-            var t = topRectTF.Find("Info");
-            if (t != null) infoPanel = t.gameObject;
-        }
-    }
-
-    private void SetPanelState(bool isWinState, bool isLoseState)
-    {
-        EnsurePanels();
-        if (winPanel != null) winPanel.SetActive(isWinState);
-        if (losePanel != null) losePanel.SetActive(isLoseState);
-        if (infoPanel != null) infoPanel.SetActive(!isWinState && !isLoseState);
     }
 
     [Button]
@@ -215,12 +188,12 @@ public class LavaQuest : Popup
     public void AnimTopRectTF()
     {
         if (topRectTF == null) return;
-        UIManager.Ins.EnableBlocker(true);
+        canvasGroup.interactable = false;
         Vector2 oldTopPos = new Vector2(topRectTF.anchoredPosition.x, topRectTF.anchoredPosition.y);
         topRectTF.anchoredPosition += new Vector2(0, 300);
         topRectTF.DOAnchorPos(oldTopPos, 0.3f).SetEase(Ease.OutBack).OnComplete(() =>
         {
-            UIManager.Ins.EnableBlocker(false);
+            canvasGroup.interactable = true;
         });
     }
 
@@ -376,7 +349,7 @@ public class LavaQuest : Popup
                 int max = Manager != null ? Manager.MaxMilestones : 7;
                 if (mileStoneIndex >= max - 1)
                 {
-                    UIManager.Ins.OpenPopup(PopupId.LavaQuestClaim);
+                    FoodPop.UIManager.Instance.GetUICanvas<LavaQuestClaim>().Open();
                 }
             }
             else
@@ -414,7 +387,7 @@ public class LavaQuest : Popup
                 }
 
                 yield return new WaitForSeconds(0.4f);
-                UIManager.Ins.OpenPopup(PopupId.LavaQuestFail);
+                FoodPop.UIManager.Instance.GetUICanvas<PopupLavaQuestFail>().Open();
                 if (buttonContinueObj != null) buttonContinueObj.SetActive(true);
             }
 
@@ -425,12 +398,40 @@ public class LavaQuest : Popup
 
     public void ButtonInfo()
     {
-        UIManager.Ins.OpenPopup(PopupId.LavaQuestInfo);
+        FoodPop.UIManager.Instance.GetUICanvas<LavaQuestInfo>().Open();
     }
 
     public void ButtonClose()
     {
         if (isDoingAnim) return;
         Close();
+    }
+
+    private void EnsurePanels()
+    {
+        if (topRectTF == null) return;
+        if (winPanel == null)
+        {
+            var t = topRectTF.Find("win");
+            if (t != null) winPanel = t.gameObject;
+        }
+        if (losePanel == null)
+        {
+            var t = topRectTF.Find("lose");
+            if (t != null) losePanel = t.gameObject;
+        }
+        if (infoPanel == null)
+        {
+            var t = topRectTF.Find("Info");
+            if (t != null) infoPanel = t.gameObject;
+        }
+    }
+
+    private void SetPanelState(bool isWinState, bool isLoseState)
+    {
+        EnsurePanels();
+        if (winPanel != null) winPanel.SetActive(isWinState);
+        if (losePanel != null) losePanel.SetActive(isLoseState);
+        if (infoPanel != null) infoPanel.SetActive(!isWinState && !isLoseState);
     }
 }

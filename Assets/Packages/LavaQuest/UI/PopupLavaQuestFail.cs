@@ -1,35 +1,17 @@
-using Longvm.UIAnimator;
-//using Spine.Unity;
-using UnityEngine;
-
-public class PopupLavaQuestFail : Popup
+public class PopupLavaQuestFail : FoodPop.UICanvasPrime
 {
-    [SerializeField] UIAnimator openAnim;
-    [SerializeField] UIAnimator closeAnim;
-    //[SerializeField] SkeletonGraphic animSpine;
-
-    // EN: Opens the LavaQuest fail popup and plays the entry animation.
-    // VI: Mở popup thất bại LavaQuest và phát hiệu ứng xuất hiện.
-    public override void Open(object args = null)
+    // EN: Opens the LavaQuest fail popup over the LavaQuest map with the shared open animation.
+    // VI: Mở popup thất bại LavaQuest đè lên bản đồ LavaQuest với hiệu ứng mở dùng chung.
+    public override void Open()
     {
-        base.Open(args);
-        openAnim.InitAndPlay();
-
-        //if (animSpine == null) return;
-        //animSpine.Initialize(true);
-        //if (animSpine.AnimationState != null)
-        //{
-        //    animSpine.AnimationState.SetAnimation(0, "Start", false);
-        //    animSpine.AnimationState.AddAnimation(0, "Idle", true, 0f);
-        //}
+        base.Open();
+        AnimateOpen();
     }
 
-    // EN: Plays the close animation and closes both the fail popup and the main LavaQuest popup.
-    // VI: Phát hiệu ứng đóng và đóng cả popup thất bại lẫn popup LavaQuest chính.
+    // EN: Plays the shared close animation, then closes the main LavaQuest popup as well.
+    // VI: Chạy hiệu ứng đóng dùng chung rồi đóng luôn popup LavaQuest chính.
     public void ContinueButton()
     {
-        //AudioManager.Ins.PlaySound(SoundType.PopupHide);
-        closeAnim.Play(Close);
-        UIManager.Ins.ClosePopup(PopupId.LavaQuest);
+        CloseWithAnimation(() => FoodPop.UIManager.Instance.CloseUI<LavaQuest>());
     }
 }

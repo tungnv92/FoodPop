@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Spine.Unity;
 using UnityEngine;
 
 namespace FoodPop
@@ -22,6 +23,17 @@ namespace FoodPop
         // EN: How the waiting row is placed when laid out: Snap = jump to spots, Advance = the head just left so everyone walks one spot forward, Walk = keep positions and walk to spots.
         // VI: Cách đặt hàng chờ khi bố trí: Snap = nhảy ngay vào chỗ, Advance = người đầu vừa rời nên cả hàng đi lên một chỗ, Walk = giữ vị trí và đi tới chỗ.
         private enum QueueMove { Snap, Advance, Walk }
+
+        // EN: The spine character drawn for one customer portrait (same character as the picture).
+        // VI: Nhân vật spine ứng với một ảnh khách (cùng nhân vật với ảnh).
+        [Serializable]
+        private struct PortraitSpine
+        {
+            [Tooltip("Ảnh khách (char_N trong Art/Sprites/Customers).")]
+            public Sprite portrait;
+            [Tooltip("SkeletonData của cùng nhân vật (Assets/Spines/Chars/char_N).")]
+            public SkeletonDataAsset spine;
+        }
 
         private const string ShipperPortraitName = "char_13";
 
@@ -83,6 +95,8 @@ namespace FoodPop
         [SerializeField] private bool OnlyServeOneShipper = true;
         [Tooltip("Mẫu khách chờ đặt sẵn trong scene (ẩn), gồm sprite và spine con; nhân bản cho khách trong hàng chờ và khách đang bước lên quầy.")]
         [SerializeField] private SpriteRenderer waitingFigureTemplate;
+        [Tooltip("Spine theo từng ảnh khách: khách Normal được ảnh nào thì hiện spine của nhân vật đó; ảnh không có trong danh sách thì hiện ảnh tĩnh.")]
+        [SerializeField] private PortraitSpine[] portraitSpines = new PortraitSpine[0];
 
         [Header("Phục vụ")]
         [Tooltip("Thời gian (giây) món phải nằm trên đĩa sau khi đáp xuống rồi mới được bay vào order.")]
@@ -1079,8 +1093,8 @@ namespace FoodPop
             walker.gameObject.SetActive(false);
         }
 
-        // EN: Shows the spine body authored under this portrait renderer when the customer at the queue index is Normal and returns it; otherwise (or with no authored spine) shows the plain sprite and returns null.
-        // VI: Hiện thân spine đặt sẵn dưới renderer ảnh này khi khách tại vị trí hàng là Normal và trả về nó; ngược lại (hoặc không có spine đặt sẵn) hiện ảnh tĩnh và trả về null.
+        // EN: Shows the spine body authored under this portrait renderer, switched to the character of that customer's portrait, when the customer at the queue index is Normal and the portrait has a spine; otherwise (or with no authored spine) shows the plain sprite and returns null.
+        // VI: Hiện thân spine đặt sẵn dưới renderer ảnh này, đổi sang nhân vật của ảnh khách đó, khi khách tại vị trí hàng là Normal và ảnh có spine; ngược lại (hoặc không có spine đặt sẵn) hiện ảnh tĩnh và trả về null.
         private CustomerSpine ShowSpine(SpriteRenderer host, int index)
         {
             CustomerSpine spine = FindSpine(host);
@@ -1088,14 +1102,26 @@ namespace FoodPop
                 return null;
             bool normal = index >= 0 && index < customerQueue.Count &&
                           customerQueue[index] != null && customerQueue[index].customerType == CustomerType.Normal;
-            if (!normal)
+            SkeletonDataAsset data = normal ? FindPortraitSpine(GetPortrait(waitingLane, index)) : null;
+            if (data == null)
             {
                 spine.Show(false);
                 return null;
             }
             spine.Show(true);
+            spine.SetSkeletonData(data);
             spine.SetTint(Color.white);
             return spine;
+        }
+
+        // EN: The spine character configured for a portrait, or null when that portrait has none.
+        // VI: Nhân vật spine được cấu hình cho một ảnh khách, hoặc null nếu ảnh đó chưa có spine.
+        private SkeletonDataAsset FindPortraitSpine(Sprite portrait)
+        {
+            foreach (PortraitSpine entry in portraitSpines)
+                if (entry.portrait == portrait)
+                    return entry.spine;
+            return null;
         }
 
         // EN: Returns the spine authored under this portrait renderer (or null), looking it up only once per renderer.

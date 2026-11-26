@@ -218,7 +218,6 @@ MonoBehaviour:
   optionalInt0: 0
   optionalRotationMode: 0
   optionalScrambleMode: 0
-  optionalShakeRandomnessMode: 0
   optionalString: 
 --- !u!1 &4472663490004276099
 GameObject:
@@ -402,7 +401,6 @@ MonoBehaviour:
   optionalInt0: 0
   optionalRotationMode: 0
   optionalScrambleMode: 0
-  optionalShakeRandomnessMode: 0
   optionalString: 
 --- !u!1 &5049242120922975210
 GameObject:
@@ -417,7 +415,7 @@ GameObject:
   - component: {fileID: 7900185434057222669}
   - component: {fileID: 439310387321678632}
   - component: {fileID: 5432055202922963022}
-  - component: {fileID: 81554186203921918}
+  - component: {fileID: 175581115098736047}
   m_Layer: 0
   m_Name: continue button
   m_TagString: Untagged
@@ -538,7 +536,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &81554186203921918
+--- !u!114 &175581115098736047
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -547,9 +545,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 5049242120922975210}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7ed986d9c7fccc24d8d2059bf3867247, type: 3}
+  m_Script: {fileID: 11500000, guid: 5f045deb383d4d245ab80c0031b662fd, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.UIButtonScaleEffect
+  pressedScale: 0.94
 --- !u!1 &5966711926728371291
 GameObject:
   m_ObjectHideFlags: 0
@@ -791,7 +790,6 @@ MonoBehaviour:
   optionalInt0: 0
   optionalRotationMode: 0
   optionalScrambleMode: 0
-  optionalShakeRandomnessMode: 0
   optionalString: 
 --- !u!1 &6806157964373919288
 GameObject:
@@ -1171,5 +1169,4 @@ MonoBehaviour:
   optionalInt0: 0
   optionalRotationMode: 0
   optionalScrambleMode: 0
-  optionalShakeRandomnessMode: 0
   optionalString: 

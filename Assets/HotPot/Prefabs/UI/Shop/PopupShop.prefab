@@ -336,8 +336,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 66000
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: f97408f331e64f34982dfa24212106cd, type: 2}
-  m_sharedMaterial: {fileID: -7152846346733017924, guid: f97408f331e64f34982dfa24212106cd, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -598,7 +598,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 489.08395, y: -3386.6274}
+  m_AnchoredPosition: {x: 489.08395, y: -2991.1274}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8488014407334859560
@@ -935,8 +935,8 @@ GameObject:
   - component: {fileID: 4247359499898326364}
   - component: {fileID: 4247359499898326355}
   - component: {fileID: 4247359499898326354}
-  - component: {fileID: 4247359499898326365}
-  - component: {fileID: 3634914621396886720}
+  - component: {fileID: 2763627474759916708}
+  - component: {fileID: 6625550997039190896}
   m_Layer: 0
   m_Name: Coin Display
   m_TagString: Untagged
@@ -1003,7 +1003,7 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &4247359499898326365
+--- !u!114 &2763627474759916708
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1012,51 +1012,42 @@ MonoBehaviour:
   m_GameObject: {fileID: 4247359499898326367}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f99921dfb3e658b4d9eca88bc32fc299, type: 3}
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  amount:
-    duration: 0.2
-    amountTmp: {fileID: 8099450159135074289}
-  icon:
-    effect: {fileID: 1101375645450330607}
-    duration: 0.2
-    scale: 1.2
-    transform: {fileID: 4247359500846722452}
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: 2
-        outSlope: 2
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 0.5
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 1
-        value: 0
-        inSlope: -2
-        outSlope: -2
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
---- !u!114 &3634914621396886720
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
+  m_Navigation:
+    m_Mode: 3
+    m_WrapAround: 0
+    m_SelectOnUp: {fileID: 0}
+    m_SelectOnDown: {fileID: 0}
+    m_SelectOnLeft: {fileID: 0}
+    m_SelectOnRight: {fileID: 0}
+  m_Transition: 1
+  m_Colors:
+    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_ColorMultiplier: 1
+    m_FadeDuration: 0.1
+  m_SpriteState:
+    m_HighlightedSprite: {fileID: 0}
+    m_PressedSprite: {fileID: 0}
+    m_SelectedSprite: {fileID: 0}
+    m_DisabledSprite: {fileID: 0}
+  m_AnimationTriggers:
+    m_NormalTrigger: Normal
+    m_HighlightedTrigger: Highlighted
+    m_PressedTrigger: Pressed
+    m_SelectedTrigger: Selected
+    m_DisabledTrigger: Disabled
+  m_Interactable: 1
+  m_TargetGraphic: {fileID: 4247359499898326354}
+  m_OnClick:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &6625550997039190896
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1065,11 +1056,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 4247359499898326367}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 15adddc7561c41242afc96baf16106dd, type: 3}
+  m_Script: {fileID: 11500000, guid: 2bda700746ba1d645b834fff6ada3da4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  initOnAwake: 1
-  display: {fileID: 4247359499898326365}
+  m_EditorClassIdentifier: Assembly-CSharp::FoodPop.UIHome_Coin
+  coinText: {fileID: 8099450159135074289}
+  coinButton: {fileID: 2763627474759916708}
 --- !u!1 &4247359500846722455
 GameObject:
   m_ObjectHideFlags: 0
@@ -2625,6 +2616,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: UIShop_SmallPack
       objectReference: {fileID: 0}
+    - target: {fileID: 5715669555088990044, guid: 19c98bd7b365f1142944b1c4875bf9ba, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+    - target: {fileID: 5715669555088990044, guid: 19c98bd7b365f1142944b1c4875bf9ba, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
     - target: {fileID: 7422447386375207877, guid: 19c98bd7b365f1142944b1c4875bf9ba, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -2851,6 +2850,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7064050653783951977}
     m_Modifications:
+    - target: {fileID: 6729159136389582996, guid: 5eb50a8dd9c30224097561dfe30654da, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+    - target: {fileID: 6729159136389582996, guid: 5eb50a8dd9c30224097561dfe30654da, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
     - target: {fileID: 7266310663813835050, guid: 5eb50a8dd9c30224097561dfe30654da, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -2968,6 +2975,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: UIShop_MediumPack
       objectReference: {fileID: 0}
+    - target: {fileID: 2905270231313246877, guid: 7a694bb5f20e2ab47a9a8bdc9c081799, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+    - target: {fileID: 2905270231313246877, guid: 7a694bb5f20e2ab47a9a8bdc9c081799, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
     - target: {fileID: 6722671407247594180, guid: 7a694bb5f20e2ab47a9a8bdc9c081799, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -3436,17 +3451,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 83ea04b0f85730d4aa9bd46fc5af0965, type: 3}
---- !u!114 &1101375645450330607 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8924859931482464756, guid: 83ea04b0f85730d4aa9bd46fc5af0965, type: 3}
-  m_PrefabInstance: {fileID: 8400241907593396251}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a0ce80c06832d4a49a2a30ece9fb2df6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!224 &1563415166939654607 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 6999150507425081812, guid: 83ea04b0f85730d4aa9bd46fc5af0965, type: 3}

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public class PopupLavaQuestFinding : Popup
+public class PopupLavaQuestFinding : FoodPop.UICanvasPrime
 {
     public TextMeshProUGUI playersText;
     public LavaQuestFakeUser realUser;
@@ -16,9 +16,10 @@ public class PopupLavaQuestFinding : Popup
 
     private LavaQuestFeature Manager => LavaQuestFeature.Instance;
 
-    public override void Open(object args = null)
+    public override void Open()
     {
-        base.Open(args);
+        base.Open();
+        AnimateOpen();
         if (buttonContinueObj != null) buttonContinueObj.SetActive(false);
         AnimText();
         AnimShowUsers();
@@ -116,12 +117,12 @@ public class PopupLavaQuestFinding : Popup
         }
         else
         {
-            UIManager.Ins.OpenPopup(PopupId.LavaQuest);
+            FoodPop.UIManager.Instance.OpenUI<LavaQuest>();
         }
 
         if (Manager != null && !Manager.HasShownInfo)
         {
-            UIManager.Ins.OpenPopup(PopupId.LavaQuestInfo);
+            FoodPop.UIManager.Instance.GetUICanvas<LavaQuestInfo>().Open();
         }
     }
 }

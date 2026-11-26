@@ -36,7 +36,7 @@ Hoạt cảnh bay/ghép món thuộc `ServingFood` — xem [ServingFood.md](Serv
 - `StepQueueForward` dùng `lane.walker` riêng đưa chân dung từ đầu hàng vào quầy; hai làn chạy song song được.
 
 ## Spine khách Normal (`IngameConfig.customers`)
-Mọi khách Normal (ở quầy, khi bước lên và trong hàng chờ) hiển thị bằng spine (hiện tạm dùng `Assets/Spines/Chars/char_01/Char01_SkeletonData`); Boss/Shipper vẫn dùng ảnh tĩnh. Spine được **đặt sẵn trong scene** HotPotDemo, không tạo bằng code:
+Mọi khách Normal (ở quầy, khi bước lên và trong hàng chờ) hiển thị bằng spine **cùng nhân vật với ảnh khách được chọn** (25/11/2026): `CustomerManager.portraitSpines` ghép ảnh `char_N` (Art/Sprites/Customers/JP_char) với `Assets/Spines/Chars/char_N/*_SkeletonData` cho N = 1…12. `ShowSpine` tra spine theo ảnh của khách (`GetPortrait`, giữ một ảnh cho mỗi khách) rồi `CustomerSpine.SetSkeletonData` đổi nhân vật (chỉ `Initialize(true)` khi nhân vật khác lần trước; hình hàng chờ vẫn tắt physics sau khi đổi). Ảnh chưa có spine (char_14, char_15) vẫn hiện ảnh tĩnh; Boss/Shipper vẫn dùng ảnh tĩnh. Cả 12 spine có đủ `idle/walk/happy/angry` (Spine 4.2.38, đã kiểm tra nạp trong editor). Spine được **đặt sẵn trong scene** HotPotDemo, không tạo bằng code:
 - `Customer spine` (SkeletonAnimation + `CustomerSpine`, mặc định ẩn) là con của `Portrait` ở mỗi khách quầy và của `CustomerManager/Waiting customer template`. Local position (0, -2.58), scale 0.99 để chân khớp ảnh 526px tâm giữa; đổi nhân vật/kích thước thì sửa trực tiếp trên object này.
 - `CustomerManager.waitingFigureTemplate` trỏ tới `Waiting customer template` (ẩn); khách hàng chờ và khách đang bước lên quầy là bản nhân bản của mẫu này.
 - Khi hiện, `CustomerSpine` ẩn sprite cha và chép sorting của nó. Khách không phải Normal hoặc ảnh không có spine con thì dùng sprite như cũ.
@@ -56,7 +56,7 @@ Kiểm chứng thay đổi 16/11/2026: Unity refresh/biên dịch thành công (
 Kiểm chứng happy 16/11/2026: Unity biên dịch thành công; kiểm tra animation-state trong Edit Mode trên Char01 thật (happy dài1.6667s) PASS chờ ở giữa clip, thoát chờ sau Complete rồi phát walk, và Complete xảy ra trước khi yield không gây chờ thêm. Chưa kiểm tra toàn bộ rời quầy trong Play Mode. diff --check của hai script không có lỗi.
 
 ### Chi tiết triển khai (gộp từ ghi chú bàn giao 16–17/11/2026)
-- Mọi khách Normal dùng spine `Assets/Spines/Chars/char_01/Char01_SkeletonData` (tạm thời, chưa chuyển vào `Assets/HotPot` theo yêu cầu người dùng).
+- Khách Normal dùng spine theo ảnh (`portraitSpines`, 12 nhân vật trong `Assets/Spines/Chars/char_01…char_12`, chưa chuyển vào `Assets/HotPot` theo yêu cầu người dùng). Đã chạy Play Mode 25/11/2026 (HotPotDemo, level 3 rồi nạp lại LevelConfig_23): khách quầy và hàng chờ hiện đúng spine theo ảnh (vd. char_5 → char_05/Char04_SkeletonData), cỡ/vị trí các nhân vật nhìn hợp lý trên ảnh chụp game; nạp lại level đổi nhân vật ở quầy (char_8 → char_6), hình hàng chờ sau khi đổi vẫn tắt physics, khách quầy giữ physics; console không lỗi. Chưa xem: bước lên quầy, rời quầy (happy/walk) và angry của các nhân vật mới.
 - Spine **đặt sẵn trong scene** `Assets/HotPot/Scenes/HotPotDemo.unity` (người dùng không muốn tạo lúc chạy):
   - `Customer spine` (SkeletonAnimation + `CustomerSpine`, ẩn) dưới `Portrait` của 2 khách quầy và dưới `CustomerManager/Waiting customer template` (ẩn).
   - `CustomerManager.waitingFigureTemplate` → mẫu đó; khách hàng chờ và walker (khách bước lên quầy) là bản `Instantiate` của mẫu.
