@@ -598,7 +598,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 489.08395, y: -2991.1274}
+  m_AnchoredPosition: {x: 489.08395, y: -3386.6274}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8488014407334859560
@@ -2338,26 +2338,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 5910723578420296054, guid: 7e99332923dcea64da721256b7ee7562, type: 3}
-      propertyPath: packNameText
-      value: 
-      objectReference: {fileID: 920498824724996780}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7e99332923dcea64da721256b7ee7562, type: 3}
---- !u!114 &920498824724996780 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 851599369612038103, guid: 7e99332923dcea64da721256b7ee7562, type: 3}
-  m_PrefabInstance: {fileID: 510940650582699387}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!224 &2188872483864718322 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1835030196393854601, guid: 7e99332923dcea64da721256b7ee7562, type: 3}
@@ -2616,14 +2601,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: UIShop_SmallPack
       objectReference: {fileID: 0}
-    - target: {fileID: 5715669555088990044, guid: 19c98bd7b365f1142944b1c4875bf9ba, type: 3}
-      propertyPath: m_fontAsset
-      value: 
-      objectReference: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-    - target: {fileID: 5715669555088990044, guid: 19c98bd7b365f1142944b1c4875bf9ba, type: 3}
-      propertyPath: m_sharedMaterial
-      value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
     - target: {fileID: 7422447386375207877, guid: 19c98bd7b365f1142944b1c4875bf9ba, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -2850,14 +2827,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7064050653783951977}
     m_Modifications:
-    - target: {fileID: 6729159136389582996, guid: 5eb50a8dd9c30224097561dfe30654da, type: 3}
-      propertyPath: m_fontAsset
-      value: 
-      objectReference: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-    - target: {fileID: 6729159136389582996, guid: 5eb50a8dd9c30224097561dfe30654da, type: 3}
-      propertyPath: m_sharedMaterial
-      value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
     - target: {fileID: 7266310663813835050, guid: 5eb50a8dd9c30224097561dfe30654da, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -2975,14 +2944,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: UIShop_MediumPack
       objectReference: {fileID: 0}
-    - target: {fileID: 2905270231313246877, guid: 7a694bb5f20e2ab47a9a8bdc9c081799, type: 3}
-      propertyPath: m_fontAsset
-      value: 
-      objectReference: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-    - target: {fileID: 2905270231313246877, guid: 7a694bb5f20e2ab47a9a8bdc9c081799, type: 3}
-      propertyPath: m_sharedMaterial
-      value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
     - target: {fileID: 6722671407247594180, guid: 7a694bb5f20e2ab47a9a8bdc9c081799, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
