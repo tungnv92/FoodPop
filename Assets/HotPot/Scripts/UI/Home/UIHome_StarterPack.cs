@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 namespace FoodPop
 {
-    // EN: Starter pack button on the Home screen: hides itself once the starter pack is bought and handles the tap; the Starter pack popup does not exist yet, so the tap only plays haptics.
-    // VI: Nút Starter pack trên màn Home: tự ẩn khi đã mua gói khởi đầu và xử lý khi bấm; chưa có popup Starter pack nên bấm chỉ phát rung.
+    // EN: Starter pack button on the Home screen: hides itself once the starter pack is bought and opens the Starter Pack popup when tapped.
+    // VI: Nút Starter pack trên màn Home: tự ẩn khi đã mua gói khởi đầu và mở popup Starter Pack khi bấm.
     [DisallowMultipleComponent]
     public sealed class UIHome_StarterPack : MonoBehaviour
     {
@@ -42,11 +42,12 @@ namespace FoodPop
             gameObject.SetActive(!playerData.HasStarterPack);
         }
 
-        // EN: Plays haptics; opening the Starter pack popup is left empty until that popup exists.
-        // VI: Phát rung; phần mở popup Starter pack để trống tới khi có popup đó.
+        // EN: Plays haptics and opens the Starter Pack popup.
+        // VI: Phát rung và mở popup Starter Pack.
         private void OnClickStarterPack()
         {
             if (playerData.isVibrateOn) HapticPatterns.PlayEmphasis(0.8f, 0.5f);
+            UIManager.Instance.OpenUI<PopupStarterPack>();
         }
     }
 }

@@ -11,6 +11,8 @@ public class LavaQuestButtonHome : MonoBehaviour
 
     public TextMeshProUGUI countDownText;
 
+    private LavaQuestFeature Manager => LavaQuestFeature.Instance;
+
     // EN: Initializes the button state from the feature unlock level.
     // VI: Khởi tạo trạng thái nút theo level mở tính năng.
     private void Start()
@@ -73,13 +75,11 @@ public class LavaQuestButtonHome : MonoBehaviour
 
         if (Manager.IsAttemptActive)
         {
-            UIManager.Ins.OpenPopup(PopupId.LavaQuest);
+            FoodPop.UIManager.Instance.OpenUI<LavaQuest>();
         }
         else
         {
-            UIManager.Ins.OpenPopup(PopupId.LavaQuestIntroduce);
+            FoodPop.UIManager.Instance.OpenUI<PopupLavaQuestIntroduce>();
         }
     }
-
-    private LavaQuestFeature Manager => LavaQuestFeature.Instance;
 }

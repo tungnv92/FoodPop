@@ -12,7 +12,7 @@ Kiểm chứng: đã đối chiếu script, prefab, config và UIRef ngày 23/11
 | Prefab popup | `Assets/HotPot/Prefabs/UI/Shop/PopupShop.prefab` |
 | Prefab gói | `Assets/HotPot/Prefabs/UI/Shop/UIShop_Remove Ads.prefab`, `UIShop_Remove Ads Pack.prefab`, `UIShop_SmallPack.prefab`, `UIShop_MediumPack.prefab`, `UIShop_LargePack.prefab`, `CoinPack.prefab` |
 | Sprite | `Assets/HotPot/Art/Sprites/UI/Shop/` |
-| Logic IAP dùng chung | Package `Assets/Packages/IAP` (`IAPManager`, `IAPProductConfig`), xem [IAP.md](IAP.md). Đã xóa toàn bộ `Assets/_Toolkit` (2026-11-25); nút mua trong 2 prefab PopupRemoveAds đã unpack khỏi `Button Purchase.prefab` cũ |
+| Logic IAP dùng chung | Package `Assets/Packages/IAP` (`IAPManager`, `IAPProductConfig`), xem [IAP.md](IAP.md). Đã xóa toàn bộ `Assets/_Toolkit` (2026-11-25) |
 
 Đã dời từ `_Hoang/Prefabs/UI/...`, `_Hoang/Prefabs/UI/Popup/Resources/PopupShop.prefab`, `HotPot/Prefabs/UI/NoAds|StarterPack/` và `_Hoang/Scripts/Runtime/UI/Popup/` (giữ `.meta`/GUID). Đã xóa `Shop Content.prefab` (không còn nơi dùng).
 
@@ -61,12 +61,12 @@ Asset (giá trị chép từ `Product Config Container` cũ, `UnlimitedLife` đ�
 
 | Asset | productId | Thưởng | Giá đề xuất |
 |---|---|---|---|
-| RemoveAds | removeads (NonConsumable) | — | $2.99 |
+| RemoveAds | removeads (NonConsumable) | — | $4.99 (theo mockup No ADS) |
 | RemoveAdsPack | removeadspack (NonConsumable) | 1000 coin, 1h, mỗi booster x1 | $4.99 |
 | SmallPack | smallpack | 5000 coin, mỗi booster x1, 2h | $4.99 |
 | MediumPack | mediumpack | 10000 coin, mỗi booster x2, 2h | $8.99 |
 | LargePack | bigpack | 25000 coin, mỗi booster x5, 6h | $19.99 |
-| StarterPack | beginnerpack | 1000 coin, 30m, mỗi booster x2 | $1.99 |
+| StarterPack | beginnerpack | 1000 coin, 1h, mỗi booster x1 (theo mockup) | $4.99 |
 | RevivePack | revivepack | 2000 coin, mỗi booster x1 (chưa có UI) | $1.99 |
 | BoosterPack | boosterpack | mỗi booster x2 (chưa có UI) | $2.99 |
 | CoinPack_1K … CoinPack_100K | 1kgold … 100kgold | 1000 / 5000 / 10000 / 25000 / 50000 / 100000 coin | $0.99 / 3.99 / 6.99 / 14.99 / 27.99 / 49.99 |
@@ -77,7 +77,7 @@ Booster cũ ánh xạ đúng theo `IAPManager.CollectReward` cũ: Booster1 → C
 
 - Luồng mua, restore, blocker và các trường hợp lỗi: xem [IAP.md](IAP.md). `IAPManager.packConfigs` chứa đủ 14 config; **thêm gói mới phải thêm asset vào danh sách này.**
 - `UI_IAP_Pack` (đổi tên từ `MonetToolkit.Pack`, giữ GUID, chuyển vào `HotPot/Scripts/UI/Shop/`) giữ `config`, `purchaseButton`, `priceText`, `packNameText`, `locationType`, `rewardSlots`. Mỗi `RewardSlot` = (`type` loại tài nguyên, `amountText`). `Init()` hiện tên, giá rồi `ShowRewardAmounts()`: mỗi ô tìm phần thưởng **cùng loại** trong `config.rewards` (không phụ thuộc thứ tự) và ghi `GetNormalValue()`; config không có loại đó thì ẩn chữ số của ô. Phần thưởng không có ô vẫn được cộng khi mua, chỉ không hiện số. Bấm nút → `OnClickPurchase()` gọi thẳng `IAPManager.Instance.Buy(config, locationType)` (listener nối trong `OnEnable`, gỡ trong `OnDisable`).
-- Đã xóa `ButtonPurchase` và `ButtonPurchaseSale` (cùng `Button Purchase Sale.prefab` không còn nơi dùng); `locationType` cũ được chép sang `UI_IAP_Pack` (các gói đang hiện trong Shop: `popup_shop`; `popup_beginner_pack` thuộc UI Starter Pack cũ đã xóa). Nút mua chỉ có `UIButtonScaleEffect`, không còn lời gọi gắn trong Inspector.
+- Đã xóa `ButtonPurchase` và `ButtonPurchaseSale` (cùng `Button Purchase Sale.prefab` không còn nơi dùng); `locationType` cũ được chép sang `UI_IAP_Pack` (các gói đang hiện trong Shop: `popup_shop`; `popup_starter_pack` (trước là `popup_beginner_pack`) dùng cho PopupStarterPack). Nút mua chỉ có `UIButtonScaleEffect`, không còn lời gọi gắn trong Inspector.
 - Icon booster trong các gói đổi sang sprite FoodPop `HotPot/Art/Sprites/UI/Boosters/` (`sweep`, `shuffle`, `pickup`, `order`) theo thứ tự thưởng trong config.
 - `PopupShop.packs` giữ 11 `UI_IAP_Pack`; 6 gói Coin trong `Group_CoinPacks` là instance `CoinPack.prefab`, mỗi instance gán config 1K…100K và tên `UIShop_CoinPack_<n>`. Component `Shop` (toolkit) đã bỏ khỏi prefab và `Shop.cs` đã xóa.
 - Đã sửa lỗi cũ: mạng vô hạn trước đây cộng nguyên số giây vào hàm tính phút (3600 → 3600 phút).
@@ -101,7 +101,24 @@ Icon booster đặt theo thứ tự thưởng trong config: Clean, Shuffle, Pick
 
 ## Còn lại
 
-- Luồng IAP chưa chuyển hoàn toàn sang FoodPop.UIManager: `HandlePurchaseComplete` gọi `global::UIManager.Ins.OpenPopup(PopupId.PurchaseSuccess)` trước khi tra config và cấp thưởng; đường lỗi gọi PurchaseFail, BoosterPack còn đóng MoreBooster qua manager cũ. Scene Home mới không có manager này. Đây là điểm tích hợp chưa hoàn tất, không thể coi bảng config/cấp thưởng trong tài liệu là giao dịch đã chạy thành công.
+- IAP hiện dùng `Assets/Packages/IAP/Runtime/IAPManager.cs` với callback thành công/thất bại; không còn gọi UIManager/PopupId cũ. Chưa kiểm thử giao dịch qua store thật trong phiên dọn legacy này.
 - `Product Config Container.asset`, `ProductConfig`, `RewardConfig`, `RewardType` không còn dùng cho mua hàng.
-- Prefab còn phụ thuộc `_Hoang`: font `fredoka-one ... SDF` + material outline ở chữ giá, `TMP.prefab` của `_Hoang/1_SharedModules`, `Blink.prefab`, `Coin Display`.
-- `HotPot/Prefabs/UI/NoAds/PopupRemoveAds.prefab` không còn nơi dùng (`UI_IAP_Pack` chưa gán config); `PopupId.Shop/RemoveAds/StarterPack` không còn được gọi (trừ `PopupMoreLives.cs` cũ).
+- Đã gỡ phụ thuộc _Hoang (26/11/2026): Coin Display trong PopupShop dùng `FoodPop.UIHome_Coin`; font/material dùng asset HotPot. Blink và Explosion Yellow nằm trong `Assets/HotPot/Prefabs/UI/Effects/`, kèm sprite/material HotPot. Quét AssetDatabase không còn dependency tới _Hoang; chưa kiểm thử mua hàng/hiệu ứng thưởng trong phiên này.
+- Đã xóa (2026-11-25) prefab `HotPot/Prefabs/UI/NoAds/PopupRemoveAds.prefab` và script `_Hoang/.../PopupRemoveAds.cs` vì trùng với PopupNoAds; `PopupId.Shop/RemoveAds/StarterPack` không còn được gọi.
+
+## Popup No ADS và Starter Pack (2026-11-25)
+
+Dựng theo mockup 3 popup (No ADS, Starter Pack, Daily Rewards); sprite do Codex tạo (prompt: [PopupNoAdsStarterDaily_prompts.md](../Design/Prompts/PopupNoAdsStarterDaily_prompts.md)), ảnh thô ở `tmp/popup_art/raw/`, đã cắt nền thừa, thu nhỏ và thêm viền cho kích thước chia hết cho 4 (ETC2).
+
+| Popup | Script | Prefab | Sprite |
+|---|---|---|---|
+| No ADS | `Assets/HotPot/Scripts/UI/Shop/PopupNoAds.cs` | `Assets/HotPot/Prefabs/UI/NoAds/PopupNoAds.prefab` | `Assets/HotPot/Art/Sprites/UI/no ads/` (art chính thức: pop, roof_decor, ads_center, flower_decor, sale_ic, tile_board, exie) |
+| Starter Pack | `Assets/HotPot/Scripts/UI/Shop/PopupStarterPack.cs` | `Assets/HotPot/Prefabs/UI/StarterPack/PopupStarterPack.prefab` | `Assets/HotPot/Art/Sprites/UI/starter_pack/` (art chính thức: BG (kệ sau), chef, table (quầy trước), roof_decor, lantern, light_effect, plate_conveyor, flower_decor, tile_board, exie; thứ tự lớp Img_Bg → Img_Chef → Img_Table → Group_Rewards; icon tim vô cực dùng chung `UI/Shop/live.png` của shop) |
+
+`PopupStarterPack` lấy giá và phần thưởng từ config gán trên `UI_IAP_Pack` (`Config/Shop/StarterPack.asset`); muốn đổi dữ liệu thì sửa asset đó. Nền `BlackBG` của các popup để alpha 250/255.
+
+- Cả hai kế thừa `UICanvasPrime` (Canvas order 30000, card = `Box`, mở/đóng có hiệu ứng), đăng ký trong `UIRef_Home.asset`, mở từ `UIHome_NoAds` / `UIHome_StarterPack` ở Home.
+- Gói IAP là `UI_IAP_Pack` trên `Box`: No ADS dùng config `RemoveAds` (`locationType` = popup_remove_ads), Starter Pack dùng `StarterPack` (popup_starter_pack) với 6 `rewardSlots` (Coin, Pickup, Clean, Shuffle, AutoComplete, UnlimitedLives) trên mặt quầy.
+- Tự đóng khi mua xong: lắng nghe `Observer.OnBoughtRemoveAdsAction` / `OnBoughtStarterPackAction`.
+- Chữ ("No ADS", "Starter Pack", "50% OFF", mô tả, giá) đều là TMP; dùng chung bảng tên hồng `NoAds/noads_sign.png` cho cả hai.
+- Kiểm chứng: biên dịch không lỗi, render prefab 1080×1920 trong Editor khớp bố cục mockup. **Chưa** chạy Play Mode / mua thử. Starter Pack chưa có cột gỗ nối mái với quầy như mockup.

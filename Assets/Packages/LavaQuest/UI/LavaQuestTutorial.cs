@@ -4,8 +4,10 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class LavaQuestTutorial : SingletonMonoBehaviour<LavaQuestTutorial>
+public class LavaQuestTutorial : MonoBehaviour
 {
+    public static LavaQuestTutorial Ins { get; private set; }
+
     public Transform canvas;
     public CanvasGroup blackCanvasGroup;
     public float arrowSpacing = 100f;
@@ -13,6 +15,13 @@ public class LavaQuestTutorial : SingletonMonoBehaviour<LavaQuestTutorial>
     [Header("BUTTON LAVA QUEST:")]
     public RectTransform cloneButtonLavaQuestRectTF;
     public RectTransform arrowButtonLavaQuestRectTF;
+
+    // EN: Registers this scene tutorial as the shared instance.
+    // VI: Đăng ký hướng dẫn trong scene làm instance dùng chung.
+    private void Awake()
+    {
+        Ins = this;
+    }
 
     private void Start()
     {
@@ -31,7 +40,6 @@ public class LavaQuestTutorial : SingletonMonoBehaviour<LavaQuestTutorial>
         LavaQuestButtonHome homeBtn = FindFirstObjectByType<LavaQuestButtonHome>();
         if (homeBtn == null) return;
 
-        UIManager.Ins.EnableBlocker(true);
         ShowBlack(true, true);
 
         cloneButtonLavaQuestRectTF = Instantiate(homeBtn.transform as RectTransform);
@@ -55,7 +63,6 @@ public class LavaQuestTutorial : SingletonMonoBehaviour<LavaQuestTutorial>
 
         DOVirtual.DelayedCall(Time.deltaTime, () =>
         {
-            UIManager.Ins.EnableBlocker(false);
             if (arrowButtonLavaQuestRectTF != null)
             {
                 arrowButtonLavaQuestRectTF.gameObject.SetActive(true);

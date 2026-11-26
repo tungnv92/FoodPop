@@ -8,7 +8,7 @@ Kiểm chứng: biên dịch không lỗi, render prefab trong Editor khớp moc
 
 - Script `Assets/HotPot/Scripts/UI/PopupMoreLife.cs` (`FoodPop.PopupMoreLife : UICanvasPrime`).
 - Prefab `Assets/HotPot/Prefabs/UI/MoreLife/PopupMoreLife.prefab`, đăng ký trong `Assets/HotPot/Config/UI/UIRef_Home.asset` (Home) và `UIRef.asset` (ingame).
-- Mở bằng `FoodPop.UIManager.Instance.OpenUI<FoodPop.PopupMoreLife>()` từ `LifeDisplay.OpenBuy` (nút + mạng, bỏ qua khi vô hạn/đầy) và `PlayButton.OnClick` (bấm Play khi không đủ mạng).
+- Mở bằng `FoodPop.UIManager.Instance.OpenUI<FoodPop.PopupMoreLife>()` từ `LifeDisplay.OpenBuy` (nút + mạng, bỏ qua khi vô hạn/đầy). `PlayButton` cũ của `_Hoang` không nằm trong scene/prefab nào và đã xóa ngày 25/11.
 - Dữ liệu: `HeartFeature` — `GetHeartDisplay()` trả (số mạng, thời gian hồi kế tiếp / "FULL"), `AddHeart()`; giá lấy từ `HeartConfig.refillGoldCost` (900). Không dùng `GameManager.Config.RefillLivesPrice`.
 
 Luồng:
@@ -41,6 +41,6 @@ Sprite đều trong `Assets/HotPot/Art/Sprites/UI/...` (và `Ingame/ic_coin.png`
 
 ## Còn lại
 
-- `_Hoang/Scripts/Runtime/UI/Popup/PopupMoreLives.cs`, `PopupId.MoreLife` và `GameManager.Config.RefillLivesPrice` không còn được popup này dùng.
+- `_Hoang/Scripts/Runtime/UI/Popup/PopupMoreLives.cs` đã xóa ngày 25/11; `PopupId.MoreLife` và `GameManager.Config.RefillLivesPrice` không còn được popup này dùng.
 - Hết xu ở Home chưa có phản hồi (Home không có `ShortMessageView`, chưa nối Shop).
 - Chưa nối SDK quảng cáo cho Watch.

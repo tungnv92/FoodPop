@@ -2,7 +2,7 @@
 
 Trạng thái đối chiếu 2026-11-25. Dựng theo mockup màn Home (ảnh tham khảo người dùng gửi, không đưa vào project). Popup kế thừa `FoodPop.UICanvasPrime` như [DailyLoginPopup.md](DailyLoginPopup.md), nhưng là **màn nền** toàn màn hình.
 
-Kiểm chứng 23/11: đối chiếu script, prefab, scene và UIRef; Unity biên dịch sạch. Đã chạy Play Mode probe riêng taskbar cho nền chọn dùng chung và scale icon; chưa thử luồng vào màn chơi hoặc mua IAP. Instance `PopupHome` được đặt sẵn (đang bật) trong `Assets/HotPot/Scenes/Home.unity` dưới `UIManager (FoodPop)/Root`, không cần bước tạo hay mở; `OnEnable` tự hiện avatar và level. Scene Home không còn `HomePanel` / `UIManager` cũ của `_Hoang` (prefab `_Hoang/Prefabs/UI/UI Manager .prefab` không nằm trong scene nào, nên `global::UIManager.Ins` = null). Chưa kiểm tra toàn bộ màn Home trong Play Mode.
+Kiểm chứng 23/11: đối chiếu script, prefab, scene và UIRef; Unity biên dịch sạch. Đã chạy Play Mode probe riêng taskbar cho nền chọn dùng chung và scale icon; chưa thử luồng vào màn chơi hoặc mua IAP. Instance `PopupHome` được đặt sẵn (đang bật) trong `Assets/HotPot/Scenes/Home.unity` dưới `UIManager (FoodPop)/Root`, không cần bước tạo hay mở; `OnEnable` tự hiện avatar và level. Scene Home không còn `HomePanel` / `UIManager` cũ của `_Hoang` (prefab `_Hoang/Prefabs/UI/UI Manager .prefab` không nằm trong scene nào và đã xóa ngày 25/11, nên `global::UIManager.Ins` = null). Chưa kiểm tra toàn bộ màn Home trong Play Mode.
 
 ## File
 
@@ -62,14 +62,14 @@ Chấm báo `Img_Badge` (`UI/Home/!.png`) của các nút bên có `UIBadgeEffec
 
 | Phần | Nguồn / hành động |
 |---|---|
-| Avatar | `UserProfileFeature.GetAvatarSprite(AvatarId)`, làm mới trong `OnEnable` khi màn được bật; nút chưa nối (popup Profile còn ở hệ UI cũ, không có trong scene) |
+| Avatar | `UserProfileFeature.GetAvatarSprite(AvatarId)`, làm mới trong `OnEnable` khi màn được bật; nút chưa nối; UI Profile cũ đã xóa, module dữ liệu và sprite vẫn giữ |
 | Mạng | `UIHome_Life` tự xử lý: `OnEnable` hiện ngay và làm mới mỗi giây (thời gian thực) qua `HeartFeature.GetHeartDisplay()`, đầy mạng hiện "Max"; bấm vào bất kỳ đâu trong khối (`lifeButton` trên `Group_Life`) thì rung rồi mở `PopupMoreLife` (bỏ qua khi vô hạn/đầy). `PopupHome` không còn giữ ref hay logic mạng |
 | Coin | `UIHome_Coin` tự xử lý: `OnEnable` đăng ký `PlayerDataManager.RegisterResourceChange(Coin)` và hiện số dư, `OnDisable` gỡ; bấm vào bất kỳ đâu trong khối (`coinButton` trên `Group_Coin`) thì rung rồi `PopupShop.ShowCoins()`. `PopupHome` không còn giữ ref hay logic Coin |
 | Cài đặt | `UIHome_Setting`: bấm có scale, rung rồi `OpenUI<PopupSetting>()`. `PopupSetting` dựng từ bản sao `PausePopup` (bỏ nút Home/Restart; `PopupBG` kiểu Sliced cao 640, viền sprite `popup setting.png` = 120): 3 dòng Music/Sound/Vibration bật/tắt qua `PlayerDataManager.SetMusicEnabled` / `SetSoundEnabled` / `SetVibrationEnabled`, theo dõi `PlayerDataManager.StateChanged`; nút `BtnRestorePurchase` (`restoreButton`) chỉ hiện khi build iOS (`#if UNITY_IOS`), bấm gọi `IAPManager.RestorePurchases` rồi báo kết quả bằng `ShowShortMessage`; mở/đóng bằng `AnimateOpen` / `CloseWithAnimation`. Hệ cũ không có prefab `PopupSettings` nên đây là popup mới; đã xóa `SettingButton.cs` cũ (không nơi dùng) |
 | Daily reward | `UIHome_DailyReward` tự xử lý: chấm "!" hiện khi `DailyRewardFeature.IsGoodToClaim()`, kiểm tra lại mỗi giây (thời gian thực) vì quà miễn phí mở theo thời gian chờ. Bấm có hiệu ứng scale (`UIButtonScaleEffect`), rung rồi mở `PopupDailyReward` (đã chuyển sang `UICanvasPrime`, xem mục DailyReward trong [FeatureModules.md](FeatureModules.md)) |
 | Daily login | `UIHome_DailyLogin` tự xử lý: chấm "!" hiện khi `DailyGiftFeature.IsGoodToClaim()`, kiểm tra lại mỗi giây (theo kịp lượt nhận và sang ngày). Bấm có hiệu ứng scale, rung rồi `OpenUI<PopupDailyLogin>()` |
-| No ads | `UIHome_NoAds` tự xử lý: tự ẩn khi `HasRemoveAds` (cập nhật ngay qua `Observer.OnBoughtRemoveAdsAction`); bấm có scale và rung, **chưa mở popup** (chưa có popup Xóa quảng cáo, để trống); chấm "!" tắt sẵn (nút mua, không có quà để nhận) |
-| Starter pack | `UIHome_StarterPack` tự xử lý: tự ẩn khi `PlayerDataManager.HasStarterPack` (cập nhật ngay qua `Observer.OnBoughtStarterPackAction`, phát trong `PlayerDataManager.OnBoughtStarterPack` sau khi lưu; `IAPManager` gọi hàm này khi mua `beginnerpack`). Bấm có scale và rung, **chưa mở popup** (chưa có popup Starter pack, để trống); nhãn "Starter pack"; chấm "!" tắt sẵn (nút mua, không có quà để nhận) |
+| No ads | `UIHome_NoAds` tự xử lý: tự ẩn khi `HasRemoveAds` (cập nhật ngay qua `Observer.OnBoughtRemoveAdsAction`); bấm có scale, rung rồi `OpenUI<PopupNoAds>()` (xem ShopPopups.md); chấm "!" tắt sẵn (nút mua, không có quà để nhận) |
+| Starter pack | `UIHome_StarterPack` tự xử lý: tự ẩn khi `PlayerDataManager.HasStarterPack` (cập nhật ngay qua `Observer.OnBoughtStarterPackAction`, phát trong `PlayerDataManager.OnBoughtStarterPack` sau khi lưu; `IAPManager` gọi hàm này khi mua `beginnerpack`). Bấm có scale, rung rồi `OpenUI<PopupStarterPack>()` (xem ShopPopups.md); nhãn "Starter pack"; chấm "!" tắt sẵn (nút mua, không có quà để nhận) |
 | Play | hồ sơ sẵn sàng + đủ mạng → `LoadSceneManager.Ins.LoadScene(SceneId.Game)`; thiếu mạng → `PopupMoreLife`. `Text_Level` = "Level N" |
 | Thanh tab | `UIHome_Taskbar` giữ 5 tab và theo dõi `PopupShop.VisibleChanged`: Shop đang mở → chọn Shop, đã đóng → chọn Home. Bấm Shop rung rồi mở `PopupShop.Show()` nếu chưa mở; bấm Home rung và `CloseUI<PopupShop>()`. Leaderboard/Journey/Events chỉ rung, chưa có màn. `UIHome_Taskbar` trượt nền chọn chung sang tab đích; `UIHome_Tab.SetSelected(bool, duration)` đồng thời chuyển độ rộng 1↔1.3, icon Y 120↔165, scale icon 90%↔100% và fade tên. Trạng thái đầu đặt ngay; các lần đổi chạy OutCubic unscaled trong `UIHome_Taskbar.transitionDuration` (0.22 s). Bấm đổi nhanh tiếp tục từ trạng thái đang hiển thị; giữ nguyên tab không chạy lại tween. Thứ tự con trong `Group_Taskbar` quyết định thứ tự tab. |
 
@@ -113,7 +113,7 @@ Rà soát ngày 25/11: đã đối chiếu hai script Home tab, ref `selectionBa
 
 ## Còn lại
 
-- Nút Avatar chưa làm gì: cần chuyển PopupProfile sang `UICanvasPrime`.
+- Nút Avatar chưa làm gì; PopupProfile cũ đã xóa, chưa có yêu cầu tạo UI thay thế.
 - `IAPManager` mới (2026-11-25) không còn gọi `global::UIManager.Ins` hay popup PurchaseSuccess/PurchaseFail; luồng mua thật trên thiết bị chưa kiểm chứng. Chi tiết trong [ShopPopups.md](ShopPopups.md#còn-lại).
 - Scene Home còn một instance `PopupShop` (tắt) đặt tay dưới `UIManager (FoodPop)/Root`; nay `UIManager` dùng chính instance này thay vì tạo từ `UIRef_Home`, nên sửa prefab PopupShop cần kiểm tra instance trong scene không ghi đè.
 - Đầu bếp đang là ảnh tĩnh (thư mục `anim home sushi` đã bị xóa).

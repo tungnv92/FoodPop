@@ -445,7 +445,6 @@ namespace GamePackages
             if (remaining.Hours > 0) return $"{remaining.Hours}h {remaining.Minutes:D2}m";
             return $"{remaining.Minutes:D2}:{remaining.Seconds:D2}";
         }
-
         #region Cheat / Debug
         // EN: Cheat: wins one level and opens the LavaQuest popup with the win animation.
         // VI: Cheat: thắng một màn và mở popup LavaQuest với hiệu ứng thắng.
@@ -453,7 +452,7 @@ namespace GamePackages
         public void AddWinStreak()
         {
             OnLevelWin(null);
-            UIManager.Ins.OpenPopup(PopupId.LavaQuest);
+            FoodPop.UIManager.Instance.OpenUI<LavaQuest>();
             LavaQuest.isWin = true;
         }
 
@@ -491,7 +490,7 @@ namespace GamePackages
                 OnLevelWin(null);
             }
 
-            UIManager.Ins.OpenPopup(PopupId.LavaQuest);
+            FoodPop.UIManager.Instance.OpenUI<LavaQuest>();
         }
 
         // EN: Cheat: clears the rejoin cooldown.
@@ -521,6 +520,7 @@ namespace GamePackages
             Data.Reset();
             Save();
         }
+
         #endregion
     }
 }

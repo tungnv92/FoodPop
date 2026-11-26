@@ -53,7 +53,6 @@ namespace FoodPop
             priceText.text = IAPManager.Instance.GetPrice(config);
             ShowRewardAmounts();
         }
-
         // EN: Fills each slot with the amount of the config reward of the same type, regardless of order; hides slots whose type the config does not grant.
         // VI: Ghi vào mỗi ô số lượng của phần thưởng cùng loại trong config, không phụ thuộc thứ tự; ẩn ô có loại mà config không có.
         private void ShowRewardAmounts()

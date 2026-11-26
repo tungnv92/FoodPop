@@ -5,7 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LavaQuestInfo : Popup
+public class LavaQuestInfo : FoodPop.UICanvasPrime
 {
     public List<GameObject> objs = new();
     public GameObject continueTmp;
@@ -15,9 +15,10 @@ public class LavaQuestInfo : Popup
     Coroutine showingRoutine;
     // EN: Opens the view using manager queries and commands instead of mutable save models.
     // VI: Mở giao diện bằng truy vấn và lệnh manager thay vì model lưu có thể sửa.
-    public override void Open(object args = null)
+    public override void Open()
     {
-        base.Open(args);
+        base.Open();
+        AnimateOpen();
         AnimShow();
         if (continueTmp != null) continueTmp.SetActive(false);
 
@@ -25,7 +26,7 @@ public class LavaQuestInfo : Popup
         {
             LavaQuestFeature.Instance.MarkInfoShown();
 
-            OnClose = () => UIManager.Ins.OpenPopup(PopupId.LavaQuest);
+            OnClose = () => FoodPop.UIManager.Instance.OpenUI<LavaQuest>();
         }
     }
 

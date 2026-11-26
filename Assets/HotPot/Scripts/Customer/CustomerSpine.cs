@@ -16,6 +16,7 @@ namespace FoodPop
         [SerializeField] private MeshRenderer meshRenderer;
 
         private string currentAnimation;
+        private bool physicsOff;
 
 #if UNITY_EDITOR
         // EN: Fills missing references from the parent sprite and this object's SkeletonAnimation and MeshRenderer.
@@ -28,13 +29,13 @@ namespace FoodPop
         }
 #endif
 
-        // EN: Prepares a waiting-queue body: builds the skeleton now (so pooled clones do not initialize mid-game) and turns off every physics constraint, which these small background customers do not need.
-        // VI: Chuẩn bị thân spine cho hàng chờ: dựng skeleton ngay (để bản nhân bản trong pool không khởi tạo giữa lúc chơi) và tắt mọi ràng buộc physics, vốn không cần cho khách nhỏ phía sau.
+        // EN: Prepares a waiting-queue body: builds the skeleton now (so pooled clones do not initialize mid-game) and turns off every physics constraint, which these small background customers do not need (also after later character swaps).
+        // VI: Chuẩn bị thân spine cho hàng chờ: dựng skeleton ngay (để bản nhân bản trong pool không khởi tạo giữa lúc chơi) và tắt mọi ràng buộc physics, vốn không cần cho khách nhỏ phía sau (kể cả sau khi đổi nhân vật).
         public void PrepareForQueue()
         {
             skeleton.Initialize(false);
-            foreach (Spine.PhysicsConstraint constraint in skeleton.Skeleton.PhysicsConstraints)
-                constraint.Mix = 0f;
+            physicsOff = true;
+            DisablePhysics();
         }
 
         // EN: Shows the spine instead of the host sprite (or the sprite again), copying the host's sorting so layering stays the same.
@@ -47,6 +48,19 @@ namespace FoodPop
                 return;
             meshRenderer.sortingLayerID = host.sortingLayerID;
             meshRenderer.sortingOrder = host.sortingOrder;
+        }
+
+        // EN: Switches this body to another customer character (rebuilding the skeleton only when the character changes); the next Play starts fresh and queue bodies keep physics off.
+        // VI: Đổi thân spine này sang nhân vật khách khác (chỉ dựng lại skeleton khi nhân vật đổi); lần Play kế tiếp phát lại từ đầu và thân ở hàng chờ vẫn tắt physics.
+        public void SetSkeletonData(SkeletonDataAsset data)
+        {
+            if (skeleton.skeletonDataAsset == data)
+                return;
+            skeleton.skeletonDataAsset = data;
+            skeleton.Initialize(true);
+            currentAnimation = null;
+            if (physicsOff)
+                DisablePhysics();
         }
 
         // EN: Returns the played entry, optionally starting a new loop at a random phase; existing matching loops keep their timing.
@@ -67,6 +81,14 @@ namespace FoodPop
         public void SetTint(Color color)
         {
             skeleton.Skeleton.SetColor(color);
+        }
+
+        // EN: Turns off every physics constraint of the current skeleton.
+        // VI: Tắt mọi ràng buộc physics của skeleton hiện tại.
+        private void DisablePhysics()
+        {
+            foreach (Spine.PhysicsConstraint constraint in skeleton.Skeleton.PhysicsConstraints)
+                constraint.Mix = 0f;
         }
     }
 }

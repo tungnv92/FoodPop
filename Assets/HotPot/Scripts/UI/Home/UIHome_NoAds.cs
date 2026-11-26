@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 namespace FoodPop
 {
-    // EN: No ads button on the Home screen: hides itself once Remove Ads is owned and handles the tap; the Remove Ads popup does not exist yet, so the tap only plays haptics.
-    // VI: Nút No ads trên màn Home: tự ẩn khi đã sở hữu Xóa quảng cáo và xử lý khi bấm; chưa có popup Xóa quảng cáo nên bấm chỉ phát rung.
+    // EN: No ads button on the Home screen: hides itself once Remove Ads is owned and opens the No ADS popup when tapped.
+    // VI: Nút No ads trên màn Home: tự ẩn khi đã sở hữu Xóa quảng cáo và mở popup No ADS khi bấm.
     [DisallowMultipleComponent]
     public sealed class UIHome_NoAds : MonoBehaviour
     {
@@ -42,11 +42,12 @@ namespace FoodPop
             gameObject.SetActive(!playerData.HasRemoveAds);
         }
 
-        // EN: Plays haptics; opening the Remove Ads popup is left empty until that popup exists.
-        // VI: Phát rung; phần mở popup Xóa quảng cáo để trống tới khi có popup đó.
+        // EN: Plays haptics and opens the No ADS popup.
+        // VI: Phát rung và mở popup No ADS.
         private void OnClickNoAds()
         {
             if (playerData.isVibrateOn) HapticPatterns.PlayEmphasis(0.8f, 0.5f);
+            UIManager.Instance.OpenUI<PopupNoAds>();
         }
     }
 }

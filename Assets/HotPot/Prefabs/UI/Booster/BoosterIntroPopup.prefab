@@ -704,15 +704,15 @@ MonoBehaviour:
   secondaryButton: {fileID: 0}
   statusLabel: {fileID: 0}
   unavailableStatus: 
-  boosterName: {fileID: 777959530226824809}
-  description: {fileID: 422218608042010043}
+  boosterNameLabel: {fileID: 777959530226824809}
+  descriptionLabel: {fileID: 422218608042010043}
   boosterIcon: {fileID: 1818566514731330097}
   rays: {fileID: 3832722697629526466}
   raySpeed: 36
   bobHeight: 12
   bobPeriod: 2.4
-  scrim: {fileID: 3345248170241842817}
-  scrimFade: 0.3
+  blackBackground: {fileID: 3345248170241842817}
+  blackFadeDuration: 0.3
   cardDelay: 0.15
   cardDuration: 0.45
   iconDelay: 0.45
@@ -961,7 +961,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.07, g: 0.04, b: 0.02, a: 0.75}
+  m_Color: {r: 0.07, g: 0.04, b: 0.02, a: 0.98039216}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
