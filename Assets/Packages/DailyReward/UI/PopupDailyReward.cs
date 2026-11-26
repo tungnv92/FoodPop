@@ -85,36 +85,41 @@ public sealed class PopupDailyReward : FoodPop.UICanvasPrime
         }
     }
 
-    // EN: Grants the stage reward and records the ad completion through optional IRecordTracking after a rewarded ad finishes.
-    // VI: Cộng thưởng của stage và ghi nhận hoàn tất quảng cáo qua IRecordTracking tùy chọn sau khi xem xong quảng cáo nhận thưởng.
+    // EN: Grants the stage reward and, only when the claim was accepted, records the ad completion through optional IRecordTracking after a rewarded ad finishes.
+    // VI: Cộng thưởng của stage và, chỉ khi lượt nhận hợp lệ, ghi nhận hoàn tất quảng cáo qua IRecordTracking tùy chọn sau khi xem xong quảng cáo nhận thưởng.
     private void OnClaimAdsSuccess(DailyRewardConfig config)
     {
-        OnClaimReward(config);
+        if (!OnClaimReward(config)) return;
         ProfileManager.instance.Features.Get<IRecordTracking>()?.RecordAdsReward();
     }
 
-    // EN: Grants and saves the stage's reward immediately, then records the claim on the feature (which refreshes the popup).
-    // VI: Cộng và lưu thưởng của stage ngay, rồi ghi nhận lượt nhận vào tính năng (tính năng sẽ làm mới popup).
-    private void OnClaimReward(DailyRewardConfig config)
+    // EN: Claims the stage through the feature, which rejects stages that are not claimable now; when accepted it grants the reward (one profile save stores both the reward and the claim) and plays feedback.
+    // VI: Nhận stage qua tính năng, tính năng từ chối stage chưa nhận được; khi hợp lệ thì cộng thưởng (một lần lưu hồ sơ lưu cả phần thưởng lẫn lượt nhận) và phát phản hồi.
+    private bool OnClaimReward(DailyRewardConfig config)
     {
+        if (!dailyReward.TryClaimStage(config.stageID, () => GrantReward(config.reward))) return false;
         PlayHaptic();
+        PlayUISound(FoodPop.IngameSoundManager.Event.ItemBought);
+        return true;
+    }
+
+    // EN: Adds the reward to the player through the matching resource API, which saves the whole profile once.
+    // VI: Cộng phần thưởng cho người chơi qua API tài nguyên tương ứng, API này lưu toàn bộ hồ sơ một lần.
+    private void GrantReward(ResourceGame reward)
+    {
         const string placement = "daily_reward";
-        ResourceType type = config.reward.type;
-        int value = config.reward.value;
-        switch (type)
+        switch (reward.type)
         {
             case ResourceType.Coin:
-                playerData.OnAddCoin(value, placement);
+                playerData.OnAddCoin(reward.value, placement);
                 break;
             case ResourceType.UnlimitedLives:
-                playerData.AddUnlimitedLiveTime(value, placement);
+                playerData.AddUnlimitedLiveTime(reward.value, placement);
                 break;
             default:
-                playerData.OnAddBooster(type, value, placement);
+                playerData.OnAddBooster(reward.type, reward.value, placement);
                 break;
         }
-        PlayUISound(FoodPop.IngameSoundManager.Event.ItemBought);
-        dailyReward.OnClaimStage(config.stageID);
     }
 
     // EN: Closes the popup with the shared exit animation.

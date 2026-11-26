@@ -7,8 +7,12 @@ namespace GamePackages
     // Thưởng hằng ngày: phần thưởng miễn phí có thời gian chờ giữa các lần nhận và chuỗi thưởng xem quảng cáo, đặt lại mỗi ngày. Mọi thời gian lấy từ TimeManager (Services.Time).
     public class DailyRewardFeature : FeatureManager<DailyRewardData, DailyRewardGlobalConfig>, IFeatureNewDay
     {
-        public static int totalAbleFreeClaim = 3;
-        public static int totalAbleAdsClaim = 4;
+        // EN: Free claims allowed per day, one per configured free reward.
+        // VI: Số lượt nhận miễn phí mỗi ngày, bằng số phần thưởng miễn phí trong config.
+        public int TotalAbleFreeClaim => Config.free_rewards.Count;
+        // EN: Ad claims allowed per day, one per configured ad reward.
+        // VI: Số lượt nhận quảng cáo mỗi ngày, bằng số phần thưởng quảng cáo trong config.
+        public int TotalAbleAdsClaim => Config.ads_rewards.Count;
 
         public static DailyRewardFeature Instance => ProfileManager.instance.Features.Get<DailyRewardFeature>();
         // EN: Reads the free reward claim count without exposing the model.
@@ -24,11 +28,12 @@ namespace GamePackages
             return Config.isFeatureEnabled;
         }
 
-        // EN: Resets today's claims and the free-reward cooldown.
-        // VI: Đặt lại lượt nhận trong ngày và thời gian chờ của thưởng miễn phí.
+        // EN: Resets today's claims and the free-reward cooldown, then notifies listeners so an open popup refreshes every stage.
+        // VI: Đặt lại lượt nhận trong ngày và thời gian chờ của thưởng miễn phí, rồi báo listener để popup đang mở làm mới mọi stage.
         public void OnNewDay()
         {
             Data.Reset();
+            onClaimedAction?.Invoke();
         }
 
         // EN: Returns whether a stage is already claimed (stage 0 = free; also blocked while its cooldown runs, with the remaining time in blockTime).
@@ -38,7 +43,7 @@ namespace GamePackages
             blockTime = "";
             if (stage == 0)
             {
-                if (Data.totalFreeClaimed >= totalAbleFreeClaim)
+                if (Data.totalFreeClaimed >= TotalAbleFreeClaim)
                 {
                     return true;
                 }
@@ -61,30 +66,16 @@ namespace GamePackages
             return Data.totalAdsClaimed == stage - 1;
         }
 
-        // EN: Records a claim for the stage, starts the free-reward cooldown when another free claim remains, notifies listeners and saves.
-        // VI: Ghi nhận lượt nhận của stage, bắt đầu thời gian chờ thưởng miễn phí khi còn lượt miễn phí, báo cho listener và lưu.
-        public void OnClaimStage(int stage)
+        // EN: Claims a stage only when it is claimable now (free stage off cooldown, or the next ad stage): records the claim, runs grantReward (whose single profile save also stores this claim) and notifies listeners. Returns false and grants nothing otherwise.
+        // VI: Chỉ nhận stage khi đang nhận được (stage miễn phí hết thời gian chờ, hoặc stage quảng cáo kế tiếp): ghi lượt nhận, chạy grantReward (lần lưu hồ sơ duy nhất của nó lưu luôn lượt nhận này) và báo listener. Trả false và không cộng gì nếu không hợp lệ.
+        public bool TryClaimStage(int stage, UnityAction grantReward)
         {
-            switch (stage)
-            {
-                case 0:
-                    Data.totalFreeClaimed++;
-                    if (Data.totalFreeClaimed < totalAbleFreeClaim && Data.totalFreeClaimed < Config.free_rewards.Count)
-                    {
-                        int cappingTimeFree = Config.free_rewards[Data.totalFreeClaimed].cappingTimeFree;
-                        Data.nextFreeClaimTime = TimeUtil.DateTimeToString(Services.Time.GetNow().AddSeconds(cappingTimeFree));
-                    }
-                    break;
-
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                    Data.totalAdsClaimed++;
-                    break;
-            }
+            bool claimable = stage == 0 ? !IsClaimedStage(0, out _) : IsEnableClaimAds(stage);
+            if (!claimable) return false;
+            RecordClaim(stage);
+            grantReward.Invoke();
             onClaimedAction?.Invoke();
-            Save();
+            return true;
         }
 
         // EN: Returns the reward config of a stage (stage 0 = the current free reward).
@@ -99,7 +90,7 @@ namespace GamePackages
         // VI: Trả về giá trị thanh tiến trình nhận thưởng quảng cáo trong khoảng 0..1.
         public float GetProcessAdsClaim()
         {
-            return Mathf.Clamp01((float)(Data.totalAdsClaimed - 1) / (float)(totalAbleAdsClaim - 1));
+            return Mathf.Clamp01((float)(Data.totalAdsClaimed - 1) / (float)(TotalAbleAdsClaim - 1));
 
         }
 
@@ -114,8 +105,8 @@ namespace GamePackages
         // VI: Trả về hiện có phần thưởng nào nhận được không (thưởng miễn phí hết thời gian chờ, hoặc còn thưởng quảng cáo).
         public bool IsGoodToClaim()
         {
-            if (Data.totalFreeClaimed < totalAbleFreeClaim && GetFreeCooldownSeconds() <= 0) return true;
-            if (Data.totalAdsClaimed < totalAbleAdsClaim) return true;
+            if (Data.totalFreeClaimed < TotalAbleFreeClaim && GetFreeCooldownSeconds() <= 0) return true;
+            if (Data.totalAdsClaimed < TotalAbleAdsClaim) return true;
             return false;
         }
 
@@ -125,6 +116,30 @@ namespace GamePackages
         {
             if (string.IsNullOrEmpty(Data.nextFreeClaimTime)) return 0;
             return (TimeUtil.StringToDateTime(Data.nextFreeClaimTime) - Services.Time.GetNow()).TotalSeconds;
+        }
+
+        // EN: Updates today's claim counters and starts the next free-reward cooldown when another free claim remains; does not save.
+        // VI: Cập nhật bộ đếm lượt nhận trong ngày và bắt đầu thời gian chờ thưởng miễn phí kế tiếp khi còn lượt; không lưu.
+        private void RecordClaim(int stage)
+        {
+            switch (stage)
+            {
+                case 0:
+                    Data.totalFreeClaimed++;
+                    if (Data.totalFreeClaimed < TotalAbleFreeClaim)
+                    {
+                        int cappingTimeFree = Config.free_rewards[Data.totalFreeClaimed].cappingTimeFree;
+                        Data.nextFreeClaimTime = TimeUtil.DateTimeToString(Services.Time.GetNow().AddSeconds(cappingTimeFree));
+                    }
+                    break;
+
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                    Data.totalAdsClaimed++;
+                    break;
+            }
         }
     }
 }
